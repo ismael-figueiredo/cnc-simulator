@@ -209,3 +209,11 @@ Three separate files you can mix: the same machine with another control, or one 
 6. **Desktop:** open and save, auto-reload when the `.nc` changes, file associations, installer.
 7. **Server:** `/api/simulate` API and use from a browser on the shop network.
 8. **Importers and collision:** read FreeCAD posts and Fusion `.cps`; tool and holder collision with part, chuck and turret.
+
+## License
+
+Copyright (C) 2026 Ismael Figueiredo
+
+This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version. See [LICENSE](LICENSE).
+
+The control and machine manuals cited here belong to their makers and are not covered by this license.

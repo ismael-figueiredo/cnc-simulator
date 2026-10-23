@@ -9,7 +9,7 @@
     "name": "Ismael Figueiredo",
     "email": "maelio@live.com"
   },
-  "license": "UNLICENSED",
+  "license": "GPL-3.0-or-later",
   "engines": {
     "node": ">=22.12"
   },

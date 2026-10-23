@@ -74,3 +74,11 @@ Cada família de comando tem o seu catálogo de alarmes em `configs/alarms/`, e 
   3. registre o idioma em `LANGUAGES` (`src/i18n/index.ts`).
   - O compilador acusa se faltar ou sobrar alguma chave.
 - **Textos nos JSON** (`name`, `description`): podem ser uma string simples ou uma por idioma, como `{ "en": "Live tool", "pt-BR": "Ferramenta acionada" }`. Se faltar o idioma, usa o inglês.
+
+## Licença
+
+Copyright (C) 2026 Ismael Figueiredo
+
+Software livre sob a [GNU General Public License v3.0](LICENSE) ou, a seu critério, qualquer versão posterior. Você pode usar, modificar e redistribuir; quem distribuir uma versão modificada precisa publicar o código-fonte sob a mesma licença.
+
+Os manuais de comandos e máquinas citados aqui pertencem aos fabricantes e não estão cobertos por esta licença.
