@@ -219,3 +219,14 @@ button, select, input { font: inherit; color: inherit; }
 .zero-label { color: #f2c418; font: 11px 'Share Tech Mono', monospace; white-space: nowrap; pointer-events: none; }
 .tool-preview .insert { fill: #e3b23c; stroke: #f2c418; stroke-width: 1; }
 .tool-preview .tip { fill: #6fd3ff; }
+
+/* new program */
+.new-program { width: min(620px, 100%); }
+.new-program-body { padding: 12px 14px; display: flex; flex-direction: column; gap: 12px; overflow: auto; }
+.kinds { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.kind { display: flex; flex-direction: column; gap: 6px; text-align: left; padding: 12px; background: var(--raised); border: 1px solid var(--line); border-radius: 6px; cursor: pointer; }
+.kind span { font-size: 12.5px; color: var(--muted); }
+.kind.on { border-color: var(--accent); box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 35%, transparent); }
+.kind:disabled { opacity: .5; cursor: default; }
+.new-program-body label { max-width: 220px; }
+@media (max-width: 560px) { .kinds { grid-template-columns: 1fr; } }

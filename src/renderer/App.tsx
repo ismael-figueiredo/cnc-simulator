@@ -17,11 +17,14 @@ import {
   holderOf,
   loadProject,
   loadToolLibrary,
+  programTemplate,
   simulate,
+  supportsMacro,
   toolMount,
   workShift,
   type AlarmCatalog,
   type ConfigIssue,
+  type ProgramKind,
   type Control,
   type Diagnostic,
   type Machine,
@@ -38,6 +41,7 @@ import { ProgramEditor, type EditorHandle } from './components/ProgramEditor'
 import { Player } from './components/Player'
 import { PositionPanel } from './components/PositionPanel'
 import { StartScreen } from './components/StartScreen'
+import { NewProgramDialog } from './components/NewProgramDialog'
 import { StockEditor } from './components/StockEditor'
 import { ToolEditor } from './components/ToolEditor'
 import { WorkOffsetsEditor } from './components/WorkOffsetsEditor'
@@ -187,6 +191,7 @@ export function App() {
   const [editingTools, setEditingTools] = useState(false)
   const [editingStock, setEditingStock] = useState(false)
   const [editingOffsets, setEditingOffsets] = useState(false)
+  const [creating, setCreating] = useState(false)
 
   const lines = useMemo(() => (program?.text ?? '').replace(/\r/g, '').split('\n'), [program])
   /** First block of the program (skips the % leader and blank lines): where RESET puts the cursor. */
@@ -305,14 +310,37 @@ export function App() {
     const path = await window.api.saveProject({ project: data, projectPath: saveAs ? '' : (projectPath ?? ''), programPath: p.path }, saveAs)
     if (path) setProjectPath(path)
   }
+  /** File > New: asks plain or parametric first (NewProgramDialog). */
   function newProgram() {
-    if (!canDiscard()) return
-    // Skeleton in the selected control's format: % leader, program number, M30
-    const eob = control?.fileFormat?.eob === 'semicolon' ? ';' : ''
-    const text = ['%', `O0001 (${t('program.newComment')})${eob}`, '', `M30${eob}`, '%', ''].join('\n')
-    const p = { name: 'O0001.nc', path: '', text }
+    if (canDiscard()) setCreating(true)
+  }
+  function createProgram(kind: ProgramKind, number: number) {
+    setCreating(false)
+    if (!machine || !control) return
+    // Header written with the selected control's own codes, in its file format
+    const text = programTemplate(machine, control, kind, number, {
+      newProgram: t('template.newProgram'),
+      workZero: t('template.workZero'),
+      latheZero: t('template.latheZero'),
+      tool: t('template.tool'),
+      machineHere: t('template.machineHere'),
+      parameters: t('template.parameters'),
+      passes: t('template.passes'),
+      length: t('template.length'),
+      stepDown: t('template.stepDown'),
+      totalDepth: t('template.totalDepth'),
+      feed: t('template.feed'),
+      startDiameter: t('template.startDiameter'),
+      finalDiameter: t('template.finalDiameter')
+    })
+    const p = { name: `O${String(number).padStart(4, '0')}.nc`, path: '', text }
+    const s = { ...setup, workOffsets: {} }
     load(p, 'edit')
-    simulateWith(p, machine, control)
+    setSetup(s)
+    setProjectPath(null)
+    // A new program starts unsaved, so leaving it asks first
+    setDirty(true)
+    simulateWith(p, machine, control, s)
   }
   /** Saves the program; returns it with its new name and path, or null if cancelled. */
   async function save(saveAs: boolean): Promise<Program | null> {
@@ -885,6 +913,15 @@ export function App() {
           extended={machineKind === 'mill'}
           onApply={applyOffsets}
           onClose={() => setEditingOffsets(false)}
+        />
+      )}
+      {creating && machine && control && (
+        <NewProgramDialog
+          machine={machine.name}
+          control={control.name}
+          macro={supportsMacro(control)}
+          onCreate={createProgram}
+          onClose={() => setCreating(false)}
         />
       )}
       {editingTools && (
