@@ -81,3 +81,11 @@ describe('work offsets', () => {
     expect(workShift({}, 'G57')).toEqual({ X: 0, Y: 0, Z: 0 })
   })
 })
+
+describe('position system variables', () => {
+  it('follow the machine axis order: X Y Z on a mill', () => {
+    const r = run(['G54 G0 X10 Y20 Z5', '#100=#5002', '#101=#5003', '#102=#5022', 'G0 X#100 Y#101'], TWO_VISES)
+    // #5002 = Y 20, #5003 = Z 5, #5022 = machine Y 120
+    expect(r.variables.filter((v) => v.n >= 100).map((v) => [v.n, v.value])).toEqual([[100, 20], [101, 5], [102, 120]])
+  })
+})

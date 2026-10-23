@@ -297,13 +297,16 @@ export function simulate(input: SimulationInput): SimulationResult {
       if (n === 4109) return st.feed
       if (n === 4119) return st.spindleSpeed
       if (n === 4120) return st.tool
-      // #5001… absolute (work), #5021… machine, #5041… current position
-      if (n === 5001 || n === 5041) return absX()
-      if (n === 5002 || n === 5042) return pos.Z - shift.Z
-      if (n === 5003 || n === 5043) return programC()
-      if (n === 5021) return pos.X - machineZero.X
-      if (n === 5022) return pos.Z - machineZero.Z
-      if (n === 5023) return programC()
+      // #5001… absolute (work), #5021… machine, #5041… current position, for the n-th axis of the
+      // machine (X Z C on a lathe, X Y Z on a mill), as the control numbers its axes
+      const group = n >= 5001 && n <= 5060 ? Math.floor((n - 5001) / 20) : -1
+      const axis = group >= 0 ? machine.axes[(n - 5001) % 20]?.name : undefined
+      if (axis && isAxis(axis) && group !== 1) {
+        if (axis === 'X') return absX()
+        if (axis === 'C') return programC()
+        return pos[axis] - shift[axis]
+      }
+      if (axis && isAxis(axis)) return axis === 'C' ? programC() : pos[axis] - machineZero[axis]
       if (n === 3001 || n === 3002) return moves.length
       diag('warning', 'system-variable-not-simulated', { n }, n)
       return null
