@@ -1,0 +1,1365 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Simulador Fanuc</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: painel de máquina em 3 colunas — programa | gráfico | estado/configuração */
+:root{
+  --bg:#E6E9EC; --panel:#F6F7F8; --raised:#FFFFFF; --ink:#1A2026; --muted:#5A6570; --line:#C8CFD5;
+  --accent:#C77A00; --accent-ink:#FFFFFF; --canvas:#FAFBFB; --grid:#E1E5E9; --axis:#B7C0C8;
+  --feed:#1F67C4; --rapid:#C8402A; --comp:#C77A00; --stock:#BCC5CD; --toolc:#0E8A63;
+  --alarm:#B3261E; --warn:#9A6200; --info:#3E6A8A; --hl:#FFF1CC; --code-g:#1F67C4; --code-m:#8A3FA8; --code-v:#0E7A57; --code-c:#7B8790; --code-k:#B3261E;
+  --f-ui:"IBM Plex Sans Condensed", "Arial Narrow", system-ui, sans-serif;
+  --f-mono:"IBM Plex Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#101417; --panel:#171C20; --raised:#1E2429; --ink:#E2E7EB; --muted:#8D99A3; --line:#2B343B;
+  --accent:#F0A51E; --accent-ink:#1A1205; --canvas:#0C1013; --grid:#192026; --axis:#33404A;
+  --feed:#5EA4F2; --rapid:#F06B50; --comp:#F0B43A; --stock:#323C45; --toolc:#3FD19C;
+  --alarm:#FF7A70; --warn:#F0B43A; --info:#7FB2D6; --hl:#3A3018; --code-g:#7DB5F5; --code-m:#D39BEA; --code-v:#5FD3A6; --code-c:#6C7883; --code-k:#FF8A80;
+  color-scheme:dark }}
+:root[data-theme="dark"]{
+  --bg:#101417; --panel:#171C20; --raised:#1E2429; --ink:#E2E7EB; --muted:#8D99A3; --line:#2B343B;
+  --accent:#F0A51E; --accent-ink:#1A1205; --canvas:#0C1013; --grid:#192026; --axis:#33404A;
+  --feed:#5EA4F2; --rapid:#F06B50; --comp:#F0B43A; --stock:#323C45; --toolc:#3FD19C;
+  --alarm:#FF7A70; --warn:#F0B43A; --info:#7FB2D6; --hl:#3A3018; --code-g:#7DB5F5; --code-m:#D39BEA; --code-v:#5FD3A6; --code-c:#6C7883; --code-k:#FF8A80;
+  color-scheme:dark }
+[hidden]{display:none!important}
+html,body{height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-ui);font-size:14px;margin:0}
+*{box-sizing:border-box}
+button,select,input,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.app{height:100%;display:flex;flex-direction:column;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:10px;gap:10px}
+header{display:flex;flex-wrap:wrap;align-items:center;gap:10px 18px}
+.brand{display:flex;align-items:baseline;gap:10px;min-width:0}
+.brand h1{font-size:20px;font-weight:700;letter-spacing:.02em;margin:0;text-transform:uppercase}
+.brand span{color:var(--muted);font-size:13px}
+.tools{display:flex;flex-wrap:wrap;gap:6px;margin-left:auto}
+.btn{background:var(--raised);border:1px solid var(--line);border-radius:4px;padding:6px 11px;cursor:pointer;line-height:1.2;white-space:nowrap}
+.btn:hover{border-color:var(--muted)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:600}
+.btn.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.btn:disabled{opacity:.45;cursor:default}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:4px;overflow:hidden}
+.seg button{border:0;border-right:1px solid var(--line);background:var(--raised);padding:6px 11px;cursor:pointer}
+.seg button:last-child{border-right:0}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+main{flex:1;min-height:0;display:grid;grid-template-columns:minmax(260px,330px) minmax(0,1fr) minmax(250px,300px);gap:10px}
+.pane{background:var(--panel);border:1px solid var(--line);border-radius:6px;min-width:0;min-height:0;display:flex;flex-direction:column;overflow:hidden}
+.pane-h{display:flex;align-items:center;gap:8px;padding:7px 10px;border-bottom:1px solid var(--line);font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:600}
+.pane-h .grow{flex:1}
+.pane-h .btn{text-transform:none;letter-spacing:0;font-weight:500;padding:3px 8px;font-size:12px;color:var(--ink)}
+/* código */
+#code{flex:1;overflow:auto;font-family:var(--f-mono);font-size:12.5px;line-height:1.55;padding:4px 0;font-variant-numeric:tabular-nums}
+.cl{display:flex;white-space:pre;cursor:pointer;padding-right:10px}
+.cl:hover{background:color-mix(in srgb,var(--hl) 55%,transparent)}
+.cl.cur{background:var(--hl)}
+.cl .n{width:42px;flex:none;text-align:right;padding-right:10px;color:var(--muted);user-select:none;border-right:2px solid transparent;margin-right:8px}
+.cl.cur .n{border-right-color:var(--accent);color:var(--ink)}
+.cl.err .n{color:var(--alarm);font-weight:600}
+.cl.wrn .n{color:var(--warn)}
+.cl.hit .t{opacity:1}
+.cl:not(.hit) .t{opacity:.82}
+.tg{color:var(--code-g)} .tm{color:var(--code-m)} .tv{color:var(--code-v)} .tc{color:var(--code-c);font-style:italic} .tk{color:var(--code-k);font-weight:600}
+#editor{flex:1;border:0;resize:none;padding:8px 10px;font-family:var(--f-mono);font-size:12.5px;line-height:1.55;background:var(--raised);white-space:pre;overflow:auto}
+/* gráfico */
+.view{display:flex;flex-direction:column}
+.view-h{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:7px 10px;border-bottom:1px solid var(--line)}
+.view-h .hint{color:var(--muted);font-size:12px;margin-left:auto}
+.stage{position:relative;flex:1;min-height:260px;background:var(--canvas)}
+canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none;cursor:grab}
+.readout{position:absolute;left:10px;bottom:8px;font-family:var(--f-mono);font-size:11.5px;color:var(--muted);background:color-mix(in srgb,var(--canvas) 80%,transparent);padding:2px 6px;border-radius:3px;pointer-events:none}
+.legend{position:absolute;right:10px;top:8px;display:flex;flex-direction:column;gap:3px;font-size:11.5px;color:var(--muted);background:color-mix(in srgb,var(--canvas) 85%,transparent);padding:5px 8px;border-radius:4px;pointer-events:none}
+.legend i{display:inline-block;width:18px;height:0;border-top:2px solid;vertical-align:middle;margin-right:6px}
+.play{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:8px 10px;border-top:1px solid var(--line)}
+.play input[type=range]{flex:1;min-width:140px;accent-color:var(--accent)}
+.play .tm{font-family:var(--f-mono);font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+/* lateral */
+#side{overflow:auto}
+details{border-bottom:1px solid var(--line)}
+summary{cursor:pointer;padding:8px 10px;font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:600;list-style:none;display:flex;gap:6px;align-items:center}
+summary::before{content:"▸";font-size:10px;transition:transform .15s}
+details[open] summary::before{transform:rotate(90deg)}
+summary .cnt{margin-left:auto;font-family:var(--f-mono);text-transform:none;letter-spacing:0}
+.sec{padding:2px 10px 10px;display:flex;flex-direction:column;gap:6px}
+.dro{display:grid;grid-template-columns:auto 1fr;gap:2px 10px;font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.dro .k{color:var(--muted)} .dro .v{text-align:right}
+.dro .big{font-size:18px;font-weight:600}
+.chips{display:flex;flex-wrap:wrap;gap:4px}
+.chip{font-size:11.5px;padding:1px 7px;border-radius:10px;border:1px solid var(--line);color:var(--muted);font-family:var(--f-mono)}
+.chip.act{border-color:var(--accent);color:var(--ink);background:color-mix(in srgb,var(--accent) 18%,transparent)}
+.row{display:flex;align-items:center;gap:8px;justify-content:space-between}
+.row label{color:var(--ink)}
+.row input[type=number]{width:92px;padding:3px 6px;border:1px solid var(--line);border-radius:3px;background:var(--raised);text-align:right;font-family:var(--f-mono)}
+.row select{padding:3px 6px;border:1px solid var(--line);border-radius:3px;background:var(--raised)}
+.chk{display:flex;gap:7px;align-items:center;cursor:pointer}
+.chk input{accent-color:var(--accent)}
+.note{font-size:12px;color:var(--muted);line-height:1.4}
+textarea.small{width:100%;min-height:62px;border:1px solid var(--line);border-radius:3px;background:var(--raised);font-family:var(--f-mono);font-size:12px;padding:5px 7px;resize:vertical}
+table.vt{width:100%;border-collapse:collapse;font-family:var(--f-mono);font-size:12px;font-variant-numeric:tabular-nums}
+table.vt td{padding:1px 4px;border-bottom:1px solid var(--line)}
+table.vt td:last-child{text-align:right}
+table.vt input{width:70px;text-align:right;border:1px solid var(--line);border-radius:3px;background:var(--raised);padding:1px 4px;font-family:var(--f-mono)}
+.msg{display:flex;gap:6px;font-size:12.5px;line-height:1.35;padding:4px 0;border-bottom:1px solid var(--line);cursor:pointer}
+.msg b{font-family:var(--f-mono);font-weight:600;flex:none;min-width:38px}
+.msg.alarm b{color:var(--alarm)} .msg.warn b{color:var(--warn)} .msg.info b{color:var(--info)}
+.empty{color:var(--muted);font-size:12.5px}
+.drop{position:fixed;inset:0;background:color-mix(in srgb,var(--accent) 22%,transparent);border:3px dashed var(--accent);display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:600;z-index:20}
+.status{font-size:12.5px;color:var(--muted);font-family:var(--f-mono)}
+.status.bad{color:var(--alarm)}
+@media (max-width:1180px){
+  main{grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-rows:minmax(420px,62vh) auto}
+  .view{grid-column:1 / -1;order:-1}
+  #codePane,#side{max-height:520px}
+}
+@media (max-width:720px){
+  .app{height:auto}
+  main{display:flex;flex-direction:column}
+  .stage{min-height:340px;height:56vh;flex:none}
+  #codePane{height:360px} #side{max-height:none}
+  .view-h .hint{display:none}
+}
+@media (prefers-reduced-motion:reduce){summary::before{transition:none}}
+</style>
+
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="brand"><h1>Simulador Fanuc</h1><span>Torno · eixo C · Macro B · G12.1</span></div>
+    <div class="tools">
+      <input type="file" id="file" accept=".nc,.txt,.tap,.cnc,.min,.ngc,.iso,.prg,.ptp,.mpf,.eia,*" hidden>
+      <button class="btn" id="bOpen" title="Abrir arquivo do computador">Abrir arquivo</button>
+      <button class="btn" id="bSample" title="Carregar o programa O1500 da coroa">Exemplo O1500</button>
+      <button class="btn" id="bEdit" aria-pressed="false">Editar</button>
+      <button class="btn primary" id="bRun" title="Interpretar o programa (Ctrl+Enter)">Simular</button>
+    </div>
+  </header>
+  <main>
+    <section class="pane" id="codePane">
+      <div class="pane-h"><span id="fname">Programa</span><span class="grow"></span><span class="status" id="status"></span></div>
+      <div id="code" role="listbox" aria-label="Linhas do programa"></div>
+      <textarea id="editor" spellcheck="false" hidden aria-label="Editor do programa"></textarea>
+    </section>
+
+    <section class="pane view">
+      <div class="view-h">
+        <div class="seg" role="group" aria-label="Vista">
+          <button data-view="face" aria-pressed="true" title="Face da peça (plano X·C)">Face X·C</button>
+          <button data-view="side" aria-pressed="false" title="Lateral do torno (Z·X)">Lateral Z·X</button>
+          <button data-view="iso" aria-pressed="false" title="3D — arraste para girar">3D</button>
+        </div>
+        <button class="btn" id="bFit" title="Enquadrar (F)">Enquadrar</button>
+        <span class="hint">Arraste: mover · roda: zoom · clique: achar bloco · 3D: arraste gira, Shift+arraste move</span>
+      </div>
+      <div class="stage" id="stage">
+        <canvas id="cv"></canvas>
+        <div class="legend" id="legend">
+          <span><i style="border-color:var(--feed)"></i>Programado</span>
+          <span><i style="border-color:var(--comp)"></i>Centro da fresa (G41/G42)</span>
+          <span><i style="border-color:var(--rapid);border-top-style:dashed"></i>Rápido G0</span>
+        </div>
+        <div class="readout" id="readout"></div>
+      </div>
+      <div class="play">
+        <button class="btn" id="bStart" title="Início">⏮</button>
+        <button class="btn" id="bPrev" title="Movimento anterior (←)">◀</button>
+        <button class="btn primary" id="bPlay" title="Executar / pausar (espaço)">▶ Executar</button>
+        <button class="btn" id="bNext" title="Próximo movimento (→)">▶|</button>
+        <button class="btn" id="bEnd" title="Fim">⏭</button>
+        <input type="range" id="slider" min="0" max="10000" value="10000" aria-label="Posição da simulação">
+        <select id="speed" class="btn" aria-label="Velocidade">
+          <option value="1">1×</option><option value="5">5×</option><option value="20" selected>20×</option><option value="100">100×</option><option value="1000">1000×</option>
+        </select>
+        <span class="tm" id="ptime">0:00 / 0:00</span>
+      </div>
+    </section>
+
+    <aside class="pane" id="side">
+      <details open><summary>Posição e estado</summary>
+        <div class="sec">
+          <div class="dro">
+            <span class="k big">X</span><span class="v big" id="dX">—</span>
+            <span class="k big">Z</span><span class="v big" id="dZ">—</span>
+            <span class="k big">C</span><span class="v big" id="dC">—</span>
+            <span class="k">x,y face</span><span class="v" id="dXY">—</span>
+            <span class="k">Ferramenta</span><span class="v" id="dT">—</span>
+            <span class="k">Avanço</span><span class="v" id="dF">—</span>
+            <span class="k">Rotação</span><span class="v" id="dS">—</span>
+            <span class="k">Bloco</span><span class="v" id="dB">—</span>
+          </div>
+          <div class="chips" id="chips"></div>
+        </div>
+      </details>
+      <details open><summary>Mensagens <span class="cnt" id="msgCnt"></span></summary>
+        <div class="sec" id="msgs"></div>
+      </details>
+      <details><summary>Camadas</summary>
+        <div class="sec" id="layers"></div>
+      </details>
+      <details><summary>Ferramentas</summary>
+        <div class="sec">
+          <table class="vt" id="toolTable"></table>
+          <div class="note">Raio usado pelo G41/G42 e no desenho do material removido. Preenchido pelo comentário da linha do T, por exemplo "(FRESA 6MM)".</div>
+        </div>
+      </details>
+      <details><summary>Forçar variáveis</summary>
+        <div class="sec">
+          <textarea class="small" id="force" spellcheck="false" placeholder="#100=20"></textarea>
+          <div class="note">Uma por linha. O valor forçado vale do início ao fim e ignora as atribuições do programa. Serve para testar outro número de dentes sem editar o arquivo.</div>
+          <button class="btn" id="bForce">Aplicar e simular</button>
+        </div>
+      </details>
+      <details><summary>Configurações</summary>
+        <div class="sec" id="cfg"></div>
+      </details>
+      <details><summary>Variáveis <span class="cnt" id="varCnt"></span></summary>
+        <div class="sec"><div class="note">Valores no ponto atual da simulação.</div><table class="vt" id="varTable"></table></div>
+      </details>
+    </aside>
+  </main>
+</div>
+<div class="drop" id="drop" hidden>Solte o arquivo .nc aqui</div>
+
+<script>
+'use strict';
+const SAMPLE_NAME = 'O1500_COROA_ANSI40.nc';
+const SAMPLE = "%\nO1500 (COROA CORRENTE ANSI 40 - ROMI GL EIXO C);\n(ZERO PECA: X0 = CENTRO / Z0 = FACE / C0 = PRIMEIRO VAO);\n(T01 = FRESA 8MM AXIAL - ALIVIO / T02 = FRESA 6MM AXIAL - PERFIL);\n(T02: CORRETOR COM R=3.0 E T=0 PARA O G41);\n(=========== ALTERAR AQUI ===========);\n#100=15      (NUMERO DE DENTES);\n#103=7.7     (PROFUNDIDADE TOTAL DE CORTE);\n#104=2.0     (PROFUNDIDADE POR PASSE);\n(====================================);\n(--- CONSTANTES CORRENTE ANSI 40 - 1/2POL ---);\n#101=12.7    (PASSO);\n#102=7.9248  (DIAMETRO DO ROLO);\n#105=0.5     (FURO 8MM DESLOCADO P/ FORA DO PRIMITIVO);\n#107=2.      (APROXIMACAO EM Z);\n#110=60.     (AVANCO FURO 8MM MM/MIN);\n#111=250.    (AVANCO PERFIL 6MM MM/MIN);\n#112=150.    (AVANCO ENTRADA Z 6MM);\n#113=3000.   (AVANCO POSICIONAMENTO DENTRO DO G12.1);\nIF [#100 LT 9] THEN #3000=1 (MINIMO 9 DENTES);\n(--- GEOMETRIA ANSI B29.1 - VAO EM C0 - X EM RAIO, C EM MM ---);\n#120=180/#100                         (MEIO PASSO ANGULAR);\n#121=#101/[2*SIN[#120]]               (RAIO PRIMITIVO);\n#122=[1.005*#102+0.003]/2             (RAIO ASSENTO);\n#123=35+60/#100                       (ANGULO A);\n#124=18-56/#100                       (ANGULO B);\n#125=1.3025*#102+0.0015               (RAIO E - FLANCO);\n#126=#102*[0.8*COS[#124]+1.4*COS[17-64/#100]-1.3025]-0.0015 (RAIO F - TOPO);\n#127=#101*[0.6+COS[#120]/SIN[#120]]/2 (RAIO EXTERNO);\n#130=#121+0.8*#102*SIN[#123]          (CENTRO E X);\n#131=0.8*#102*COS[#123]               (CENTRO E C);\n#132=#121-1.4*#102*SIN[#120]          (CENTRO F X);\n#133=1.4*#102*COS[#120]               (CENTRO F C);\n#134=#121-#122*SIN[#123]              (P1 X - ASSENTO/E);\n#135=#122*COS[#123]                   (P1 C);\n#136=#130-#125*SIN[#123-#124]         (P2 X - E/RETA);\n#137=#125*COS[#123-#124]-#131         (P2 C);\n#138=#132+#126*SIN[#123-#124]         (P3 X - RETA/F);\n#139=#133-#126*COS[#123-#124]         (P3 C);\n#140=SQRT[#132*#132+#133*#133];\n#141=[#127*#127-#126*#126+#140*#140]/[2*#140];\n#142=SQRT[#127*#127-#141*#141];\n#143=[#141*#132+#142*#133]/#140       (P4 X - F/DIAM EXTERNO);\n#144=[#141*#133-#142*#132]/#140       (P4 C);\n#146=#143*[1+10/#127]                 (ENTRADA X - 10MM FORA);\n#147=#144*[1+10/#127]                 (ENTRADA C);\n#148=2*[#121+#105]                    (DIAMETRO X DO FURO 8MM);\nG21 G40 G90 G95;\n(=========== T01 - FRESA 8MM - FURO DE ALIVIO ===========);\nG53 X0 Z0;\nT0101 (FRESA 8MM);\nG97 S2=1200 M3 (FERRAMENTA ACIONADA);\nM19 (ATIVA EIXO C);\nG28 C0;\nG94;\nG0 X#148 Z#107 C0;\n#150=0;\nWHILE [#150 LT #100] DO1;\nG0 C[#150*360/#100];\nM85 (FREIO - G0 C CANCELA);\n#156=0;\nWHILE [#156 GT -#103] DO2;\nG0 Z[#156+0.5];\n#156=#156-#104;\nIF [#156 LT -#103] THEN #156=-#103;\nG1 Z#156 F#110;\nG0 Z#107;\nEND2;\n#150=#150+1;\nEND1;\nM5 (DESLIGA FERRAMENTA E FREIO);\nG53 X0 Z0;\n(=========== T02 - FRESA 6MM - PERFIL DO DENTE ===========);\nT0202 (FRESA 6MM);\nG97 S2=2000 M3;\nG94;\nG0 C0;\nG0 X[2*#146] Z#107;\nG12.1;\n#150=0;\nWHILE [#150 LT #100] DO1;\n#151=#150*360/#100;\n#160=COS[#151];\n#161=SIN[#151];\n(PONTOS GIRADOS - X EM DIAMETRO / C EM MM);\n#170=2*[#146*#160-#147*#161]          (ENTRADA X);\n#171=#146*#161+#147*#160              (ENTRADA C);\n#172=2*[#143*#160-#144*#161]          (P4 SUP);\n#173=#143*#161+#144*#160;\n#174=2*[#138*#160-#139*#161]          (P3 SUP);\n#175=#138*#161+#139*#160;\n#176=2*[#136*#160-#137*#161]          (P2 SUP);\n#177=#136*#161+#137*#160;\n#178=2*[#134*#160-#135*#161]          (P1 SUP);\n#179=#134*#161+#135*#160;\n#180=2*[#134*#160+#135*#161]          (P1 INF);\n#181=#134*#161-#135*#160;\n#182=2*[#136*#160+#137*#161]          (P2 INF);\n#183=#136*#161-#137*#160;\n#184=2*[#138*#160+#139*#161]          (P3 INF);\n#185=#138*#161-#139*#160;\n#186=2*[#143*#160+#144*#161]          (P4 INF);\n#187=#143*#161-#144*#160;\n#188=2*[#146*#160+#147*#161]          (SAIDA X);\n#189=#146*#161-#147*#160              (SAIDA C);\n#152=0;\nWHILE [#152 GT -#103] DO2;\n#152=#152-#104;\nIF [#152 LT -#103] THEN #152=-#103;\nG1 X#170 C#171 F#113;\nG1 Z#152 F#112;\nG41 G1 X#172 C#173 F#111;\nG2 X#174 C#175 R#126;\nG1 X#176 C#177;\nG3 X#178 C#179 R#125;\nG3 X#180 C#181 R#122;\nG3 X#182 C#183 R#125;\nG1 X#184 C#185;\nG2 X#186 C#187 R#126;\nG40 G1 X#188 C#189;\nG1 Z#107 F#113;\nEND2;\n#150=#150+1;\nEND1;\nG13.1;\nM5;\nG53 X0 Z0;\nM30;\n%\n";
+
+/* ================= Configurações ================= */
+const DEF = {
+  sysB: true, xDia: true, calc: true, bdel: false, mirror: false,
+  rapid: 15000, machX: 300, machZ: 200, stockD: 67.37, faceZ: 0, c2: true,
+  layers: { rapid: true, feed: true, comp: true, cut: true, tool: true, grid: true, ghost: true },
+  tools: {}, force: ''
+};
+function loadJSON(k, d){ try{ const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; }catch(e){ return d; } }
+function saveJSON(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
+let S = Object.assign({}, DEF, loadJSON('fsim.cfg', {}));
+S.layers = Object.assign({}, DEF.layers, S.layers || {});
+S.tools = S.tools || {};
+function saveCfg(){ saveJSON('fsim.cfg', S); }
+
+/* ================= Leitura do programa ================= */
+function parseProgram(text){
+  const lines = text.replace(/\r/g, '').split('\n');
+  const blocks = [], progs = {};
+  lines.forEach((line, i) => {
+    let comment = '';
+    let t = line.replace(/\([^)]*\)?/g, m => { comment += m.replace(/^\(|\)$/g, '') + ' '; return ' '; });
+    t = t.replace(/;/g, ' ').trim().toUpperCase();
+    if (!t || /^%+$/.test(t)) return;
+    let bd = false;
+    if (t[0] === '/'){ bd = true; t = t.slice(1).trim(); }
+    let m = /^[O:](\d+)\s*/.exec(t);
+    if (m){ progs[+m[1]] = blocks.length; blocks.push({ src: i, kind: 'O', o: +m[1], text: '', comment: comment.trim() }); t = t.slice(m[0].length); if (!t) return; }
+    let n = null;
+    m = /^N(\d+)\s*/.exec(t);
+    if (m){ n = +m[1]; t = t.slice(m[0].length); }
+    blocks.push({ src: i, text: t.replace(/\s+/g, ''), n, bd, comment: comment.trim() });
+  });
+  return { lines, blocks, progs };
+}
+
+/* ================= Expressões Macro B ================= */
+const nz = v => (v === null || v === undefined) ? 0 : v;
+const D2R = Math.PI / 180;
+class Expr {
+  constructor(ctx){ this.ctx = ctx; this.s = ''; this.i = 0; }
+  at(s, i){ this.s = s; this.i = i; return this; }
+  err(m){ throw new Error(m); }
+  ch(){ return this.s[this.i]; }
+  rest(){ return this.s.slice(this.i); }
+  expect(c){ if (this.s[this.i] !== c) this.err('esperado "' + c + '" em "' + this.s + '"'); this.i++; }
+  num(){ const m = /^(\d+\.?\d*|\.\d+)/.exec(this.rest()); if (!m) this.err('número esperado em "' + this.s + '"'); this.i += m[0].length; return parseFloat(m[0]); }
+  op(list){ const r = this.rest(); for (const o of list) if (r.startsWith(o)){ this.i += o.length; return o; } return null; }
+  cmp(){
+    const a = this.add();
+    const o = this.op(['EQ','NE','GE','GT','LE','LT']);
+    if (!o) return a;
+    const b = this.add();
+    if (o === 'EQ' || o === 'NE'){
+      let eq;
+      if (a === null || b === null) eq = (a === null && b === null);
+      else eq = Math.abs(a - b) <= 1e-9 * Math.max(1, Math.abs(a), Math.abs(b));
+      return (o === 'EQ') === eq ? 1 : 0;
+    }
+    const x = nz(a), y = nz(b);
+    return ({GT: x > y, GE: x >= y, LT: x < y, LE: x <= y})[o] ? 1 : 0;
+  }
+  add(){
+    let a = this.mul();
+    for (;;){
+      const c = this.ch();
+      if (c === '+'){ this.i++; a = nz(a) + nz(this.mul()); continue; }
+      if (c === '-'){ this.i++; a = nz(a) - nz(this.mul()); continue; }
+      const o = this.op(['XOR','OR']);
+      if (o === 'OR'){ a = (Math.trunc(nz(a)) | Math.trunc(nz(this.mul()))); continue; }
+      if (o === 'XOR'){ a = (Math.trunc(nz(a)) ^ Math.trunc(nz(this.mul()))); continue; }
+      return a;
+    }
+  }
+  mul(){
+    let a = this.un();
+    for (;;){
+      const c = this.ch();
+      if (c === '*'){ this.i++; a = nz(a) * nz(this.un()); continue; }
+      if (c === '/'){ this.i++; const b = nz(this.un()); if (b === 0) this.err('divisão por zero'); a = nz(a) / b; continue; }
+      const o = this.op(['AND','MOD']);
+      if (o === 'AND'){ a = (Math.trunc(nz(a)) & Math.trunc(nz(this.un()))); continue; }
+      if (o === 'MOD'){ const b = nz(this.un()); if (b === 0) this.err('MOD por zero'); a = nz(a) % b; continue; }
+      return a;
+    }
+  }
+  un(){
+    const c = this.ch();
+    if (c === '-'){ this.i++; return -nz(this.un()); }
+    if (c === '+'){ this.i++; return this.un(); }
+    return this.prim();
+  }
+  bracket(){ this.expect('['); const v = this.cmp(); this.expect(']'); return v; }
+  varRef(){ this.expect('#'); const n = this.ch() === '[' ? this.bracket() : this.num(); return Math.round(nz(n)); }
+  prim(){
+    const c = this.ch();
+    if (c === '[') return this.bracket();
+    if (c === '#') return this.ctx.get(this.varRef());
+    if (c !== undefined && /[\d.]/.test(c)) return this.num();
+    const m = /^[A-Z]+/.exec(this.rest());
+    if (!m) this.err('expressão inválida em "' + this.s + '"');
+    const f = m[0]; this.i += f.length;
+    if (this.ch() !== '[') this.err('função ' + f + ' sem [ ]');
+    this.i++;
+    const a = nz(this.cmp());
+    let b = null;
+    if (this.ch() === ','){ this.i++; b = nz(this.cmp()); }
+    this.expect(']');
+    if (f === 'ATAN' && b === null && this.s[this.i] === '/' && this.s[this.i + 1] === '['){ this.i++; b = nz(this.bracket()); }
+    const deg = r => r / D2R;
+    switch (f){
+      case 'SIN': return Math.sin(a * D2R);
+      case 'COS': return Math.cos(a * D2R);
+      case 'TAN': return Math.tan(a * D2R);
+      case 'ASIN': return deg(Math.asin(a));
+      case 'ACOS': return deg(Math.acos(a));
+      case 'ATAN': case 'ATN': { if (b === null) return deg(Math.atan(a)); let r = deg(Math.atan2(a, b)); if (r < 0) r += 360; return r; }
+      case 'SQRT': case 'SQR': if (a < 0) this.err('SQRT de número negativo'); return Math.sqrt(a);
+      case 'ABS': return Math.abs(a);
+      case 'ROUND': case 'RND': return Math.sign(a) * Math.round(Math.abs(a));
+      case 'FIX': return Math.trunc(a);
+      case 'FUP': return Math.sign(a) * Math.ceil(Math.abs(a) - 1e-12);
+      case 'LN': return Math.log(a);
+      case 'EXP': return Math.exp(a);
+      case 'POW': return Math.pow(a, nz(b));
+      case 'BIN': case 'BCD': return a;
+      default: this.err('função desconhecida: ' + f);
+    }
+  }
+}
+
+/* ================= Interpretador ================= */
+const G65ARG = {A:1,B:2,C:3,I:4,J:5,K:6,D:7,E:8,F:9,H:11,M:13,Q:17,R:18,S:19,T:20,U:21,V:22,W:23,X:24,Y:25,Z:26};
+function toolRadiusFromComment(c){
+  if (!c) return null;
+  const s = c.toUpperCase().replace(',', '.');
+  let m = /(?:Ø|D\.?|DIAM\.?|DIA\.?)\s*(\d+(?:\.\d+)?)/.exec(s) || /(\d+(?:\.\d+)?)\s*MM/.exec(s);
+  if (!m) return null;
+  const d = parseFloat(m[1]);
+  return d > 0 && d < 200 ? d / 2 : null;
+}
+
+function simulate(text, cfg){
+  const P = parseProgram(text);
+  const out = { moves: [], msgs: [], assigns: [], toolsSeen: {}, lineHits: new Map(), P, finished: false, stoppedAt: null, initVars: new Map() };
+  const once = new Set();
+  const msg = (sev, src, t, key) => { if (key){ if (once.has(key)) return; once.add(key); } out.msgs.push({ sev, src, t }); };
+
+  const commons = new Map(); const localsStack = [new Map()];
+  const forced = new Map();
+  (cfg.force || '').split(/\n/).forEach(l => {
+    const m = /^\s*#\s*(\d+)\s*=\s*(-?\d*\.?\d+)\s*$/.exec(l.replace(/;/g, ''));
+    if (m) forced.set(+m[1], parseFloat(m[2]));
+  });
+  let curSrc = 0;
+  const st = {
+    mot: 0, abs: true, plane: 18, polar: false, comp: 40, feedPerRev: !cfg.sysB ? false : false,
+    X: cfg.machX, Z: cfg.machZ, C: 0, Y: 0, px: 0, py: 0,
+    F: 0, S: 0, S2: 0, live: false, main: false, T: 0, Toff: 0, cAxis: false, brake: false, cycle: null, units: 21, mmPerMin: true
+  };
+  // modo de avanço inicial: torno Fanuc liga em avanço por rotação
+  st.mmPerMin = false;
+
+  const ctx = {
+    get(n){
+      if (n === 0) return null;
+      if (forced.has(n)) return forced.get(n);
+      if (n >= 1 && n <= 33) { const v = localsStack[localsStack.length - 1].get(n); return v === undefined ? null : v; }
+      if ((n >= 100 && n <= 999)) { const v = commons.get(n); return v === undefined ? null : v; }
+      if (n === 4001) return st.mot;
+      if (n === 4003) return st.abs ? 90 : 91;
+      if (n === 4109) return st.F;
+      if (n === 4119) return st.S;
+      if (n === 4120) return st.T;
+      if (n === 5001 || n === 5021 || n === 5041) return st.polar ? st.px * (cfg.xDia ? 2 : 1) : st.X;
+      if (n === 5002 || n === 5022 || n === 5042) return st.Z;
+      if (n === 5003 || n === 5023 || n === 5043) return st.polar ? st.py : st.C;
+      if (n === 3001 || n === 3002) return out.moves.length;
+      if (n === 3011) return 20261022;
+      msg('warn', curSrc, 'Variável de sistema #' + n + ' não é simulada (lida como vazia).', 'sys' + n);
+      return null;
+    },
+    set(n, v, src){
+      if (forced.has(n)){ msg('info', src, '#' + n + ' está forçada em ' + forced.get(n) + ' (atribuição do programa ignorada).', 'forced' + n); return; }
+      if (n >= 1 && n <= 33){ localsStack[localsStack.length - 1].set(n, v); }
+      else if (n >= 100 && n <= 999){ commons.set(n, v); }
+      else if (n === 3000){ throw { alarm: true, num: v }; }
+      else if (n === 3006){ msg('info', src, 'Parada com mensagem (#3006=' + v + ').'); return; }
+      else if (n >= 3001 && n <= 3004 || n === 3901 || n === 3902){ return; }
+      else if (n === 0){ throw new Error('#0 não pode receber valor'); }
+      else { msg('warn', src, 'Escrita em #' + n + ' não é simulada.', 'w' + n); return; }
+      out.assigns.push({ mi: out.moves.length, n, v });
+    }
+  };
+  forced.forEach((v, n) => out.assigns.push({ mi: 0, n, v }));
+  const ex = new Expr(ctx);
+
+  const toolR = () => {
+    const t = cfg.tools[st.T];
+    if (t && t.r != null && t.r !== '') return +t.r;
+    return 0;
+  };
+  const rOf = X => cfg.xDia ? X / 2 : X;
+  const worldNP = (X, C, Y, Z) => { const r = rOf(X), a = C * D2R; return [r * Math.cos(a) - Y * Math.sin(a), r * Math.sin(a) + Y * Math.cos(a), Z]; };
+  const worldNow = () => st.polar ? [st.px, st.py, st.Z] : worldNP(st.X, st.C, st.Y, st.Z);
+  const snap = () => ({ X: st.polar ? st.px * (cfg.xDia ? 2 : 1) : st.X, Z: st.Z, C: st.polar ? st.py : st.C, polar: st.polar, T: st.T, Toff: st.Toff, F: st.F, S: st.S, S2: st.S2, live: st.live, main: st.main, comp: st.comp, mot: st.mot, abs: st.abs, brake: st.brake, cAxis: st.cAxis, mmPerMin: st.mmPerMin, cycle: st.cycle, plane: st.plane });
+
+  function pushMove(kind, pts, extra){
+    let len = 0;
+    for (let i = 1; i < pts.length; i++) len += Math.hypot(pts[i][0] - pts[i-1][0], pts[i][1] - pts[i-1][1], pts[i][2] - pts[i-1][2]);
+    let dur;
+    if (kind === 'rapid') dur = len / cfg.rapid * 60;
+    else if (kind === 'dwell') dur = extra.dwell || 0;
+    else {
+      let fpm = st.F;
+      if (!st.mmPerMin){ const s = st.live ? st.S2 : st.S; fpm = st.F * (s || 0); }
+      if (!(fpm > 0)){ msg('alarm', curSrc, 'Avanço F não definido (ou rotação zero em G95) para movimento de corte.', 'nof' + curSrc); fpm = 100; }
+      dur = len / fpm * 60;
+    }
+    const m = Object.assign({ kind, pts, src: curSrc, len, dur, st: snap(), toolR: toolR() }, extra || {});
+    out.moves.push(m);
+    if (!out.lineHits.has(curSrc)) out.lineHits.set(curSrc, []);
+    out.lineHits.get(curSrc).push(out.moves.length - 1);
+    if (out.moves.length > 400000) throw new Error('Mais de 400 mil movimentos: simulação interrompida.');
+    return m;
+  }
+
+  // movimento linear (fora do G12.1: X/C interpolados = espiral)
+  function linear(kind, tgt){
+    const a = { X: st.X, Z: st.Z, C: st.C, Y: st.Y, px: st.px, py: st.py };
+    let pts;
+    if (st.polar){
+      pts = [[a.px, a.py, a.Z], [tgt.px, tgt.py, tgt.Z]];
+    } else {
+      const dC = Math.abs(tgt.C - a.C);
+      const n = Math.max(1, Math.ceil(dC / 2));
+      pts = [];
+      for (let k = 0; k <= n; k++){
+        const f = k / n;
+        pts.push(worldNP(a.X + (tgt.X - a.X) * f, a.C + (tgt.C - a.C) * f, a.Y + (tgt.Y - a.Y) * f, a.Z + (tgt.Z - a.Z) * f));
+      }
+    }
+    Object.assign(st, tgt);
+    const moved = pts.length > 1 && (Math.abs(pts[0][0]-pts[pts.length-1][0]) + Math.abs(pts[0][1]-pts[pts.length-1][1]) + Math.abs(pts[0][2]-pts[pts.length-1][2]) > 1e-9);
+    if (!moved && kind !== 'rapid') return null;
+    if (!moved) return null;
+    const extra = {};
+    if (st.polar){
+      const p0 = [a.px, a.py], p1 = [tgt.px, tgt.py];
+      if (Math.hypot(p1[0]-p0[0], p1[1]-p0[1]) > 1e-9) extra.elem = { type: 'L', p0, p1 };
+      extra.polar = true;
+    }
+    return pushMove(kind, pts, extra);
+  }
+
+  function arc(cw, tgt, w){
+    // plano: polar (u=x,v=c') | 18 ZX (u=Z, v=Xr) | 17 XY (u=Xr, v=Y)
+    let u0, v0, u1, v1, getUV;
+    if (st.polar){ u0 = st.px; v0 = st.py; u1 = tgt.px; v1 = tgt.py; }
+    else if (st.plane === 17){ u0 = rOf(st.X); v0 = st.Y; u1 = rOf(tgt.X); v1 = tgt.Y; }
+    else { u0 = st.Z; v0 = rOf(st.X); u1 = tgt.Z; v1 = rOf(tgt.X); }
+    let cu, cv, R = w.R;
+    const du = u1 - u0, dv = v1 - v0, d = Math.hypot(du, dv);
+    if (R !== undefined){
+      if (d < 1e-9){ msg('alarm', curSrc, 'Arco com R e ponto final igual ao inicial.'); throw { stop: true }; }
+      let h2 = R * R - d * d / 4;
+      if (h2 < 0){
+        if (h2 > -1e-3 * Math.abs(R)) h2 = 0;
+        else { msg('alarm', curSrc, 'Raio R=' + R.toFixed(4) + ' menor que metade da corda (' + (d/2).toFixed(4) + ').'); throw { stop: true }; }
+      }
+      const h = Math.sqrt(h2), mu = (u0 + u1) / 2, mv = (v0 + v1) / 2;
+      const nu = -dv / d, nv = du / d; // normal à esquerda da corda
+      let sgn = cw ? -1 : 1; if (R < 0) sgn = -sgn;
+      cu = mu + nu * h * sgn; cv = mv + nv * h * sgn;
+    } else {
+      let I = 0, J = 0;
+      if (st.polar){ I = w.I || 0; J = (w.J !== undefined ? w.J : (w.K || 0)); }
+      else if (st.plane === 17){ I = w.I || 0; J = w.J || 0; }
+      else { I = w.K || 0; J = w.I || 0; }
+      cu = u0 + I; cv = v0 + J;
+    }
+    const r0 = Math.hypot(u0 - cu, v0 - cv), r1 = Math.hypot(u1 - cu, v1 - cv);
+    if (r0 < 1e-9){ msg('alarm', curSrc, 'Centro do arco não definido (falta R ou I/J/K).'); throw { stop: true }; }
+    if (Math.abs(r0 - r1) > 0.01) msg('warn', curSrc, 'Ponto final fora do arco: diferença de raio ' + Math.abs(r0 - r1).toFixed(4) + ' mm.');
+    const a0 = Math.atan2(v0 - cv, u0 - cu), a1 = Math.atan2(v1 - cv, u1 - cu);
+    let sw = cw ? a0 - a1 : a1 - a0;
+    while (sw <= 1e-12) sw += 2 * Math.PI;
+    if (d < 1e-9 && R === undefined) sw = 2 * Math.PI;
+    const n = Math.max(4, Math.ceil(sw / (2 * Math.PI) * 120));
+    const pts = [];
+    const Za = st.Z, Xa = st.X, Ya = st.Y, Ca = st.C;
+    for (let k = 0; k <= n; k++){
+      const f = k / n, ang = a0 + (cw ? -1 : 1) * sw * f, rr = r0 + (r1 - r0) * f;
+      const u = cu + rr * Math.cos(ang), v = cv + rr * Math.sin(ang);
+      if (st.polar) pts.push([u, v, Za + (tgt.Z - Za) * f]);
+      else if (st.plane === 17) pts.push(worldNP(u * (cfg.xDia ? 2 : 1), Ca + (tgt.C - Ca) * f, v, Za + (tgt.Z - Za) * f));
+      else pts.push(worldNP(v * (cfg.xDia ? 2 : 1), Ca + (tgt.C - Ca) * f, Ya + (tgt.Y - Ya) * f, u));
+    }
+    Object.assign(st, tgt);
+    const extra = {};
+    if (st.polar){ extra.polar = true; extra.elem = { type: 'A', c: [cu, cv], r: r0, cw, p0: [u0, v0], p1: [u1, v1], sw }; }
+    return pushMove('feed', pts, extra);
+  }
+
+  // ---- execução ----
+  const B = P.blocks;
+  const nIndex = n => { for (let i = 0; i < B.length; i++) if (B[i].n === n) return i; return -1; };
+  const findEnd = (i, id) => { for (let k = i + 1; k < B.length; k++) if (B[k].text === 'END' + id) return k; return -1; };
+  const findWhile = (i, id) => { for (let k = i - 1; k >= 0; k--) if (new RegExp('DO' + id + '$').test(B[k].text) && /^(WHILE|DO)/.test(B[k].text)) return k; return -1; };
+  const calls = [];
+  let pc = 0, steps = 0;
+  const mainStart = B.findIndex(b => b.kind === 'O');
+  if (mainStart >= 0) pc = mainStart + 1;
+
+  function parseWords(s){
+    const w = []; let i = 0;
+    while (i < s.length){
+      const c = s[i];
+      if (c === ','){ const L = s[i+1]; ex.at(s, i + 2); const v = ex.un(); i = ex.i; w.push({ a: ',' + L, v }); continue; }
+      if (!/[A-Z]/.test(c)) throw new Error('caractere inesperado "' + c + '" em "' + s + '"');
+      i++;
+      if (c === 'S' && /^\d=/.test(s.slice(i))){ const sp = +s[i]; i += 2; const r = valAt(s, i); i = r.i; w.push({ a: 'S', v: r.v, sp }); continue; }
+      if (c === 'M' && /^\d=/.test(s.slice(i))){ i += 2; }
+      const r = valAt(s, i); i = r.i;
+      w.push({ a: c, v: r.v, lit: r.lit, dot: r.dot });
+    }
+    return w;
+  }
+  function valAt(s, i){
+    let sign = 1;
+    if (s[i] === '-'){ sign = -1; i++; } else if (s[i] === '+') i++;
+    if (s[i] === '#' || s[i] === '['){ ex.at(s, i); const v = ex.prim(); return { v: v === null ? null : sign * v, i: ex.i, lit: false }; }
+    const m = /^(\d+\.?\d*|\.\d+)/.exec(s.slice(i));
+    if (!m) throw new Error('valor esperado em "' + s + '"');
+    return { v: sign * parseFloat(m[0]), i: i + m[0].length, lit: true, dot: m[0].includes('.') };
+  }
+  function assign(s, src){
+    ex.at(s, 0);
+    const n = ex.varRef();
+    ex.expect('=');
+    const v = ex.cmp();
+    if (ex.i !== s.length) throw new Error('sobra texto em "' + s + '"');
+    ctx.set(n, v, src);
+  }
+
+  function execWords(b){
+    const words = parseWords(b.text);
+    const W = {}; const G = []; const M = [];
+    for (const w of words){
+      if (w.v === null) continue; // endereço com variável vazia = não programado
+      let v = w.v;
+      if (!cfg.calc && w.lit && !w.dot && 'XYZUVWCHIJKR'.includes(w.a)) v *= 0.001;
+      if (w.a === 'G') G.push(Math.round(v * 10) / 10);
+      else if (w.a === 'M') M.push(Math.round(v));
+      else if (w.a === 'S' && w.sp){ if (w.sp === 2) W.S2 = v; else W.S = v; }
+      else if (w.a.startsWith(',')){ msg('warn', b.src, 'Chanfro/raio direto "' + w.a + '" não é simulado.', 'cr' + b.src); }
+      else W[w.a] = v;
+    }
+    // G65 chamada de macro
+    if (G.includes(65)){
+      const o = W.P; const L = W.L || 1;
+      if (P.progs[o] === undefined){ msg('alarm', b.src, 'G65: programa O' + o + ' não está no arquivo.'); throw { stop: true }; }
+      const loc = new Map();
+      for (const k in W) if (G65ARG[k] && k !== 'P' && k !== 'L') loc.set(G65ARG[k], W[k]);
+      localsStack.push(loc);
+      calls.push({ ret: pc + 1, count: L, start: P.progs[o] + 1, macro: true });
+      pc = P.progs[o] + 1;
+      return 'jump';
+    }
+    let nonModal = null, setPolar = null;
+    for (const g of G){
+      if ([0,1,2,3].includes(g)){ st.mot = g; st.cycle = null; }
+      else if (g === 32 || g === 33){ st.mot = 1; msg('warn', b.src, 'Rosca G' + g + ' desenhada como G01.', 'g33'); }
+      else if (g === 4) nonModal = 4;
+      else if (g === 28 || g === 53 || g === 30) nonModal = g;
+      else if (g === 10 || g === 11){ }
+      else if (g === 12.1 || g === 112) setPolar = true;
+      else if (g === 13.1 || g === 113) setPolar = false;
+      else if (g === 17 || g === 18 || g === 19) st.plane = g;
+      else if (g === 20){ msg('warn', b.src, 'G20 (polegada): o desenho continua em mm.', 'g20'); }
+      else if (g === 21){}
+      else if (g === 40 || g === 41 || g === 42){ st.compCmd = g; }
+      else if (g >= 54 && g <= 59){}
+      else if (g === 80){ st.cycle = null; }
+      else if (g === 83 || g === 87 || g === 84 || g === 88 || g === 85 || g === 89 || g === 86){ st.cycle = g; }
+      else if (g === 74 || g === 75){ nonModal = g; }
+      else if (g === 96){ msg('info', b.src, 'G96 velocidade de corte constante: rotação não calculada.', 'g96'); }
+      else if (g === 97){}
+      else if (cfg.sysB && (g === 90 || g === 91)) st.abs = (g === 90);
+      else if (cfg.sysB && g === 94) st.mmPerMin = true;
+      else if (cfg.sysB && g === 95) st.mmPerMin = false;
+      else if (cfg.sysB && (g === 98 || g === 99)){ /* nível de retorno */ }
+      else if (!cfg.sysB && g === 98) st.mmPerMin = true;
+      else if (!cfg.sysB && g === 99) st.mmPerMin = false;
+      else if (!cfg.sysB && (g === 90 || g === 92 || g === 94)){ msg('warn', b.src, 'No sistema A, G' + g + ' é ciclo fixo de torneamento: não simulado. Se a máquina é sistema B (Romi), troque nas configurações.', 'sysA' + g); }
+      else if ((cfg.sysB && g === 92) || (!cfg.sysB && g === 50)){ if (W.S !== undefined){ delete W.S; } else if (W.X !== undefined || W.Z !== undefined){ msg('warn', b.src, 'G' + g + ' com X/Z (definir origem) não é simulado.', 'g50'); W.X = W.Z = undefined; } }
+      else if (g === 7.1 || g === 107){ msg('warn', b.src, 'Interpolação cilíndrica G07.1 não é simulada.', 'g71c'); }
+      else msg('warn', b.src, 'G' + g + ' não é simulado.', 'g' + g);
+    }
+    if (setPolar === true){
+      if (st.polar) msg('warn', b.src, 'G12.1 já estava ativo.');
+      const p = worldNP(st.X, st.C, st.Y, st.Z);
+      st.px = p[0]; st.py = p[1]; st.polar = true;
+      if (!st.cAxis) msg('warn', b.src, 'G12.1 sem eixo C ativado antes (M19 + G28 C0 na Romi).', 'pcax');
+      if (st.brake) msg('warn', b.src, 'Freio M85 ativo em G12.1: a Romi pede o freio desligado na interpolação X/C.', 'pbrk');
+      if (st.comp !== 40) msg('alarm', b.src, 'G12.1 programado com compensação de raio ativa.');
+    }
+    if (setPolar === false && st.polar){
+      if (st.comp !== 40) msg('alarm', b.src, 'G13.1 com compensação ativa: cancele com G40 antes.');
+      const r = Math.hypot(st.px, st.py); let a = Math.atan2(st.py, st.px) / D2R;
+      while (a - st.C > 180) a -= 360; while (st.C - a > 180) a += 360;
+      st.X = cfg.xDia ? 2 * r : r; st.C = a; st.Y = 0; st.polar = false;
+    }
+    // M
+    let stop = null;
+    for (const m of M){
+      if (m === 3 || m === 4 || m === 13 || m === 14 || m === 15 || m === 16){
+        if (W.S2 !== undefined || [13,14,15,16].includes(m) || st.pendingLive){ st.live = true; } else st.main = true;
+      }
+      else if (m === 5){ st.live = false; st.main = false; st.brake = false; }
+      else if (m === 19){ st.cAxis = true; }
+      else if (m === 85 || m === 86){ st.brake = true; if (st.polar) msg('warn', b.src, 'M' + m + ' (freio) dentro do G12.1.', 'bkp'); }
+      else if (m === 98){ const o = W.P; let L = W.L || 1; let prog = o;
+        if (o >= 10000 && W.L === undefined){ prog = o % 10000; L = Math.floor(o / 10000); }
+        if (P.progs[prog] === undefined){ msg('alarm', b.src, 'M98: subprograma O' + prog + ' não está no arquivo.'); throw { stop: true }; }
+        calls.push({ ret: pc + 1, count: L, start: P.progs[prog] + 1, macro: false });
+        stop = 'call';
+      }
+      else if (m === 99) stop = 'ret';
+      else if (m === 30 || m === 2) stop = 'end';
+      else if (m === 0 || m === 1){ msg('info', b.src, 'M0' + m + ' parada ' + (m ? 'opcional' : 'de programa') + '.'); }
+    }
+    if (W.S !== undefined){ if (st.mot !== undefined) st.S = W.S; }
+    if (W.S2 !== undefined) st.S2 = W.S2;
+    if (W.F !== undefined) st.F = W.F;
+    if (W.T !== undefined){
+      const t = Math.round(W.T);
+      st.T = t >= 100 ? Math.floor(t / 100) : t; st.Toff = t >= 100 ? t % 100 : t;
+      if (st.T > 0){
+        out.toolsSeen[st.T] = out.toolsSeen[st.T] || { src: b.src, name: b.comment || '' };
+        if (!cfg.tools[st.T] || cfg.tools[st.T].r === undefined || cfg.tools[st.T].r === ''){
+          const r = toolRadiusFromComment(b.comment);
+          cfg.tools[st.T] = { r: r != null ? r : 0, auto: true };
+          if (r == null) msg('warn', b.src, 'T' + st.T + ': raio não encontrado no comentário. Informe em Ferramentas.', 'tr' + st.T);
+        }
+      }
+      if (st.comp !== 40) msg('alarm', b.src, 'Troca de ferramenta com compensação de raio ativa.');
+    }
+
+    // ---- movimento ----
+    const has = k => W[k] !== undefined;
+    const axisWord = has('X') || has('Z') || has('C') || has('Y') || has('U') || has('W') || has('H') || has('V');
+    if (st.compCmd !== undefined){
+      const g = st.compCmd; delete st.compCmd;
+      if (g !== 40 && st.comp === 40){ st.compStartPending = g; }
+      else if (g === 40 && st.comp !== 40){ st.compCancelPending = true; }
+      else if (g !== 40 && st.comp !== 40 && g !== st.comp){ msg('warn', b.src, 'Troca direta G41/G42 sem G40.'); st.comp = g; }
+    }
+    function target(){
+      const t = { X: st.X, Z: st.Z, C: st.C, Y: st.Y, px: st.px, py: st.py };
+      const dia = cfg.xDia ? 2 : 1;
+      if (st.polar){
+        if (has('X')) t.px = st.abs ? W.X / dia : st.px + W.X / dia;
+        if (has('U')) t.px = st.px + W.U / dia;
+        if (has('C')) t.py = st.abs ? W.C : st.py + W.C;
+        if (has('H')) t.py = st.py + W.H;
+      } else {
+        if (has('X')) t.X = st.abs ? W.X : st.X + W.X;
+        if (has('U')) t.X = st.X + W.U;
+        if (has('C')) t.C = st.abs ? W.C : st.C + W.C;
+        if (has('H')) t.C = st.C + W.H;
+        if (has('Y')) t.Y = st.abs ? W.Y : st.Y + W.Y;
+        if (has('V')) t.Y = st.Y + W.V;
+      }
+      if (has('Z')) t.Z = st.abs ? W.Z : st.Z + W.Z;
+      if (has('W')) t.Z = st.Z + W.W;
+      return t;
+    }
+    if (nonModal === 4){
+      const s = has('P') ? W.P / 1000 : has('X') ? W.X : has('U') ? W.U : 0;
+      pushMove('dwell', [worldNow(), worldNow()], { dwell: s });
+    } else if (nonModal === 53){
+      const t = { X: st.X, Z: st.Z, C: st.C, Y: st.Y };
+      if (st.polar){ msg('alarm', b.src, 'G53 dentro do G12.1.'); }
+      if (has('X')) t.X = cfg.machX + W.X;
+      if (has('Z')) t.Z = cfg.machZ + W.Z;
+      if (has('C')) t.C = W.C;
+      if (has('Y')) t.Y = W.Y;
+      linear('rapid', t);
+    } else if (nonModal === 28 || nonModal === 30){
+      const t1 = target();
+      if (!st.polar) linear('rapid', t1);
+      const t2 = { X: st.X, Z: st.Z, C: st.C, Y: st.Y };
+      if (has('X') || has('U')) t2.X = cfg.machX;
+      if (has('Z') || has('W')) t2.Z = cfg.machZ;
+      if (has('C') || has('H')){ t2.C = 0; st.cAxis = true; }
+      if (has('Y') || has('V')) t2.Y = 0;
+      linear('rapid', t2);
+    } else if (nonModal === 74 || nonModal === 75){
+      if (has('Z') || has('W') || has('X') || has('U')){
+        const z0 = st.Z, t = target();
+        if (nonModal === 74){ linear('feed', { X: t.X, Z: t.Z, C: st.C, Y: st.Y }); linear('rapid', { X: st.X, Z: z0, C: st.C, Y: st.Y }); }
+        else { const x0 = st.X; linear('feed', { X: t.X, Z: t.Z, C: st.C, Y: st.Y }); linear('rapid', { X: x0, Z: st.Z, C: st.C, Y: st.Y }); }
+        msg('info', b.src, 'G' + nonModal + ' desenhado de forma simplificada (sem pica-pica).', 'g7x');
+      }
+    } else if (st.cycle && axisWord){
+      // ciclos de furação: posiciona X/C (ou Z/C no radial), fura e volta
+      const t = target();
+      const g = st.cycle;
+      if (g === 87 || g === 88){
+        const x0 = st.X;
+        linear('rapid', { X: st.X, Z: t.Z, C: t.C, Y: t.Y });
+        linear('feed', { X: t.X, Z: st.Z, C: st.C, Y: st.Y });
+        linear('rapid', { X: x0, Z: st.Z, C: st.C, Y: st.Y });
+      } else {
+        const z0 = st.Z;
+        linear('rapid', { X: t.X, Z: st.Z, C: t.C, Y: t.Y });
+        if (has('R')) linear('rapid', { X: st.X, Z: z0 + W.R, C: st.C, Y: st.Y });
+        linear('feed', { X: st.X, Z: t.Z, C: st.C, Y: st.Y });
+        linear('rapid', { X: st.X, Z: z0, C: st.C, Y: st.Y });
+      }
+      if (st.live === false) msg('warn', b.src, 'Ciclo de furação com ferramenta acionada desligada.', 'cyl' + b.src);
+    } else if (axisWord){
+      const t = target();
+      if (st.polar && st.mot === 0) msg('warn', b.src, 'G00 dentro do G12.1: a Fanuc só aceita G01/G02/G03 em coordenadas polares.', 'g0p' + b.src);
+      if (!st.polar && st.mot === 0 && has('C') && Math.abs(t.C - st.C) > 1e-9) st.brake = false;
+      if ((has('C') || has('H')) && !st.cAxis && !st.polar) msg('warn', b.src, 'Movimento em C sem ativar o eixo C (M19 + G28 C0 na Romi).', 'cax');
+      const cs = st.compStartPending, cc = st.compCancelPending;
+      if ((cs || cc) && (st.mot === 2 || st.mot === 3)) msg('alarm', b.src, 'Início ou cancelamento de G41/G42 em arco: a Fanuc exige G00/G01.');
+      if (cs && !st.polar) msg('info', b.src, 'Compensação no torneamento (ponta da ferramenta) não é desenhada: aparece só o caminho programado.', 'cturn');
+      let m = null;
+      if (st.mot === 0) m = linear('rapid', t);
+      else if (st.mot === 1) m = linear('feed', t);
+      else if (st.mot === 2 || st.mot === 3){
+        const w = {}; if (has('R')) w.R = W.R; if (has('I')) w.I = W.I / (st.polar ? 1 : 1); if (has('J')) w.J = W.J; if (has('K')) w.K = W.K;
+        m = arc(st.mot === 2, t, w);
+      }
+      if (m && st.polar && st.mot !== 0){
+        if (cs){ m.compStart = cs; st.comp = cs; delete st.compStartPending; }
+        else if (cc){ m.compCancel = true; st.comp = 40; delete st.compCancelPending; }
+        m.compSide = st.comp === 41 ? 1 : st.comp === 42 ? -1 : (m.compCancel ? (m.st.comp === 41 ? 1 : -1) : 0);
+      } else {
+        if (cs){ st.comp = cs; delete st.compStartPending; }
+        if (cc){ st.comp = 40; delete st.compCancelPending; }
+      }
+      if (m && m.kind === 'feed' && st.Z < cfg.faceZ - 1e-6 && !st.live && toolR() > 0 && (st.polar || st.cAxis)) msg('warn', b.src, 'Corte com ferramenta acionada desligada (falta S2=... M3).', 'live' + st.T);
+    } else {
+      if (st.compCancelPending && !axisWord){ /* G40 sozinho: cancela no próximo movimento */ }
+    }
+    return stop;
+  }
+
+  try {
+    while (pc < B.length){
+      if (++steps > 3000000) throw new Error('Mais de 3 milhões de blocos executados: provável laço infinito.');
+      const b = B[pc]; curSrc = b.src;
+      if (b.kind === 'O'){ if (calls.length === 0 && pc !== mainStart){ msg('info', b.src, 'Fim do programa principal alcançado sem M30.'); break; } pc++; continue; }
+      if (b.bd && cfg.bdel){ pc++; continue; }
+      const s = b.text;
+      if (!s){ pc++; continue; }
+      let m;
+      if (s[0] === '#'){ assign(s, b.src); pc++; continue; }
+      if ((m = /^IF\[/.exec(s))){
+        ex.at(s, 2); const c = ex.bracket(); const rest = s.slice(ex.i);
+        if (rest.startsWith('GOTO')){
+          const r = valAt(rest, 4); const n = Math.round(r.v);
+          if (nz(c) !== 0){ const k = nIndex(n); if (k < 0){ msg('alarm', b.src, 'GOTO ' + n + ': bloco N' + n + ' não existe.'); break; } pc = k; continue; }
+        } else if (rest.startsWith('THEN')){
+          if (nz(c) !== 0){ const r2 = rest.slice(4); if (r2[0] === '#') assign(r2, b.src); else throw new Error('THEN aceita só atribuição de variável'); }
+        } else throw new Error('IF sem GOTO/THEN');
+        pc++; continue;
+      }
+      if ((m = /^WHILE\[/.exec(s))){
+        ex.at(s, 5); const c = ex.bracket(); const rest = s.slice(ex.i);
+        const dm = /^DO(\d)$/.exec(rest); if (!dm) throw new Error('WHILE sem DOn');
+        if (nz(c) !== 0) pc++;
+        else { const k = findEnd(pc, dm[1]); if (k < 0) throw new Error('END' + dm[1] + ' não encontrado'); pc = k + 1; }
+        continue;
+      }
+      if ((m = /^DO(\d)$/.exec(s))){ pc++; continue; }
+      if ((m = /^END(\d)$/.exec(s))){ const k = findWhile(pc, m[1]); if (k < 0) throw new Error('DO' + m[1] + ' não encontrado para END' + m[1]); pc = k; continue; }
+      if ((m = /^GOTO/.exec(s))){ const r = valAt(s, 4); const n = Math.round(r.v); const k = nIndex(n); if (k < 0){ msg('alarm', b.src, 'GOTO ' + n + ': bloco não existe.'); break; } pc = k; continue; }
+      const r = execWords(b);
+      if (r === 'jump') continue;
+      if (r === 'end'){ out.finished = true; break; }
+      if (r === 'call'){ pc = calls[calls.length - 1].start; continue; }
+      if (r === 'ret'){
+        if (!calls.length){ msg('info', b.src, 'M99 no programa principal: fim da simulação (na máquina repetiria).'); out.finished = true; break; }
+        const c = calls[calls.length - 1];
+        if (--c.count > 0){ pc = c.start; continue; }
+        calls.pop(); if (c.macro) localsStack.pop();
+        pc = c.ret; continue;
+      }
+      pc++;
+    }
+    if (pc >= B.length && !out.finished) msg('warn', curSrc, 'Programa terminou sem M30/M02.', 'nom30');
+  } catch (e){
+    if (e && e.alarm){
+      const b = B[pc];
+      msg('alarm', curSrc, 'Alarme #3000=' + e.num + (b && b.comment ? ' — ' + b.comment : ''));
+    } else if (e && e.stop){ /* mensagem já registrada */ }
+    else msg('alarm', curSrc, 'Erro: ' + (e && e.message ? e.message : e));
+    out.stoppedAt = curSrc;
+  }
+  if (st.comp !== 40) msg('warn', curSrc, 'Programa terminou com compensação G41/G42 ativa.');
+  if (st.polar) msg('warn', curSrc, 'Programa terminou em G12.1 (falta G13.1).');
+  computeComp(out);
+  return out;
+}
+
+/* ================= Compensação de raio G41/G42 no plano X·C' ================= */
+const sub = (a, b) => [a[0]-b[0], a[1]-b[1]];
+const add2 = (a, b) => [a[0]+b[0], a[1]+b[1]];
+const mulv = (a, k) => [a[0]*k, a[1]*k];
+const len2 = a => Math.hypot(a[0], a[1]);
+const unit = a => { const l = len2(a); return l < 1e-15 ? [0,0] : [a[0]/l, a[1]/l]; };
+const cross = (a, b) => a[0]*b[1] - a[1]*b[0];
+function tanAt(e, p){
+  if (e.type === 'L') return unit(sub(e.p1, e.p0));
+  const u = unit(sub(p, e.c));
+  return e.cw ? [u[1], -u[0]] : [-u[1], u[0]];
+}
+function offElem(e, side, rt){
+  if (e.type === 'L'){
+    const t = unit(sub(e.p1, e.p0)), n = mulv([-t[1], t[0]], side * rt);
+    return { type: 'L', p0: add2(e.p0, n), p1: add2(e.p1, n), t };
+  }
+  const r2 = e.r + (e.cw ? 1 : -1) * side * rt;
+  const u0 = unit(sub(e.p0, e.c)), u1 = unit(sub(e.p1, e.c));
+  return { type: 'A', c: e.c, r: r2, cw: e.cw, p0: add2(e.c, mulv(u0, r2)), p1: add2(e.c, mulv(u1, r2)), bad: r2 <= 1e-6, sw0: e.sw };
+}
+function intersect(a, b){
+  const res = [];
+  if (a.type === 'L' && b.type === 'L'){
+    const d1 = sub(a.p1, a.p0), d2 = sub(b.p1, b.p0), den = cross(d1, d2);
+    if (Math.abs(den) < 1e-12) return res;
+    const t = cross(sub(b.p0, a.p0), d2) / den;
+    res.push(add2(a.p0, mulv(d1, t)));
+    return res;
+  }
+  if (a.type === 'A' && b.type === 'L') return intersect(b, a);
+  if (a.type === 'L'){
+    const d = unit(sub(a.p1, a.p0)), f = sub(a.p0, b.c);
+    const B2 = 2 * (f[0]*d[0] + f[1]*d[1]), Cc = f[0]*f[0] + f[1]*f[1] - b.r*b.r;
+    const disc = B2*B2 - 4*Cc;
+    if (disc < -1e-9) return res;
+    const sq = Math.sqrt(Math.max(0, disc));
+    res.push(add2(a.p0, mulv(d, (-B2 - sq) / 2)), add2(a.p0, mulv(d, (-B2 + sq) / 2)));
+    return res;
+  }
+  const dv = sub(b.c, a.c), d = len2(dv);
+  if (d < 1e-12) return res;
+  const x = (a.r*a.r - b.r*b.r + d*d) / (2*d), h2 = a.r*a.r - x*x;
+  if (h2 < -1e-9) return res;
+  const h = Math.sqrt(Math.max(0, h2)), u = mulv(dv, 1/d), m = add2(a.c, mulv(u, x));
+  res.push(add2(m, mulv([-u[1], u[0]], h)), add2(m, mulv([u[1], -u[0]], h)));
+  return res;
+}
+function sampleElem(o, z0, z1, warnFn){
+  if (o.type === 'L') return [[o.p0[0], o.p0[1], z0], [o.p1[0], o.p1[1], z1]];
+  const a0 = Math.atan2(o.p0[1]-o.c[1], o.p0[0]-o.c[0]), a1 = Math.atan2(o.p1[1]-o.c[1], o.p1[0]-o.c[0]);
+  let sw = o.cw ? a0 - a1 : a1 - a0;
+  while (sw < 0) sw += 2*Math.PI;
+  if (o.sw0 !== undefined && sw > o.sw0 + Math.PI && o.sw0 < 2*Math.PI - 1e-6){ warnFn(); sw = 0; }
+  const n = Math.max(2, Math.ceil(sw / (2*Math.PI) * 120));
+  const pts = [];
+  for (let k = 0; k <= n; k++){ const f = k/n, a = a0 + (o.cw ? -1 : 1) * sw * f; pts.push([o.c[0] + o.r*Math.cos(a), o.c[1] + o.r*Math.sin(a), z0 + (z1-z0)*f]); }
+  return pts;
+}
+function computeComp(out){
+  const M = out.moves;
+  for (const m of M) m.cpts = null;
+  for (let i = 0; i < M.length; i++){
+    const m = M[i];
+    if (!m.compStart) continue;
+    const chain = [m]; let j = i + 1;
+    while (j < M.length){ const q = M[j]; if (!q.polar || q.kind === 'rapid') break; chain.push(q); if (q.compCancel) break; j++; }
+    const side = m.compStart === 41 ? 1 : -1, rt = m.toolR;
+    if (!(rt > 0)){ out.msgs.push({ sev: 'warn', src: m.src, t: 'G4' + (side > 0 ? 1 : 2) + ' com raio da ferramenta zero: informe o raio em Ferramentas.' }); i = j; continue; }
+    const startup = chain[0];
+    const last = chain[chain.length - 1];
+    const cancel = last.compCancel && chain.length > 1 ? last : null;
+    const body = chain.slice(1, cancel ? chain.length - 1 : chain.length).filter(q => q.elem);
+    const offs = body.map(q => {
+      const o = offElem(q.elem, side, rt);
+      if (o.bad) out.msgs.push({ sev: 'alarm', src: q.src, t: 'Raio da ferramenta (' + rt + ') maior ou igual ao raio do arco côncavo (' + q.elem.r.toFixed(3) + '): a fresa não cabe.' });
+      return o;
+    });
+    const extraAfter = body.map(() => []);
+    for (let k = 0; k + 1 < body.length; k++){
+      const e = body[k].elem, f = body[k+1].elem, oe = offs[k], of = offs[k+1];
+      if (len2(sub(oe.p1, of.p0)) < 1e-6){ of.p0 = oe.p1; continue; }
+      const P = e.p1, te = tanAt(e, e.p1), tf = tanAt(f, f.p0), cr = cross(te, tf);
+      if (cr * side < -1e-9){
+        // canto convexo: arco em volta do canto
+        const o = { type: 'A', c: P, r: rt, cw: side > 0, p0: oe.p1, p1: of.p0 };
+        const pts = sampleElem(o, body[k].pts[body[k].pts.length-1][2], body[k].pts[body[k].pts.length-1][2], () => {});
+        extraAfter[k] = pts.slice(1);
+      } else {
+        const cands = intersect(oe, of);
+        let best = null, bd = Infinity;
+        for (const c of cands){ const d = len2(sub(c, P)); if (d < bd){ bd = d; best = c; } }
+        if (best && bd < rt * 4 + 1){ oe.p1 = best; of.p0 = best; }
+        else extraAfter[k] = [[of.p0[0], of.p0[1], body[k].pts[body[k].pts.length-1][2]]];
+      }
+    }
+    // pontos do centro da fresa
+    if (offs.length){
+      const s0 = startup.pts[0], s1 = startup.pts[startup.pts.length - 1];
+      startup.cpts = [[s0[0], s0[1], s0[2]], [offs[0].p0[0], offs[0].p0[1], s1[2]]];
+      body.forEach((q, k) => {
+        const z0 = q.pts[0][2], z1 = q.pts[q.pts.length-1][2];
+        const o = offs[k];
+        if (o.type === 'L' && (o.p1[0]-o.p0[0])*o.t[0] + (o.p1[1]-o.p0[1])*o.t[1] < -1e-6) out.msgs.push({ sev: 'alarm', src: q.src, t: 'Interferência: segmento menor que o raio da ferramenta (a fresa cortaria a peça).' });
+        q.cpts = sampleElem(o, z0, z1, () => out.msgs.push({ sev: 'alarm', src: q.src, t: 'Interferência: arco menor que o raio da ferramenta.' })).concat(extraAfter[k]);
+      });
+      if (cancel){
+        const lo = offs[offs.length - 1], e0 = cancel.pts[0], e1 = cancel.pts[cancel.pts.length - 1];
+        cancel.cpts = [[lo.p1[0], lo.p1[1], e0[2]], [e1[0], e1[1], e1[2]]];
+      }
+      // movimentos só em Z dentro da cadeia: ficam no ponto compensado
+      chain.forEach(q => { if (!q.cpts && !q.elem){ q.cpts = q.pts; } });
+    }
+    i = j;
+  }
+}
+
+/* ================= Interface ================= */
+const $ = id => document.getElementById(id);
+const cv = $('cv'), g = cv.getContext('2d');
+let SRC = '', FNAME = '', R = null, VIEW = 'face';
+let cam = { face: null, side: null, iso: null };
+let simT = 0, playing = false, lastTs = 0, cum = [], total = 0;
+let colors = {};
+function readColors(){
+  const cs = getComputedStyle(document.documentElement);
+  ['canvas','grid','axis','feed','rapid','comp','stock','toolc','ink','muted','accent','alarm'].forEach(k => colors[k] = cs.getPropertyValue('--' + k).trim());
+}
+readColors();
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { readColors(); draw(); });
+new MutationObserver(() => { readColors(); draw(); }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+
+function esc(s){ return s.replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'})[c]); }
+function hl(line){
+  // realce simples: comentários, palavras de macro, variáveis, G e M
+  const parts = line.split(/(\([^)]*\)?)/);
+  return parts.map(p => {
+    if (p.startsWith('(')) return '<span class="tc">' + esc(p) + '</span>';
+    return esc(p)
+      .replace(/\b(IF|THEN|GOTO|WHILE|DO\d|END\d|EQ|NE|GT|GE|LT|LE|AND|OR|XOR|MOD|SIN|COS|TAN|ATAN|SQRT|ABS|ROUND|FIX|FUP)\b/gi, '<span class="tk">$1</span>')
+      .replace(/(#\d+)/g, '<span class="tv">$1</span>')
+      .replace(/(^|[^A-Z#])(G\d+\.?\d*)/gi, '$1<span class="tg">$2</span>')
+      .replace(/(^|[^A-Z#])(M\d+)/gi, '$1<span class="tm">$2</span>');
+  }).join('');
+}
+function renderCode(){
+  const lines = SRC.replace(/\r/g, '').split('\n');
+  const sev = new Map();
+  if (R) for (const m of R.msgs){ const p = sev.get(m.src); if (m.sev === 'alarm' || !p) sev.set(m.src, m.sev); }
+  const html = lines.map((l, i) => {
+    const s = sev.get(i);
+    const cls = 'cl' + (s === 'alarm' ? ' err' : s === 'warn' ? ' wrn' : '') + (R && R.lineHits.has(i) ? ' hit' : '');
+    return '<div class="' + cls + '" data-l="' + i + '"><span class="n">' + (i + 1) + '</span><span class="t">' + (hl(l) || ' ') + '</span></div>';
+  }).join('');
+  $('code').innerHTML = html;
+}
+$('code').addEventListener('click', e => {
+  const d = e.target.closest('.cl'); if (!d || !R) return;
+  const l = +d.dataset.l, hits = R.lineHits.get(l);
+  if (!hits){ setStatus('Linha ' + (l+1) + ' não gera movimento.'); markLine(l); return; }
+  // clique repetido avança para a próxima execução da mesma linha
+  const cur = curMoveIndex();
+  let next = hits.find(h => h > cur); if (next === undefined) next = hits[0];
+  seekMove(next, true);
+  setStatus('Linha ' + (l+1) + ': execução ' + (hits.indexOf(next) + 1) + ' de ' + hits.length + (hits.length > 1 ? ' (clique de novo para a próxima)' : ''));
+});
+let lastMarked = -1;
+function markLine(l, scroll){
+  const box = $('code');
+  if (lastMarked >= 0){ const o = box.children[lastMarked]; if (o) o.classList.remove('cur'); }
+  const d = box.children[l]; if (d){ d.classList.add('cur'); if (scroll){ const r = d.offsetTop - box.offsetTop; if (r < box.scrollTop + 20 || r > box.scrollTop + box.clientHeight - 40) box.scrollTop = r - box.clientHeight / 3; } }
+  lastMarked = l;
+}
+function setStatus(t, bad){ const s = $('status'); s.textContent = t; s.className = 'status' + (bad ? ' bad' : ''); }
+
+function run(){
+  const t0 = performance.now();
+  const cfg = Object.assign({}, S, { tools: S.tools });
+  R = simulate(SRC, cfg);
+  saveCfg();
+  cum = [0]; total = 0;
+  for (const m of R.moves){ total += m.dur; cum.push(total); }
+  simT = total;
+  for (const k in cam) cam[k] = null;
+  renderCode(); renderMsgs(); renderTools(); fit(); updateAll(true);
+  const al = R.msgs.filter(m => m.sev === 'alarm').length;
+  setStatus(R.moves.length + ' mov. · ' + (performance.now() - t0).toFixed(0) + ' ms' + (al ? ' · ' + al + ' alarme(s)' : ''), al > 0);
+}
+
+/* ---- mensagens ---- */
+function renderMsgs(){
+  const box = $('msgs');
+  const order = { alarm: 0, warn: 1, info: 2 };
+  const list = R.msgs.slice().sort((a, b) => order[a.sev] - order[b.sev] || a.src - b.src);
+  $('msgCnt').textContent = list.length ? list.length : '';
+  if (!list.length){ box.innerHTML = '<div class="empty">Nenhum alarme ou aviso.' + (R.finished ? ' Programa chegou ao M30.' : '') + '</div>'; return; }
+  const lab = { alarm: 'ALM', warn: 'AVISO', info: 'INFO' };
+  box.innerHTML = list.map(m => '<div class="msg ' + m.sev + '" data-l="' + m.src + '"><b>' + lab[m.sev] + '</b><span>L' + (m.src + 1) + ' · ' + esc(m.t) + '</span></div>').join('');
+}
+$('msgs').addEventListener('click', e => { const d = e.target.closest('.msg'); if (!d) return; const l = +d.dataset.l; markLine(l, true); const h = R && R.lineHits.get(l); if (h) seekMove(h[0], false); });
+
+/* ---- ferramentas ---- */
+function renderTools(){
+  const ids = Object.keys(R ? R.toolsSeen : {}).map(Number).sort((a, b) => a - b);
+  const tb = $('toolTable');
+  if (!ids.length){ tb.innerHTML = '<tr><td class="empty">Nenhuma ferramenta (T) no programa.</td></tr>'; return; }
+  tb.innerHTML = '<tr><td>T</td><td>Descrição</td><td>Raio</td></tr>' + ids.map(t => {
+    const r = S.tools[t] ? S.tools[t].r : 0;
+    return '<tr><td>T' + String(t).padStart(2, '0') + '</td><td>' + esc((R.toolsSeen[t].name || '').slice(0, 22)) + '</td><td><input type="number" step="0.01" min="0" id="tool' + t + '" data-t="' + t + '" value="' + r + '"></td></tr>';
+  }).join('');
+}
+$('toolTable').addEventListener('change', e => { const i = e.target.closest('input'); if (!i) return; S.tools[i.dataset.t] = { r: parseFloat(i.value) || 0 }; run(); });
+
+/* ---- configurações e camadas ---- */
+const CFG = [
+  ['sysB', 'sel', 'Sistema de códigos G', [[true, 'B (G90/G91, G94/G95) — Romi'], [false, 'A (U/W, G98/G99)']]],
+  ['xDia', 'chk', 'X programado em diâmetro'],
+  ['calc', 'chk', 'Ponto decimal tipo calculadora (X10 = 10 mm)'],
+  ['bdel', 'chk', 'Block delete "/" ligado'],
+  ['mirror', 'chk', 'Espelhar vista da face (C+ horário)'],
+  ['rapid', 'num', 'Avanço rápido (mm/min)', 100],
+  ['machX', 'num', 'G53 X0 = X peça (diâm.)', 1],
+  ['machZ', 'num', 'G53 Z0 = Z peça', 1],
+  ['stockD', 'num', 'Diâmetro do blank (0 = sem)', 0.01],
+  ['faceZ', 'num', 'Z da face (início do corte)', 0.1]
+];
+function renderCfg(){
+  $('cfg').innerHTML = CFG.map(([k, t, lab, opt]) => {
+    if (t === 'chk') return '<label class="chk"><input type="checkbox" id="c_' + k + '"' + (S[k] ? ' checked' : '') + '>' + lab + '</label>';
+    if (t === 'sel') return '<div class="row"><label for="c_' + k + '">' + lab + '</label></div><select id="c_' + k + '" class="btn">' + opt.map(([v, l]) => '<option value="' + v + '"' + (S[k] === v ? ' selected' : '') + '>' + l + '</option>').join('') + '</select>';
+    return '<div class="row"><label for="c_' + k + '">' + lab + '</label><input type="number" id="c_' + k + '" step="' + opt + '" value="' + S[k] + '"></div>';
+  }).join('') + '<div class="note">A posição do G53 é só para desenhar a ida até a troca de ferramenta; não afeta o perfil.</div>';
+  const LAY = [['feed','Caminho programado'],['comp','Centro da fresa (G41/G42)'],['rapid','Rápidos G0'],['cut','Material removido (face)'],['tool','Ferramenta'],['ghost','Caminho ainda não executado'],['grid','Grade']];
+  $('layers').innerHTML = LAY.map(([k, l]) => '<label class="chk"><input type="checkbox" id="l_' + k + '"' + (S.layers[k] ? ' checked' : '') + '>' + l + '</label>').join('');
+}
+$('cfg').addEventListener('change', e => {
+  const el = e.target; const k = el.id.slice(2);
+  const d = CFG.find(c => c[0] === k); if (!d) return;
+  if (d[1] === 'chk') S[k] = el.checked; else if (d[1] === 'sel') S[k] = el.value === 'true'; else S[k] = parseFloat(el.value) || 0;
+  if (k === 'mirror' || k === 'stockD'){ saveCfg(); draw(); return; }
+  run();
+});
+$('layers').addEventListener('change', e => { const k = e.target.id.slice(2); S.layers[k] = e.target.checked; saveCfg(); draw(); });
+$('force').value = S.force || '';
+$('bForce').addEventListener('click', () => { S.force = $('force').value; run(); });
+
+/* ---- posição atual ---- */
+function curMoveIndex(){
+  if (!R || !R.moves.length) return -1;
+  let lo = 0, hi = R.moves.length - 1;
+  if (simT >= total) return hi;
+  while (lo < hi){ const mid = (lo + hi + 1) >> 1; if (cum[mid] <= simT) lo = mid; else hi = mid - 1; }
+  return lo;
+}
+function moveFrac(k){ const m = R.moves[k]; if (!m || m.dur <= 0) return 1; return Math.min(1, Math.max(0, (simT - cum[k]) / m.dur)); }
+function ptsOf(m){ return (S.layers.comp && m.cpts) ? m.cpts : m.pts; }
+function partial(pts, f){
+  if (f >= 1) return pts;
+  const n = pts.length - 1, x = f * n, i = Math.floor(x), r = x - i;
+  const out = pts.slice(0, i + 1);
+  if (i < n){ const a = pts[i], b = pts[i+1]; out.push([a[0] + (b[0]-a[0])*r, a[1] + (b[1]-a[1])*r, a[2] + (b[2]-a[2])*r]); }
+  return out;
+}
+function curPos(){
+  const k = curMoveIndex(); if (k < 0) return null;
+  const m = R.moves[k]; const p = partial(ptsOf(m), moveFrac(k));
+  return { k, m, p: p[p.length - 1] };
+}
+function seekMove(k, scroll){ simT = cum[k + 1]; playing = false; updateAll(scroll); }
+const fmt = (v, d = 3) => (v === null || v === undefined || isNaN(v)) ? '—' : (Math.abs(v) < 5e-7 ? 0 : v).toFixed(d);
+function fmtT(s){ s = Math.max(0, s); const m = Math.floor(s / 60), r = Math.floor(s % 60); return m + ':' + String(r).padStart(2, '0'); }
+function updateAll(scroll){
+  $('bPlay').textContent = playing ? '⏸ Pausar' : '▶ Executar';
+  $('slider').value = total > 0 ? Math.round(simT / total * 10000) : 10000;
+  $('ptime').textContent = fmtT(simT) + ' / ' + fmtT(total);
+  const c = R && curPos();
+  if (!c){ ['dX','dZ','dC','dXY','dT','dF','dS','dB'].forEach(i => $(i).textContent = '—'); $('chips').innerHTML = ''; draw(); return; }
+  const s = c.m.st, p = c.p;
+  const r = Math.hypot(p[0], p[1]);
+  let Xv, Cv;
+  if (s.polar){ Xv = p[0] * (S.xDia ? 2 : 1); Cv = p[1]; }
+  else { Xv = r * (S.xDia ? 2 : 1); Cv = s.C; if (c.m.kind !== 'dwell' && r > 1e-6){ let a = Math.atan2(p[1], p[0]) / D2R; while (a - s.C > 180) a -= 360; while (s.C - a > 180) a += 360; Cv = a; } }
+  $('dX').textContent = fmt(Xv); $('dZ').textContent = fmt(p[2]); $('dC').textContent = s.polar ? fmt(Cv) + ' mm' : fmt(Cv) + '°';
+  $('dXY').textContent = fmt(p[0], 2) + ' , ' + fmt(p[1], 2);
+  $('dT').textContent = s.T ? 'T' + String(s.T).padStart(2,'0') + String(s.Toff).padStart(2,'0') + ' · R' + (c.m.toolR || 0) : '—';
+  $('dF').textContent = (c.m.kind === 'rapid' ? 'rápido' : s.F) + (c.m.kind === 'rapid' ? '' : s.mmPerMin ? ' mm/min' : ' mm/rot');
+  $('dS').textContent = (s.live ? 'S2=' + s.S2 + ' acionada' : s.main ? 'S' + s.S + ' placa' : 'parado');
+  $('dB').textContent = 'L' + (c.m.src + 1) + ' · ' + (c.k + 1) + '/' + R.moves.length;
+  const chip = (t, on) => '<span class="chip' + (on ? ' act' : '') + '">' + t + '</span>';
+  $('chips').innerHTML = chip('G' + (c.m.kind === 'rapid' ? '00' : s.mot === 2 ? '02' : s.mot === 3 ? '03' : '01'), true) + chip(s.abs ? 'G90' : 'G91', false) + chip(s.mmPerMin ? 'G94' : 'G95', false)
+    + chip(s.polar ? 'G12.1 polar' : 'G13.1', s.polar) + chip('G' + s.comp, s.comp !== 40) + chip('Eixo C', s.cAxis) + chip('M85 freio', s.brake) + (s.cycle ? chip('G' + s.cycle, true) : '');
+  markLine(c.m.src, scroll);
+  renderVars(c.k);
+  draw();
+}
+function renderVars(k){
+  const vals = new Map();
+  for (const a of R.assigns){ if (a.mi > k + 1) break; vals.set(a.n, a.v); }
+  const ks = [...vals.keys()].sort((a, b) => a - b);
+  $('varCnt').textContent = ks.length || '';
+  $('varTable').innerHTML = ks.length ? ks.map(n => '<tr><td>#' + n + '</td><td>' + (vals.get(n) === null ? 'vazio' : +vals.get(n).toFixed(6)) + '</td></tr>').join('') : '<tr><td class="empty">Nenhuma variável atribuída até aqui.</td></tr>';
+}
+
+/* ---- desenho ---- */
+function proj(p){
+  if (VIEW === 'face') return [p[0], S.mirror ? -p[1] : p[1]];
+  if (VIEW === 'side') return [p[2], p[0]];
+  const c = cam.iso || {};
+  const yaw = c.yaw ?? -0.65, pit = c.pitch ?? 0.45;
+  const y0 = S.mirror ? -p[1] : p[1];
+  const x1 = p[0] * Math.cos(yaw) + p[2] * Math.sin(yaw), z1 = -p[0] * Math.sin(yaw) + p[2] * Math.cos(yaw);
+  const y1 = y0 * Math.cos(pit) + z1 * Math.sin(pit);
+  return [x1, y1];
+}
+function size(){ const r = cv.getBoundingClientRect(); const d = devicePixelRatio || 1; cv.width = Math.max(1, r.width * d); cv.height = Math.max(1, r.height * d); return { w: r.width, h: r.height, d }; }
+function curCam(){ return cam[VIEW]; }
+function fit(){
+  if (!R) return;
+  const r = cv.getBoundingClientRect();
+  let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+  const use = R.moves.filter(m => m.kind === 'feed');
+  const list = use.length ? use : R.moves;
+  for (const m of list) for (const p of ptsOf(m)){ const q = proj(p); x0 = Math.min(x0, q[0]); x1 = Math.max(x1, q[0]); y0 = Math.min(y0, q[1]); y1 = Math.max(y1, q[1]); }
+  if (VIEW === 'face' && S.stockD > 0){ const rr = S.stockD / 2; x0 = Math.min(x0, -rr); x1 = Math.max(x1, rr); y0 = Math.min(y0, -rr); y1 = Math.max(y1, rr); }
+  if (!isFinite(x0)){ x0 = -50; x1 = 50; y0 = -50; y1 = 50; }
+  const pad = 30, w = Math.max(1e-3, x1 - x0), h = Math.max(1e-3, y1 - y0);
+  const sc = Math.min((r.width - 2 * pad) / w, (r.height - 2 * pad) / h);
+  const base = cam[VIEW] || {};
+  cam[VIEW] = Object.assign(base, { s: sc, ox: r.width / 2 - (x0 + x1) / 2 * sc, oy: r.height / 2 + (y0 + y1) / 2 * sc });
+  draw();
+}
+function toScreen(q){ const c = curCam(); return [c.ox + q[0] * c.s, c.oy - q[1] * c.s]; }
+function niceStep(px){ const raw = 60 / px; const e = Math.pow(10, Math.floor(Math.log10(raw))); for (const m of [1, 2, 5, 10]) if (m * e >= raw) return m * e; return 10 * e; }
+function strokePts(pts){ g.beginPath(); pts.forEach((p, i) => { const s = toScreen(proj(p)); if (i) g.lineTo(s[0], s[1]); else g.moveTo(s[0], s[1]); }); g.stroke(); }
+function draw(){
+  const { w, h, d } = size();
+  g.setTransform(d, 0, 0, d, 0, 0);
+  g.fillStyle = colors.canvas; g.fillRect(0, 0, w, h);
+  if (!R) return;
+  if (!cam[VIEW]) { fit(); return; }
+  const c = curCam();
+  // grade
+  if (S.layers.grid && VIEW !== 'iso'){
+    const st = niceStep(c.s);
+    g.lineWidth = 1; g.strokeStyle = colors.grid; g.beginPath();
+    const xa = Math.floor((-c.ox) / c.s / st) * st, xb = (w - c.ox) / c.s;
+    for (let x = xa; x <= xb; x += st){ const sx = c.ox + x * c.s; g.moveTo(sx, 0); g.lineTo(sx, h); }
+    const ya = Math.floor((c.oy - h) / c.s / st) * st, yb = c.oy / c.s;
+    for (let y = ya; y <= yb; y += st){ const sy = c.oy - y * c.s; g.moveTo(0, sy); g.lineTo(w, sy); }
+    g.stroke();
+    g.strokeStyle = colors.axis; g.beginPath(); g.moveTo(c.ox, 0); g.lineTo(c.ox, h); g.moveTo(0, c.oy); g.lineTo(w, c.oy); g.stroke();
+    g.fillStyle = colors.muted; g.font = '11px ' + getComputedStyle(document.body).fontFamily;
+    g.fillText(VIEW === 'face' ? 'X+' : 'Z+', w - 22, c.oy - 5); g.fillText(VIEW === 'face' ? "C'+" : 'X+', c.ox + 5, 13);
+    g.fillText('grade ' + st + ' mm', 10, 16);
+  }
+  const k = curMoveIndex(), f = k >= 0 ? moveFrac(k) : 0;
+  // blank e material removido (vista da face)
+  if (VIEW === 'face' && S.layers.cut && S.stockD > 0){
+    const o = toScreen([0, 0]);
+    g.fillStyle = colors.stock; g.beginPath(); g.arc(o[0], o[1], S.stockD / 2 * c.s, 0, 2 * Math.PI); g.fill();
+    g.strokeStyle = colors.canvas; g.fillStyle = colors.canvas; g.lineCap = 'round'; g.lineJoin = 'round';
+    for (let i = 0; i <= k; i++){
+      const m = R.moves[i]; if (m.kind !== 'feed' || !(m.toolR > 0)) continue;
+      let pts = m.cpts || m.pts; if (i === k) pts = partial(pts, f);
+      const below = pts.filter(p => p[2] < S.faceZ - 1e-6);
+      if (!below.length) continue;
+      g.lineWidth = 2 * m.toolR * c.s;
+      if (below.length === 1 || below.every(p => Math.abs(p[0] - below[0][0]) < 1e-6 && Math.abs(p[1] - below[0][1]) < 1e-6)){
+        const s = toScreen(proj(below[0])); g.beginPath(); g.arc(s[0], s[1], m.toolR * c.s, 0, 2 * Math.PI); g.fill();
+      } else strokePts(below);
+    }
+    g.lineCap = 'butt';
+  }
+  // caminhos
+  g.lineJoin = 'round';
+  const drawSet = (upto, alpha) => {
+    for (let i = 0; i < R.moves.length; i++){
+      if (upto && i > k) break;
+      if (!upto && i <= k) continue;
+      const m = R.moves[i]; if (m.kind === 'dwell') continue;
+      let pts = m.pts; const part = upto && i === k;
+      g.globalAlpha = alpha;
+      if (m.kind === 'rapid'){
+        if (!S.layers.rapid) continue;
+        g.strokeStyle = colors.rapid; g.lineWidth = 1; g.setLineDash([5, 4]);
+        strokePts(part ? partial(pts, f) : pts); g.setLineDash([]);
+        continue;
+      }
+      if (S.layers.feed){ g.strokeStyle = colors.feed; g.lineWidth = 1.4; strokePts(part ? partial(pts, f) : pts); }
+      if (S.layers.comp && m.cpts){ g.strokeStyle = colors.comp; g.lineWidth = 1.6; strokePts(part ? partial(m.cpts, f) : m.cpts); }
+    }
+    g.globalAlpha = 1;
+  };
+  if (S.layers.ghost) drawSet(false, 0.22);
+  drawSet(true, 1);
+  // ferramenta
+  const cp = curPos();
+  if (cp && S.layers.tool){
+    const s = toScreen(proj(cp.p)); const rt = (cp.m.toolR || 0) * c.s;
+    g.strokeStyle = colors.toolc; g.fillStyle = colors.toolc; g.lineWidth = 2;
+    if (VIEW === 'face' && rt > 2){ g.globalAlpha = .18; g.beginPath(); g.arc(s[0], s[1], rt, 0, 2 * Math.PI); g.fill(); g.globalAlpha = 1; g.beginPath(); g.arc(s[0], s[1], rt, 0, 2 * Math.PI); g.stroke(); }
+    else if (VIEW === 'side' && rt > 2){ g.globalAlpha = .18; g.fillRect(s[0], s[1] - rt, 40, 2 * rt); g.globalAlpha = 1; g.strokeRect(s[0], s[1] - rt, 40, 2 * rt); }
+    g.beginPath(); g.moveTo(s[0] - 7, s[1]); g.lineTo(s[0] + 7, s[1]); g.moveTo(s[0], s[1] - 7); g.lineTo(s[0], s[1] + 7); g.stroke();
+  }
+  // origem
+  const o = toScreen(proj([0, 0, 0])); g.fillStyle = colors.accent; g.beginPath(); g.arc(o[0], o[1], 3, 0, 2 * Math.PI); g.fill();
+}
+
+/* ---- interação com o gráfico ---- */
+let drag = null;
+cv.addEventListener('pointerdown', e => { cv.setPointerCapture(e.pointerId); drag = { x: e.clientX, y: e.clientY, sx: e.clientX, sy: e.clientY, moved: false, shift: e.shiftKey || e.button === 2 }; cv.style.cursor = 'grabbing'; });
+cv.addEventListener('pointermove', e => {
+  const r = cv.getBoundingClientRect();
+  const c = curCam();
+  if (c && !drag){
+    const wx = (e.clientX - r.left - c.ox) / c.s, wy = (c.oy - (e.clientY - r.top)) / c.s;
+    if (VIEW === 'face'){ const y = S.mirror ? -wy : wy; const rr = Math.hypot(wx, y); let a = Math.atan2(y, wx) / D2R; if (a < 0) a += 360; $('readout').textContent = 'x ' + wx.toFixed(3) + '  y ' + y.toFixed(3) + '  →  X' + (rr * (S.xDia ? 2 : 1)).toFixed(3) + '  C' + a.toFixed(3) + '°'; }
+    else if (VIEW === 'side') $('readout').textContent = 'Z ' + wx.toFixed(3) + '  X ' + (wy * (S.xDia ? 2 : 1)).toFixed(3);
+    else $('readout').textContent = '';
+  }
+  if (!drag || !c) return;
+  const dx = e.clientX - drag.x, dy = e.clientY - drag.y; drag.x = e.clientX; drag.y = e.clientY;
+  if (Math.abs(e.clientX - drag.sx) + Math.abs(e.clientY - drag.sy) > 4) drag.moved = true;
+  if (VIEW === 'iso' && !drag.shift){ c.yaw = (c.yaw ?? -0.65) + dx * 0.008; c.pitch = Math.max(-1.5, Math.min(1.5, (c.pitch ?? 0.45) + dy * 0.008)); }
+  else { c.ox += dx; c.oy += dy; }
+  draw();
+});
+cv.addEventListener('pointerup', e => {
+  cv.style.cursor = 'grab';
+  if (drag && !drag.moved && R){
+    // achar o movimento mais próximo do clique
+    const r = cv.getBoundingClientRect(); const mx = e.clientX - r.left, my = e.clientY - r.top;
+    let best = -1, bd = 14 * 14;
+    R.moves.forEach((m, i) => { if (m.kind === 'dwell' || (m.kind === 'rapid' && !S.layers.rapid)) return; const P = ptsOf(m); for (const p of P){ const s = toScreen(proj(p)); const d2 = (s[0]-mx)**2 + (s[1]-my)**2; if (d2 < bd){ bd = d2; best = i; } } });
+    if (best >= 0){ seekMove(best, true); setStatus('Movimento ' + (best + 1) + ' · linha ' + (R.moves[best].src + 1)); }
+  }
+  drag = null;
+});
+cv.addEventListener('contextmenu', e => e.preventDefault());
+cv.addEventListener('wheel', e => {
+  e.preventDefault(); const c = curCam(); if (!c) return;
+  const r = cv.getBoundingClientRect(); const mx = e.clientX - r.left, my = e.clientY - r.top;
+  const k = Math.exp(-e.deltaY * 0.0015);
+  c.ox = mx - (mx - c.ox) * k; c.oy = my - (my - c.oy) * k; c.s *= k; draw();
+}, { passive: false });
+new ResizeObserver(() => draw()).observe($('stage'));
+document.querySelectorAll('[data-view]').forEach(b => b.addEventListener('click', () => {
+  VIEW = b.dataset.view;
+  document.querySelectorAll('[data-view]').forEach(x => x.setAttribute('aria-pressed', x === b ? 'true' : 'false'));
+  try { localStorage.setItem('fsim.view', VIEW); } catch (e) {}
+  if (!cam[VIEW]) fit(); else draw();
+}));
+$('bFit').addEventListener('click', () => { if (VIEW === 'iso'){ const c = cam.iso || {}; cam.iso = { yaw: c.yaw ?? -0.65, pitch: c.pitch ?? 0.45 }; } else cam[VIEW] = null; fit(); });
+
+/* ---- reprodução ---- */
+function tick(ts){
+  if (!playing) return;
+  const dt = lastTs ? (ts - lastTs) / 1000 : 0; lastTs = ts;
+  simT = Math.min(total, simT + dt * (+$('speed').value));
+  if (simT >= total) playing = false;
+  updateAll(true);
+  if (playing) requestAnimationFrame(tick);
+}
+function togglePlay(){ if (!R) return; if (!playing && simT >= total) simT = 0; playing = !playing; lastTs = 0; updateAll(true); if (playing) requestAnimationFrame(tick); }
+$('bPlay').addEventListener('click', togglePlay);
+$('bStart').addEventListener('click', () => { playing = false; simT = 0; updateAll(true); });
+$('bEnd').addEventListener('click', () => { playing = false; simT = total; updateAll(true); });
+function step(dir){ if (!R || !R.moves.length) return; playing = false; let k = curMoveIndex(); const f = moveFrac(k); if (dir > 0){ k = f < 1 ? k : k + 1; } else { k = f > 0 && f < 1 ? k - 1 : k - 1; } k = Math.max(-1, Math.min(R.moves.length - 1, k)); simT = k < 0 ? 0 : cum[k + 1]; updateAll(true); }
+$('bPrev').addEventListener('click', () => step(-1));
+$('bNext').addEventListener('click', () => step(1));
+$('slider').addEventListener('input', e => { playing = false; simT = total * (+e.target.value) / 10000; updateAll(true); });
+document.addEventListener('keydown', e => {
+  if (e.target.closest('textarea,input,select')) { if (e.ctrlKey && e.key === 'Enter'){ e.preventDefault(); applyEditor(); run(); } return; }
+  if (e.key === ' '){ e.preventDefault(); togglePlay(); }
+  else if (e.key === 'ArrowRight') step(1);
+  else if (e.key === 'ArrowLeft') step(-1);
+  else if (e.key === 'f' || e.key === 'F'){ cam[VIEW] = VIEW === 'iso' ? cam.iso : null; fit(); }
+});
+
+/* ---- arquivos e edição ---- */
+function load(text, name){
+  SRC = text; FNAME = name || 'programa.nc';
+  $('fname').textContent = FNAME; $('editor').value = SRC;
+  try { localStorage.setItem('fsim.src', SRC); localStorage.setItem('fsim.name', FNAME); } catch (e) {}
+  if (!$('editor').hidden) toggleEdit();
+  S.tools = {};
+  run();
+}
+function applyEditor(){ if (!$('editor').hidden){ SRC = $('editor').value; try { localStorage.setItem('fsim.src', SRC); } catch (e) {} } }
+function toggleEdit(){
+  const ed = $('editor'), on = ed.hidden;
+  if (!on){ applyEditor(); }
+  ed.hidden = !on; $('code').hidden = on;
+  $('bEdit').classList.toggle('on', on); $('bEdit').setAttribute('aria-pressed', String(on));
+  $('bEdit').textContent = on ? 'Ver linhas' : 'Editar';
+  if (on){ ed.value = SRC; ed.focus(); } else run();
+}
+$('bEdit').addEventListener('click', toggleEdit);
+$('bRun').addEventListener('click', () => { applyEditor(); run(); });
+$('bOpen').addEventListener('click', () => $('file').click());
+$('bSample').addEventListener('click', () => load(SAMPLE, SAMPLE_NAME));
+function readFile(f){ const fr = new FileReader(); fr.onload = () => load(String(fr.result), f.name); fr.onerror = () => setStatus('Não foi possível ler o arquivo.', true); fr.readAsText(f); }
+$('file').addEventListener('change', e => { const f = e.target.files[0]; if (f) readFile(f); e.target.value = ''; });
+let dragDepth = 0;
+addEventListener('dragenter', e => { if ([...(e.dataTransfer?.types || [])].includes('Files')){ dragDepth++; $('drop').hidden = false; } });
+addEventListener('dragleave', () => { dragDepth = Math.max(0, dragDepth - 1); if (!dragDepth) $('drop').hidden = true; });
+addEventListener('dragover', e => e.preventDefault());
+addEventListener('drop', e => { e.preventDefault(); dragDepth = 0; $('drop').hidden = true; const f = e.dataTransfer.files[0]; if (f) readFile(f); });
+
+/* ---- início ---- */
+renderCfg();
+try { const v = localStorage.getItem('fsim.view'); if (v && ['face','side','iso'].includes(v)){ VIEW = v; document.querySelectorAll('[data-view]').forEach(x => x.setAttribute('aria-pressed', x.dataset.view === v ? 'true' : 'false')); } } catch (e) {}
+let saved = null, savedName = null;
+try { saved = localStorage.getItem('fsim.src'); savedName = localStorage.getItem('fsim.name'); } catch (e) {}
+SRC = saved || SAMPLE; FNAME = saved ? (savedName || 'programa.nc') : SAMPLE_NAME;
+$('fname').textContent = FNAME; $('editor').value = SRC;
+requestAnimationFrame(() => { run(); });
+</script>
+
+</body>
+</html>
