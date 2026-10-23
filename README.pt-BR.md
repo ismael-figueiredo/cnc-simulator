@@ -4,11 +4,55 @@
 
 Português (Brasil) · [English](README.md)
 
-Simulador de programas CNC, leve e multiplataforma. Lê G-code, usa a **máquina** e o **comando** descritos em JSON (um pós-processador às avessas) e mostra o percurso e a peça usinada em 3D.
+Simulador de programas CNC, leve e multiplataforma. Lê G-code, usa a **máquina** e o **comando** descritos em JSON (um pós-processador às avessas) e mostra o percurso em 3D, com os alarmes do próprio comando.
 
-> **Estado: 0.3.**
-> - **Simulação:** o interpretador roda o programa na máquina e no comando escolhidos e mostra o percurso em 3D, com reprodução, painel de posição e mensagens traduzidas.
-> - **Alarmes Fanuc:** param a simulação no bloco com o número da própria máquina. A documentação completa (estrutura, formato dos JSON, roadmap) está no [README em inglês](README.md). Este arquivo resume o essencial.
+![O exemplo O1500 rodando: tela de programa estilo Fanuc, percurso 3D com compensação de raio, posição absoluta e de máquina](docs/demo.gif)
+
+## Baixar
+
+Os instaladores de cada versão estão na **[página de Releases](https://github.com/ismael-figueiredo/cnc-simulator/releases/latest)**:
+
+| Sistema | Arquivo | Observação |
+|---|---|---|
+| Windows 10/11 | `cnc-simulator-<versão>-setup.exe` | O Windows pode avisar "editor desconhecido" (o app não é assinado): **Mais informações → Executar assim mesmo**. As atualizações se instalam sozinhas. |
+| macOS (Apple Silicon, M1 ou mais novo) | `cnc-simulator-<versão>-arm64.dmg` | Arraste para Aplicativos. Na primeira vez: botão direito no app → **Abrir** (não é assinado). |
+| macOS (Intel) | `cnc-simulator-<versão>-x64.dmg` | Igual ao de cima. |
+| Linux | `cnc-simulator-<versão>-x86_64.AppImage` ou `cnc-simulator_<versão>_amd64.deb` | O AppImage se atualiza sozinho; o .deb atualiza instalando o novo. |
+
+## O que faz
+
+- **Roda o G-code como o comando:** dialetos Fanuc e Mitsubishi em JSON, Macro B (variáveis, IF/WHILE/GOTO, G65), subprogramas, ciclos fixos, interpolação polar G12.1 e compensação de raio G41/G42 desenhada no centro da ferramenta.
+- **Para nos alarmes da máquina:** erros de programa param no bloco com o número e a mensagem do próprio comando (por exemplo `PS0010 IMPROPER G-CODE`).
+- **Tela de programa como a do comando:** tela MEM estilo Fanuc com o bloco em execução, números O e N e estado de execução. **EDIT** vira um editor (cores, desfazer, buscar e substituir).
+- **Projetos (`.cncsim`):** guardam o programa com máquina, comando, ferramentas, blank e zeros, para reabrir ou enviar o trabalho inteiro.
+- **Ferramentas:** criar e editar ferramentas, salvar como biblioteca e reutilizar em qualquer projeto.
+- **Blank:** barra ou bloco, medidas, posição e cor do material.
+- **Zeros de peça:** G54–G59 e G54.1 P n, G10 L2/L20 no programa, G53 em coordenadas de máquina, posição absoluta e de máquina lado a lado e aviso de fim de curso.
+- **Menu Ajuda:** relatar um problema (com print e issue preenchida no GitHub) e procurar atualizações.
+- **Idiomas:** português (Brasil), inglês e espanhol.
+
+## Como usar
+
+1. **Tela inicial:** abra um programa (`.nc`, `.tap`, `.txt`…) ou um projeto, crie um programa novo ou abra o **Exemplo** (coroa ANSI 40 num Romi GL 250 M). Os arquivos recentes ficam aqui e em **Arquivo → Abrir recente**.
+2. **Escolha a máquina e o comando** no topo. Um programa aberto sozinho usa o blank da máquina e as ferramentas padrão.
+3. **Simule:** executar, pausar, avançar bloco a bloco ou clicar numa linha para ir até ela. Mensagens e alarmes ficam à direita; clique numa para ir ao bloco.
+4. **EDIT / MEM:** EDIT altera o programa; MEM (ou **Simular**) roda como está. **Arquivo → Salvar** (Ctrl/⌘+S) grava.
+5. **Preparação:** no painel da direita, edite o **Blank**, os **Zeros de peça** e as **Ferramentas** e use **Salvar como projeto** para guardar tudo num `.cncsim` ao lado do programa.
+
+### Zeros de peça: o que muda na simulação
+
+- **Um zero só:** o percurso não muda em relação à peça. Os valores dele (posição de máquina do zero peça) posicionam o zero de máquina, e aí a coluna **Máquina**, o G53/G28 e a conferência de curso passam a ser reais.
+- **Vários zeros** (duas morsas, duas faces): cada um é desenhado deslocado pela diferença para o G54, e o blank fica no zero que você escolher.
+- **G10 L2 / L20** no programa gravam a tabela durante a execução, como na máquina.
+- **Ainda não:** comprimento de ferramenta (G43 H) e desgaste; o aviso de curso diz isso.
+
+### Relatar problemas
+
+**Ajuda → Relatar um problema** explica como postar, salva um print da janela em Downloads (e copia) e abre uma [issue no GitHub](https://github.com/ismael-figueiredo/cnc-simulator/issues) com a versão e o sistema já preenchidos. **Ajuda → Problemas conhecidos** abre a lista de issues.
+
+# Para desenvolvedores
+
+A documentação completa (estrutura, formato dos JSON, roadmap) está no [README em inglês](README.md). Este arquivo resume o essencial.
 
 ## Como rodar
 
@@ -23,8 +67,11 @@ npm run dist         # instalador do sistema atual em dist/
 npm run dist:win     # instalador do Windows (NSIS)
 npm run dist:mac     # dmg do macOS, arm64 e x64 (rode num Mac; sem assinatura)
 npm run dist:linux   # AppImage e .deb do Linux
-npm run icons        # gera de novo build/icon.png e o favicon depois de editar build/icon.svg
+npm run icons        # gera de novo build/icon.png, o favicon e as imagens do instalador depois de editar build/icon.svg
+npm run demo         # grava o docs/demo.gif (tela inicial + exemplo rodando) para o README
 ```
+
+Depois de uma mudança visível na interface, rode `npm run demo` e faça o commit do `docs/demo.gif` novo junto, para o README mostrar o app atual.
 
 **`npm run dev` falha com `Cannot read properties of undefined (reading 'handle')`:** a variável `ELECTRON_RUN_AS_NODE=1` está ligada. Algumas extensões do VS Code a ligam. Desligue antes de rodar:
 - PowerShell: `Remove-Item Env:ELECTRON_RUN_AS_NODE`
@@ -33,7 +80,6 @@ npm run icons        # gera de novo build/icon.png e o favicon depois de editar 
 - **CI:** todo push na `main` e todo pull request rodam o `npm run check`.
 - **Release:** enviar uma tag `v*` (`git tag v0.1.0 && git push origin v0.1.0`) gera os instaladores de Windows, macOS e Linux e publica na página Releases do GitHub. Rodando à mão pela aba Actions, eles ficam só como artifacts do run.
 - **Atualizações:** o app instalado procura a versão nova ao abrir e em **Ajuda → Procurar atualizações**. No Windows e no AppImage baixa sozinho e instala ao reiniciar; no macOS e no `.deb` avisa e abre a página de download.
-- **Relatar problemas:** **Ajuda → Relatar um problema** explica como postar, salva um print da janela em Downloads (e copia) e abre uma issue no GitHub com a versão e o sistema preenchidos.
 
 ## Qualidade
 

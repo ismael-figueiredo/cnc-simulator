@@ -4,14 +4,55 @@
 
 [Português (Brasil)](README.pt-BR.md) · English
 
-Lightweight, cross-platform CNC program simulator. It reads G-code, takes the **machine** and the **control** from JSON files (a post-processor in reverse) and shows the toolpath and the machined part in 3D.
+Lightweight, cross-platform CNC program simulator. It reads G-code, takes the **machine** and the **control** from JSON files (a post-processor in reverse) and shows the toolpath in 3D, with the control's own alarms.
 
-It grew out of `Simulador_Fanuc.html` ([docs/legacy](docs/legacy/Simulador_Fanuc.html)), a single-file simulator that already handles Fanuc Macro B, G12.1 and G41/G42 cutter compensation on a Romi GL lathe with live tooling. This project rewrites it in TypeScript, split into core, UI and desktop app, and is no longer tied to one control.
+![The O1500 example running: Fanuc-style program screen, 3D toolpath with cutter compensation, absolute and machine position](docs/demo.gif)
 
-> **Status: 0.3.**
-> - **Simulation:** the interpreter runs any program against the selected machine and control and shows the toolpath in 3D, with playback, a position panel and translated diagnostics.
-> - **Fanuc alarms:** program errors stop the run at the block with the control's own alarm number, as on the machine.
-> - **Next:** material removal, user configs and the machine setup.
+## Download
+
+Installers for every version are on the **[Releases page](https://github.com/ismael-figueiredo/cnc-simulator/releases/latest)**:
+
+| System | File | Notes |
+|---|---|---|
+| Windows 10/11 | `cnc-simulator-<version>-setup.exe` | Windows may warn about an unknown publisher (the app is not signed): **More info → Run anyway**. Updates install themselves. |
+| macOS (Apple Silicon) | `cnc-simulator-<version>-arm64.dmg` | Drag to Applications. First launch: right-click the app → **Open** (not signed). |
+| macOS (Intel) | `cnc-simulator-<version>-x64.dmg` | Same as above. |
+| Linux | `cnc-simulator-<version>-x86_64.AppImage` or `cnc-simulator_<version>_amd64.deb` | The AppImage updates itself; the .deb is updated by installing the new one. |
+
+## What it does
+
+- **Runs G-code like the control:** Fanuc and Mitsubishi dialects from JSON, Macro B (variables, IF/WHILE/GOTO, G65), subprograms, canned cycles, G12.1 polar interpolation and G41/G42 cutter compensation drawn as the tool center.
+- **Stops on the machine's alarms:** program errors stop at the block with the control's own number and message (for example `PS0010 IMPROPER G-CODE`).
+- **Program screen like the control:** Fanuc-style MEM screen with the running block, O and N numbers and run state. **EDIT** turns it into an editor (colors, undo, find and replace).
+- **Projects (`.cncsim`):** keep the program with its machine, control, tools, stock and work offsets, to reopen or send the whole job.
+- **Tools:** create and edit tools, save them as libraries and reuse them in any project.
+- **Stock:** bar or block, size, position and material color.
+- **Work offsets:** G54–G59 and G54.1 P n, G10 L2/L20 in the program, G53 in machine coordinates, absolute and machine position side by side, and travel limit warnings.
+- **Help menu:** report a problem (with a screenshot and a prefilled GitHub issue) and check for updates.
+- **Languages:** Portuguese (Brazil), English and Spanish.
+
+## Using it
+
+1. **Start screen:** open a program (`.nc`, `.tap`, `.txt`…) or a project, create a new program, or open the **Example** (an ANSI 40 sprocket on a Romi GL 250 M). Recent files are listed here and in **File → Open recent**.
+2. **Pick the machine and the control** at the top. A program opened alone uses the machine's stock and the bundled tools.
+3. **Simulate:** play, pause, step block by block, or click a line to jump to it. Messages and alarms are listed on the right; click one to go to its block.
+4. **EDIT / MEM:** EDIT changes the program; MEM (or **Simulate**) runs it as edited. **File → Save** (Ctrl/⌘+S) writes it back.
+5. **Setup:** in the right panel, edit the **Stock**, the **Work offsets** and the **Tools**, then **Save as project** to keep it all in a `.cncsim` file next to the program.
+
+### Work offsets: what changes the simulation
+
+- **One work offset:** the path does not change on the part. Its values (machine position of the part zero) place machine zero, so the **Machine** column, G53/G28 and the travel check become real.
+- **Several work offsets** (two vises, two faces): each one is drawn shifted by its difference to G54, and the stock sits on the offset you choose.
+- **G10 L2 / L20** in the program write the table while it runs, as on the machine.
+- **Not yet:** tool length (G43 H) and wear offsets; travel warnings say so.
+
+### Reporting problems
+
+**Help → Report a problem** explains how to post, saves a screenshot of the window to Downloads (and copies it), and opens a [GitHub issue](https://github.com/ismael-figueiredo/cnc-simulator/issues) with the version and system already filled in. **Help → Known problems** opens the issue list.
+
+# For developers
+
+It grew out of `Simulador_Fanuc.html` ([docs/legacy](docs/legacy/Simulador_Fanuc.html)), a single-file simulator that already handled Fanuc Macro B, G12.1 and G41/G42 cutter compensation on a Romi GL lathe with live tooling. This project rewrites it in TypeScript, split into core, UI and desktop app, and is no longer tied to one control.
 
 ## Requirements
 
@@ -34,8 +75,11 @@ npm run dist         # installer for the current OS in dist/
 npm run dist:win     # Windows installer (NSIS)
 npm run dist:mac     # macOS dmg, arm64 and x64 (run on a Mac; unsigned)
 npm run dist:linux   # Linux AppImage and .deb
-npm run icons        # redraw build/icon.png and the favicon after editing build/icon.svg
+npm run icons        # redraw build/icon.png, the favicon and installer artwork after editing build/icon.svg
+npm run demo         # record docs/demo.gif (start screen + the example running) for the README
 ```
+
+After a visible UI change, run `npm run demo` and commit the new `docs/demo.gif` with it, so the README shows the current app.
 
 ### Troubleshooting
 
@@ -57,9 +101,9 @@ The installed app checks the latest GitHub release on start, and from **Help →
 - **macOS and Linux (.deb):** the app says a new version exists and opens the download page. macOS only installs updates for signed apps; the `.deb` belongs to the system package manager.
 - Being offline is not an error: the check on start fails silently.
 
-### Reporting problems
+### Issue form
 
-**Help → Report a problem** explains how to post, saves a screenshot of the window to Downloads (and copies it), and opens a GitHub issue with the version and system already filled in. The issue form is `.github/ISSUE_TEMPLATE/bug.yml`. **Help → Known problems** opens the issue list.
+`.github/ISSUE_TEMPLATE/bug.yml` asks for version, system, machine and control, what happened and the program blocks; **Help → Report a problem** prefills the first two.
 
 ## Quality checks
 
@@ -73,6 +117,8 @@ The installed app checks the latest GitHub release on start, and from **Help →
   - The O1500 sprocket with 9/15/20 teeth: the Ø6 cutter center must stay exactly 3.000 mm from the ANSI profile, and the Ø8 relief holes must leave stock.
   - The Romi manual G42 example.
   - Rule violations, Macro B and a mill program.
+  - Work offsets: G55 shifted from G54, machine coordinates, G53, G10 L2/L20, overtravel, and no change without a table.
+  - Project files: valid and invalid `.cncsim` files.
   - Every diagnostic and UI text exists in every language.
 - **VS Code:** `.vscode/` recommends the ESLint extension and fixes on save.
 
@@ -113,12 +159,13 @@ The code base, config files and docs are in English. The UI is translated, with 
 
 ```
 src/
-  core/            no DOM: types, schemas and (phase 1) the interpreter
-    config/        schema.ts (zod) and load.ts (validation, issues as data)
+  core/            no DOM: types, schemas and the interpreter
+    config/        schema.ts (zod), project.ts (.cncsim), load.ts (validation, issues as data)
+    interp/        simulate.ts (interpreter), cutterComp.ts, diagnostics.ts
   i18n/            languages, translate(), localize(); locales/en.ts is the source
   main/            Electron main process: window, menus, files
   preload/         safe typed bridge between window and system (api.ts)
-  renderer/        React UI (App.tsx, i18n.tsx, components/)
+  renderer/        React UI (App.tsx, i18n.tsx, components/: CodeView, ProgramEditor, StartScreen, ToolEditor, StockEditor, WorkOffsetsEditor…)
   server/          Fastify server (browser mode)
 configs/
   machines/        one machine per file: axes, spindles, turret, stock
@@ -126,6 +173,8 @@ configs/
   tools/           tool libraries and holders (tapers)
 examples/          sample programs (O1500, ANSI 40 sprocket)
 tests/             Vitest tests
+scripts/           icons.mjs (icon and installer art), demo.mjs (README GIF)
+build/             icon source and installer artwork
 docs/legacy/       original HTML simulator, reference for the port
 ```
 
@@ -149,7 +198,7 @@ docs/legacy/       original HTML simulator, reference for the port
 - **Mitsubishi decimal point and integer addresses:**
   - The files assume decimal point type I (`#1078 Decpt2 = 0`), so `X1` is 0.001 mm.
   - A decimal point on an integer address (D, H, L, M, N, O, P, S, T) is dropped, not an alarm. This is the `integerAddressDecimal: "ignore"` option; Fanuc raises PS0007.
-- **Functions the controls accept but the simulator does not draw yet:** G68 rotation, G51.1 mirror, G52 local coordinates, G15/G16 polar coordinates, G12/G13 circle cutting, G10. They raise a warning, because the path after them would be wrong.
+- **Functions the controls accept but the simulator does not draw yet:** G68 rotation, G51.1 mirror, G52 local coordinates, G15/G16 polar coordinates, G12/G13 circle cutting, G92, and G10 other than L2/L20 (tool offsets). They raise a warning, because the path after them would be wrong.
 
 ## Config files
 
@@ -218,12 +267,12 @@ Three separate files you can mix: the same machine with another control, or one 
    - G12.1 and G41/G42 compensation (polar plane and mill XY);
    - drilling cycles.
 2. ◐ **Toolpath:**
-   - Done: 3D path with done/remaining parts, tool marker, playback, click-to-block, translated diagnostics, position panel.
-   - Next: 2D face and side views and a fit-to-path camera.
+   - Done: 3D path with done/remaining parts, tool marker, playback, click-to-block, translated diagnostics, absolute and machine position, work offsets (G54–G59, G54.1, G10 L2/L20, G53) with travel warnings.
+   - Next: 2D face and side views, a fit-to-path camera, tool length and wear offsets (G43, G10 L10–L13).
 3. **Machines and controls:** load the user's JSON; profiles for Fanuc T (A/B), Fanuc M, Haas and LinuxCNC; later Siemens and Mazak.
-4. **Tools:** library, holders and tapers, with 3D tool drawing.
+4. ◐ **Tools:** done: tool editor, user libraries, import/export. Next: holders and tapers with 3D tool drawing.
 5. **Machined part in 3D:** material removal (heightmap/dexel for facing and milling, solid of revolution for turning).
-6. **Desktop:** open and save, auto-reload when the `.nc` changes, file associations, installer.
+6. ◐ **Desktop:** done: start screen with recent files, EDIT/MEM editor, open and save, `.cncsim` projects, installers, updates, bug reports. Next: auto-reload when the `.nc` changes, file associations.
 7. **Server:** `/api/simulate` API and use from a browser on the shop network.
 8. **Importers and collision:** read FreeCAD posts and Fusion `.cps`; tool and holder collision with part, chuck and turret.
 
