@@ -3,6 +3,7 @@ import { Canvas, useFrame } from '@react-three/fiber'
 import { GizmoHelper, GizmoViewport, Grid, Html, OrbitControls } from '@react-three/drei'
 import { ExtrudeGeometry, LatheGeometry, Shape, Vector2, type Group } from 'three'
 import {
+  chuckGeometry,
   holderOutline,
   insertOutline,
   toolOutline,
@@ -18,6 +19,7 @@ import {
   type Vec3,
   type WorkOffsets
 } from '@core/index'
+import { Machining } from './Machining'
 
 interface Props {
   machine: Machine
@@ -45,6 +47,12 @@ interface Props {
   spinning: boolean
   showRapids: boolean
   showStock: boolean
+  /** Show the stock being cut (heightfield on mills, turned profile on lathes). */
+  machining: boolean
+  /** Tools with a ball end. */
+  ballTools: Set<number>
+  /** The tool may hit the chuck at this move: the jaws turn red. */
+  chuckHit: boolean
 }
 
 const COLORS = {
@@ -222,28 +230,31 @@ function TurningTool({ tool }: { tool: Tool }) {
   )
 }
 
-/** Three-jaw chuck holding the bar: the face of the jaws grips the last part of the stock. */
-function Chuck({ stock, zero }: { stock: StockData; zero: Vec3 }) {
-  const R = (stock.diameter ?? 50) / 2
-  const L = stock.length ?? 30
-  const grip = Math.min(L * 0.4, 25)
-  const face = zero[2] + (stock.offset?.Z ?? 0) - (L - grip)
-  const body = Math.max(R * 1.9, 60)
-  const jaw = Math.max(16, (body - R) * 0.55)
+/** Three-jaw chuck: the body behind the chuck face and three stepped jaws holding the end of the bar. */
+function Chuck({ stock, zero, hit }: { stock: StockData; zero: Vec3; hit: boolean }) {
+  const c = chuckGeometry(stock, zero)
+  const jaw = c.jawOuter - c.barRadius
+  const jawColor = hit ? COLORS.collision : COLORS.jaw
   return (
     <group>
-      <mesh position={[0, 0, face - 30]} rotation={[Math.PI / 2, 0, 0]}>
-        <cylinderGeometry args={[body, body, 60, 72]} />
-        <meshStandardMaterial color={COLORS.chuck} metalness={0.4} roughness={0.5} />
+      <mesh position={[0, 0, c.face - 25]} rotation={[Math.PI / 2, 0, 0]}>
+        <cylinderGeometry args={[c.bodyRadius, c.bodyRadius, 50, 72]} />
+        <meshStandardMaterial color={COLORS.chuck} metalness={0.55} roughness={0.35} />
       </mesh>
       {[90, 210, 330].map((deg) => {
         const a = (deg * Math.PI) / 180
-        const r = R + jaw / 2
         return (
-          <mesh key={deg} position={[r * Math.cos(a), r * Math.sin(a), face + grip / 2]} rotation={[0, 0, a]}>
-            <boxGeometry args={[jaw, 18, grip]} />
-            <meshStandardMaterial color={COLORS.jaw} metalness={0.5} roughness={0.4} />
-          </mesh>
+          <group key={deg} rotation={[0, 0, a]}>
+            {/* Gripping step on the bar, and the base step bolted to the chuck face */}
+            <mesh position={[c.barRadius + jaw * 0.3, 0, c.face + c.grip / 2]}>
+              <boxGeometry args={[jaw * 0.6, 16, c.grip]} />
+              <meshStandardMaterial color={jawColor} metalness={0.6} roughness={0.35} />
+            </mesh>
+            <mesh position={[c.barRadius + jaw * 0.8, 0, c.face + c.grip * 0.3]}>
+              <boxGeometry args={[jaw * 0.4, 20, c.grip * 0.6]} />
+              <meshStandardMaterial color={jawColor} metalness={0.6} roughness={0.35} />
+            </mesh>
+          </group>
         )
       })}
     </group>
@@ -277,7 +288,10 @@ export function Viewport3D({
   spindleAngle,
   spinning,
   showRapids,
-  showStock
+  showStock,
+  machining,
+  ballTools,
+  chuckHit
 }: Props) {
   const lathe = isLathe(machine)
   const size = lathe ? (stock?.diameter ?? 60) : Math.max(stock?.x ?? 100, stock?.y ?? 80)
@@ -301,6 +315,8 @@ export function Viewport3D({
   const radialAngle = tip ? Math.atan2(tip[1], tip[0]) : 0
   const stockZero = stock ? zeroOf(workOffsets, stock.workOffset ?? 'G54', lathe) : ([0, 0, 0] as Vec3)
   const faded = !!result?.moves.length
+  // Removal is drawn on block stock (mills) and bars (lathes); other combinations keep the raw stock
+  const cutting = machining && showStock && !!stock && !!result?.moves.length && (lathe ? stock.shape === 'cylinder' : stock.shape === 'block')
 
   let toolModel: ReactNode = null
   if (tip && tool) {
@@ -338,8 +354,9 @@ export function Viewport3D({
         {/* Part side: stock, chuck, path and zeros turn together with the spindle in machine view */}
         <group rotation={[0, 0, turn]}>
           <Spin on={spinning && lathe && machineView}>
-            {showStock && stock && <Stock stock={stock} faded={faded} zero={stockZero} />}
-            {lathe && showStock && stock?.shape === 'cylinder' && <Chuck stock={stock} zero={stockZero} />}
+            {showStock && stock && (cutting && lathe ? null : <Stock stock={stock} faded={faded} zero={stockZero} />)}
+            {cutting && <Machining moves={result.moves} index={index} stock={stock} zero={stockZero} lathe={lathe} ballTools={ballTools} color={stock.color ?? COLORS.stock} />}
+            {lathe && showStock && stock?.shape === 'cylinder' && <Chuck stock={stock} zero={stockZero} hit={chuckHit} />}
           </Spin>
           {Object.keys(workOffsets)
             .filter((n) => n !== 'G54')

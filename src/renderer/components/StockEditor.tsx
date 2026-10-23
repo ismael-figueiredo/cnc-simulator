@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react'
-import type { AxisName, Stock } from '@core/index'
+import { offsetForZero, type AxisName, type Stock, type ZeroAt } from '@core/index'
 import { useI18n } from '../i18n'
 import { STOCK_COLOR } from '../project'
 
@@ -8,6 +8,8 @@ interface Props {
   /** The machine's own stock, for "Machine default". */
   machineDefault: Stock | null
   lathe: boolean
+  /** Stock wrapping what the program cuts, or null when it cuts nothing. */
+  fromProgram: Stock | null
   /** Work offsets to attach the stock to (G54 is always offered). */
   workOffsets: string[]
   onApply: (stock: Stock) => void
@@ -27,7 +29,9 @@ const MATERIALS = [
 
 const STANDARD_OFFSETS = ['G54', 'G55', 'G56', 'G57', 'G58', 'G59']
 
-export function StockEditor({ stock, machineDefault, lathe, workOffsets, onApply, onClose }: Props) {
+const ZERO_AT: ZeroAt[] = ['front-left', 'front-right', 'back-left', 'back-right', 'center']
+
+export function StockEditor({ stock, machineDefault, lathe, fromProgram, workOffsets, onApply, onClose }: Props) {
   const { t } = useI18n()
   const [s, setS] = useState<Stock>(() => stock ?? machineDefault ?? { shape: lathe ? 'cylinder' : 'block', diameter: 60, length: 50, x: 100, y: 80, z: 30 })
   const offsets = [...new Set([...STANDARD_OFFSETS, ...workOffsets])]
@@ -47,6 +51,14 @@ export function StockEditor({ stock, machineDefault, lathe, workOffsets, onApply
         <header>
           <h2>{t('stock.title')}</h2>
           <span className="spacer" />
+          <button
+            className="btn"
+            disabled={!fromProgram}
+            title={t(fromProgram ? 'stock.fromProgramHint' : 'stock.noProgram')}
+            onClick={() => fromProgram && setS({ ...fromProgram, color: s.color, workOffset: s.workOffset })}
+          >
+            {t('stock.fromProgram')}
+          </button>
           {machineDefault && (
             <button className="btn" onClick={() => setS({ ...machineDefault, color: s.color })}>
               {t('stock.machineDefault')}
@@ -78,6 +90,26 @@ export function StockEditor({ stock, machineDefault, lathe, workOffsets, onApply
 
           <h3>{t('stock.position')}</h3>
           <p className="muted">{t(s.shape === 'cylinder' ? 'stock.cylinderOrigin' : 'stock.blockOrigin')}</p>
+          {s.shape === 'block' && (
+            <label className="zero-at">
+              <span>{t('stock.zeroAt')}</span>
+              <select
+                value={ZERO_AT.find((z) => {
+                  const o = offsetForZero(s, z)
+                  return Math.abs((s.offset?.X ?? 0) - (o.X ?? 0)) < 1e-6 && Math.abs((s.offset?.Y ?? 0) - (o.Y ?? 0)) < 1e-6 && Math.abs(s.offset?.Z ?? 0) < 1e-6
+                }) ?? 'custom'}
+                onChange={(e) => {
+                  const at = ZERO_AT.find((z) => z === e.target.value)
+                  if (at) setS({ ...s, offset: offsetForZero(s, at) })
+                }}
+              >
+                {ZERO_AT.map((z) => (
+                  <option key={z} value={z}>{t(`zeroAt.${z}`)}</option>
+                ))}
+                <option value="custom" disabled>{t('zeroAt.custom')}</option>
+              </select>
+            </label>
+          )}
           <div className="fields">
             <label>
               <span>{t('stock.workOffset')}</span>

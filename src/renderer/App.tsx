@@ -13,12 +13,14 @@ import {
   loadAlarmCatalog,
   loadControl,
   loadMachine,
+  findChuckCollisions,
   findHolderCollisions,
   holderOf,
   loadProject,
   loadToolLibrary,
   programTemplate,
   simulate,
+  stockFromPath,
   supportsMacro,
   toolMount,
   workShift,
@@ -188,6 +190,8 @@ export function App() {
   const [showStock, setShowStock] = useState(true)
   /** Lathe: chuck and part turn in C while the tool stays in X/Z (off: the part stands still). */
   const [machineView, setMachineView] = useState(true)
+  /** Show the stock being cut where the tool passes. */
+  const [machining, setMachining] = useState(true)
   const fileInput = useRef<HTMLInputElement>(null)
   const libraries = useLibraries()
   const [editingTools, setEditingTools] = useState(false)
@@ -596,10 +600,19 @@ export function App() {
     })
   }, [result, setup, lathe])
   const colliding = !!move && collisions.some((c) => c.line === move.line && c.tool === move.state.tool)
+  const chuckCollisions = useMemo(() => {
+    if (!lathe) return []
+    const shift = workShift(setup.workOffsets, setup.stock?.workOffset ?? 'G54')
+    return findChuckCollisions(result?.moves ?? [], setup.stock, [0, 0, shift.Z])
+  }, [result, setup, lathe])
+  const chuckHit = !!move && chuckCollisions.some((c) => c.line === move.line && c.tool === move.state.tool)
+  const ballTools = useMemo(() => new Set(setup.tools?.tools.filter((x) => x.type === 'ball-endmill').map((x) => x.number) ?? []), [setup.tools])
+  /** Stock wrapping what the program cuts, offered in the stock editor. */
+  const programStock = useMemo(() => stockFromPath(result?.moves ?? [], lathe), [result, lathe])
   // C angle: from the tip in polar interpolation (C is not tracked as an angle there), else the C position
   const spindleAngle = move ? (move.state.polar && toolTip ? Math.atan2(toolTip[1], toolTip[0]) : ((position?.C ?? 0) * Math.PI) / 180) : 0
   const spinning = playing && !!move?.state.spindleOn && !move.state.liveToolOn
-  const messageCount = diagnostics.length + cfg.issues.length + collisions.length
+  const messageCount = diagnostics.length + cfg.issues.length + collisions.length + chuckCollisions.length
 
   return (
     <div className="app">
@@ -716,6 +729,10 @@ export function App() {
                   <input id="layer-stock" type="checkbox" checked={showStock} onChange={(e) => setShowStock(e.target.checked)} />
                   {t('layers.stock')}
                 </label>
+                <label title={t('layers.machiningHint')}>
+                  <input id="layer-machining" type="checkbox" checked={machining} onChange={(e) => setMachining(e.target.checked)} />
+                  {t('layers.machining')}
+                </label>
                 {lathe && (
                   <label title={t('layers.machineViewHint')}>
                     <input id="layer-machine-view" type="checkbox" checked={machineView} onChange={(e) => setMachineView(e.target.checked)} />
@@ -741,6 +758,9 @@ export function App() {
                   machineView={machineView}
                   spindleAngle={spindleAngle}
                   spinning={spinning}
+                  machining={machining}
+                  ballTools={ballTools}
+                  chuckHit={chuckHit}
                   showRapids={showRapids}
                   showStock={showStock}
                 />
@@ -822,6 +842,14 @@ export function App() {
                   <b>{t('collision.label')}</b>
                   <span>
                     L{c.line + 1} · {t('collision.holder', { tool: String(c.tool).padStart(2, '0'), depth: c.depth })}
+                  </span>
+                </button>
+              ))}
+              {chuckCollisions.map((c) => (
+                <button key={`chuck${c.tool}|${c.line}`} className="msg alarm" onClick={() => seekMove(c.moveIndex)}>
+                  <b>{t('collision.label')}</b>
+                  <span>
+                    L{c.line + 1} · {t('collision.chuck', { tool: String(c.tool).padStart(2, '0'), z: c.z })}
                   </span>
                 </button>
               ))}
@@ -936,6 +964,7 @@ export function App() {
           stock={setup.stock}
           machineDefault={defaultSetup(machine, []).stock}
           lathe={machineKind === 'lathe'}
+          fromProgram={programStock}
           workOffsets={Object.keys(setup.workOffsets)}
           onApply={applyStock}
           onClose={() => setEditingStock(false)}
