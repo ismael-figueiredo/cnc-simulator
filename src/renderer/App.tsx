@@ -55,7 +55,7 @@ const fileName = (path: string) => path.slice(path.lastIndexOf('/') + 1)
 const FIRST_MACHINE = 'romi-gl250-m'
 const EXAMPLE = { name: 'O1500_COROA_ANSI40.nc', path: 'example:O1500', text: sampleO1500 }
 
-const VERSION = '0.3'
+const VERSION = __APP_VERSION__
 
 interface Program {
   name: string
