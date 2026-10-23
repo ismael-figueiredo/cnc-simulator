@@ -32,6 +32,8 @@ npm run icons        # gera de novo build/icon.png e o favicon depois de editar 
 
 - **CI:** todo push na `main` e todo pull request rodam o `npm run check`.
 - **Release:** enviar uma tag `v*` (`git tag v0.1.0 && git push origin v0.1.0`) gera os instaladores de Windows, macOS e Linux e publica na página Releases do GitHub. Rodando à mão pela aba Actions, eles ficam só como artifacts do run.
+- **Atualizações:** o app instalado procura a versão nova ao abrir e em **Ajuda → Procurar atualizações**. No Windows e no AppImage baixa sozinho e instala ao reiniciar; no macOS e no `.deb` avisa e abre a página de download.
+- **Relatar problemas:** **Ajuda → Relatar um problema** explica como postar, salva um print da janela em Downloads (e copia) e abre uma issue no GitHub com a versão e o sistema preenchidos.
 
 ## Qualidade
 

@@ -3,6 +3,13 @@ productName: CNC Simulator
 directories:
   output: dist
   buildResources: build
+# No spaces: GitHub renames release assets with spaces, which breaks the updater's latest*.yml links
+artifactName: ${name}-${version}-${arch}.${ext}
+# Written into the app (app-update.yml) so electron-updater knows where to look; CI uploads the files
+publish:
+  provider: github
+  owner: ismael-figueiredo
+  repo: cnc-simulator
 files:
   - out/**
   - package.json
@@ -15,9 +22,19 @@ win:
   target:
     - nsis
 nsis:
+  artifactName: ${name}-${version}-setup.${ext}
   oneClick: false
+  # Offers "only for me" (no admin) or "for all users"
+  perMachine: false
   allowToChangeInstallationDirectory: true
   createDesktopShortcut: true
+  createStartMenuShortcut: true
+  runAfterFinish: true
+  license: LICENSE
+  # Artwork rendered by `npm run icons` (24-bit BMP, as NSIS requires)
+  installerSidebar: build/installerSidebar.bmp
+  uninstallerSidebar: build/uninstallerSidebar.bmp
+  installerHeader: build/installerHeader.bmp
   # Installer languages follow the app: Portuguese (Brazil), English, Spanish
   installerLanguages: [pt_BR, en_US, es_ES]
   multiLanguageInstaller: true
@@ -30,6 +47,9 @@ linux:
   target: [AppImage, deb]
   category: Development
   maintainer: Ismael Figueiredo <maelio@live.com>
+  synopsis: CNC program simulator with 3D toolpath
+deb:
+  artifactName: ${name}_${version}_${arch}.${ext}
 mac:
   target:
     - target: dmg
@@ -37,3 +57,18 @@ mac:
   category: public.app-category.developer-tools
   # Unsigned: on first launch macOS asks to allow the app (right-click > Open)
   identity: null
+dmg:
+  title: ${productName} ${version}
+  background: build/background.png
+  iconSize: 96
+  window:
+    width: 540
+    height: 380
+  # Icon centers, matching the arrow in build/background.png
+  contents:
+    - x: 140
+      y: 190
+    - x: 400
+      y: 190
+      type: link
+      path: /Applications

@@ -47,6 +47,19 @@ npm run icons        # redraw build/icon.png and the favicon after editing build
 
 - **CI:** every push to `main` and every pull request runs `npm run check`.
 - **Release:** pushing a `v*` tag (`git tag v0.1.0 && git push origin v0.1.0`) builds the Windows, macOS and Linux installers and publishes them on the GitHub Releases page. Running the workflow by hand from the Actions tab only keeps them as run artifacts.
+- **Installer screens:** the Windows installer shows the license and the artwork in `build/` (sidebar and header BMPs); the macOS disk image shows a background with the drag-to-Applications arrow. `npm run icons` renders all of them from `build/icon.svg`.
+
+### Updates
+
+The installed app checks the latest GitHub release on start, and from **Help → Check for updates**.
+
+- **Windows (.exe) and Linux (.AppImage):** the update downloads in the background and installs on restart (electron-updater reads the `latest*.yml` files the Release workflow publishes).
+- **macOS and Linux (.deb):** the app says a new version exists and opens the download page. macOS only installs updates for signed apps; the `.deb` belongs to the system package manager.
+- Being offline is not an error: the check on start fails silently.
+
+### Reporting problems
+
+**Help → Report a problem** explains how to post, saves a screenshot of the window to Downloads (and copies it), and opens a GitHub issue with the version and system already filled in. The issue form is `.github/ISSUE_TEMPLATE/bug.yml`. **Help → Known problems** opens the issue list.
 
 ## Quality checks
 
