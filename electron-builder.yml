@@ -1,0 +1,32 @@
+appId: com.cncsimulator.app
+productName: CNC Simulator
+directories:
+  output: dist
+  buildResources: build
+files:
+  - out/**
+  - package.json
+extraResources:
+  - from: configs
+    to: configs
+  - from: examples
+    to: examples
+win:
+  target:
+    - nsis
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  # Installer languages follow the app: Portuguese (Brazil), English, Spanish
+  installerLanguages: [pt_BR, en_US, es_ES]
+  multiLanguageInstaller: true
+# Phase 6: open programs by double-clicking them
+# fileAssociations:
+#   - ext: [nc, tap, ngc, cnc, min]
+#     name: CNC Program
+#     role: Viewer
+linux:
+  target: [AppImage]
+mac:
+  target: [dmg]
