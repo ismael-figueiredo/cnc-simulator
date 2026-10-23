@@ -22,6 +22,7 @@ Os instaladores de cada versão estão na **[página de Releases](https://github
 ## O que faz
 
 - **Roda o G-code como o comando:** dialetos Fanuc e Mitsubishi em JSON, Macro B (variáveis, IF/WHILE/GOTO, G65), subprogramas, ciclos fixos, interpolação polar G12.1 e compensação de raio G41/G42 desenhada no centro da ferramenta.
+- **Programas parametrizados (Macro B):** variáveis, contas e IF/GOTO/WHILE rodam como no comando, em todas as máquinas incluídas (todos os comandos delas têm a opção de macro). G-code comum e os ciclos fixos do próprio comando também; os exemplos têm os dois.
 - **Para nos alarmes da máquina:** erros de programa param no bloco com o número e a mensagem do próprio comando (por exemplo `PS0010 IMPROPER G-CODE`).
 - **Tela de programa como a do comando:** tela MEM estilo Fanuc com o bloco em execução, números O e N e estado de execução. **EDIT** vira um editor (cores, desfazer, buscar e substituir).
 - **Projetos (`.cncsim`):** guardam o programa com máquina, comando, ferramentas, blank e zeros, para reabrir ou enviar o trabalho inteiro.
@@ -41,6 +42,20 @@ Os instaladores de cada versão estão na **[página de Releases](https://github
 3. **Execute:** o programa abre em RESET, com o cursor no primeiro bloco, como no comando. **▶ Executar** roda; ◀ e ▶| andam bloco a bloco; **RESET** volta ao início e ⏭ vai ao fim. **Clique num bloco para começar dele.** Mensagens e alarmes ficam à direita; clique numa para ir ao bloco.
 4. **EDIT / MEM:** EDIT altera o programa; MEM roda como está. **Arquivo → Salvar** (Ctrl/⌘+S) grava.
 5. **Preparação:** no painel da direita, edite o **Blank**, os **Zeros de peça** e as **Ferramentas** e use **Salvar como projeto** para guardar tudo num `.cncsim` ao lado do programa.
+
+### Programação parametrizada (Macro B)
+
+Todos os comandos incluídos (Fanuc 0i-TF, 0i-MF, linha Romi D, Mitsubishi M80 torno e centro de usinagem) têm a opção de macro, então isto roda no simulador como na máquina:
+
+- **Variáveis:** locais `#1–#33`, comuns `#100–#199` e `#500–#999`, e variáveis de sistema como `#5001–#5003` (posição absoluta) e `#5021–#5023` (posição de máquina).
+- **Contas e funções:** `+ - * /`, `SIN COS TAN ASIN ACOS ATAN SQRT ABS ROUND FIX FUP`, colchetes.
+- **Desvios e laços:** `IF [...] GOTO n`, `IF [...] THEN`, `WHILE [...] DOn … ENDn`, com `EQ NE GT LT GE LE AND OR`.
+- **Chamadas:** `G65 P… A… B…` com argumentos, subprogramas `M98`/`M99` no mesmo arquivo.
+- **Alarmes:** `#3000 = n (mensagem)` para a execução com o número de alarme do comando.
+
+**Arquivo → Novo programa** pergunta se é **G-code comum** ou **parametrizado**. Os dois começam com um cabeçalho escrito nos códigos do comando escolhido (unidade, plano, cancelamentos de segurança, primeira ferramenta, fuso, refrigeração, fim do programa e `;` no fim dos blocos quando o comando exige). O parametrizado acrescenta parâmetros para alterar (`#100…`) e um laço `WHILE` que faz os passes até a profundidade.
+
+O exemplo **O1500** é um programa parametrizado completo (coroa ANSI 40 calculada a partir do número de dentes); **O2001** e **O2002** são G-code comum com ciclos fixos (G81, G83, G84) e subprogramas.
 
 ### Zeros de peça: o que muda na simulação
 

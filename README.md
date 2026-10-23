@@ -22,6 +22,7 @@ Installers for every version are on the **[Releases page](https://github.com/ism
 ## What it does
 
 - **Runs G-code like the control:** Fanuc and Mitsubishi dialects from JSON, Macro B (variables, IF/WHILE/GOTO, G65), subprograms, canned cycles, G12.1 polar interpolation and G41/G42 cutter compensation drawn as the tool center.
+- **Parametric programs (Macro B):** variables, math and IF/GOTO/WHILE run as on the control, on every bundled machine (all their controls have the macro option). Plain G-code and the control's own canned cycles run too; the examples have both.
 - **Stops on the machine's alarms:** program errors stop at the block with the control's own number and message (for example `PS0010 IMPROPER G-CODE`).
 - **Program screen like the control:** Fanuc-style MEM screen with the running block, O and N numbers and run state. **EDIT** turns it into an editor (colors, undo, find and replace).
 - **Projects (`.cncsim`):** keep the program with its machine, control, tools, stock and work offsets, to reopen or send the whole job.
@@ -41,6 +42,20 @@ Installers for every version are on the **[Releases page](https://github.com/ism
 3. **Run:** the program opens at RESET, cursor on the first block, as on the control. **▶ Run** plays it; step block by block with ◀ and ▶|; **RESET** goes back to the start and ⏭ to the end. **Click a block to start from it.** Messages and alarms are listed on the right; click one to go to its block.
 4. **EDIT / MEM:** EDIT changes the program; MEM runs it as edited. **File → Save** (Ctrl/⌘+S) writes it back.
 5. **Setup:** in the right panel, edit the **Stock**, the **Work offsets** and the **Tools**, then **Save as project** to keep it all in a `.cncsim` file next to the program.
+
+### Parametric programming (Macro B)
+
+Every bundled control (Fanuc 0i-TF, 0i-MF, Romi D line, Mitsubishi M80 lathe and machining center) has the macro option, so these run in the simulator as on the machine:
+
+- **Variables:** locals `#1–#33`, commons `#100–#199` and `#500–#999`, and system variables such as `#5001–#5003` (absolute position) and `#5021–#5023` (machine position).
+- **Math and functions:** `+ - * /`, `SIN COS TAN ASIN ACOS ATAN SQRT ABS ROUND FIX FUP`, brackets.
+- **Flow:** `IF [...] GOTO n`, `IF [...] THEN`, `WHILE [...] DOn … ENDn`, with `EQ NE GT LT GE LE AND OR`.
+- **Calls:** `G65 P… A… B…` with arguments, `M98`/`M99` subprograms in the same file.
+- **Alarms:** `#3000 = n (message)` stops the run with the control's alarm number.
+
+**File → New program** asks for **plain G-code** or **parametric**. Both start with a header written in the selected control's own codes (units, plane, safe cancels, first tool, spindle, coolant, program end, and `;` at the end of blocks when the control needs it). The parametric one adds parameters to change (`#100…`) and a `WHILE` loop that makes the passes down to the depth.
+
+The **O1500** example is a full parametric program (an ANSI 40 sprocket computed from the number of teeth); **O2001** and **O2002** are plain G-code with canned cycles (G81, G83, G84) and subprograms.
 
 ### Work offsets: what changes the simulation
 
