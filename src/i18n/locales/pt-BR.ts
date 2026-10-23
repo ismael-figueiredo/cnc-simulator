@@ -13,6 +13,7 @@ export const ptBR: Record<MessageKey, string> = {
   'action.simulate': 'Simular',
 
   'program.lines': '{count} linhas',
+  'cnc.program': 'PROGRAMA',
   'code.smaller': 'Diminuir texto (Ctrl + roda)',
   'code.larger': 'Aumentar texto (Ctrl + roda)',
   'layout.resize': 'Arraste para alargar o painel do programa',

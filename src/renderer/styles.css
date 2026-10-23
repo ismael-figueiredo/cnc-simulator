@@ -38,8 +38,7 @@ button, select, input { font: inherit; color: inherit; }
 .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; min-width: 0; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
 .panel-title { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 7px 10px; border-bottom: 1px solid var(--line); font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); }
 .panel-title .muted { text-transform: none; letter-spacing: 0; font-weight: 400; }
-.code { position: relative; flex: 1; overflow: auto; font-family: var(--f-mono); line-height: 1.5; font-variant-numeric: tabular-nums; }
-.code-pad { pointer-events: none; }
+.code { position: relative; flex: 1; overflow: auto; line-height: 1.45; font-variant-numeric: tabular-nums; }
 .line { display: flex; white-space: pre; }
 .line .n { width: 4.2em; flex: none; text-align: right; padding-right: 10px; color: var(--muted); user-select: none; }
 .stage { position: relative; flex: 1; min-height: 300px; }
@@ -54,15 +53,29 @@ button, select, input { font: inherit; color: inherit; }
 .error { color: var(--alarm); font: 12px var(--f-mono); }
 .warning { color: var(--warn); font-size: 12.5px; }
 
-/* program */
+/* program: CNC control screen (Fanuc style), dark in both app themes */
+.cnc-screen {
+  --cnc-bg: #05080a; --cnc-ink: #e4ebef; --cnc-dim: #7f8c96; --cnc-num: #46525c; --cnc-bar: #13324f; --cnc-bar-ink: #d6e6f5;
+  --cnc-cursor: #f2c418; --cnc-cursor-ink: #0b0b0b; --cnc-alarm: #ff5a4e; --cnc-warn: #f0b43a; --cnc-on: #4fe08a;
+  flex: 1; min-height: 0; display: flex; flex-direction: column; background: var(--cnc-bg); color: var(--cnc-ink);
+  font-family: 'Share Tech Mono', var(--f-mono);
+}
+.cnc-head, .cnc-status { display: flex; gap: 1.2em; padding: 2px 8px; background: var(--cnc-bar); color: var(--cnc-bar-ink); white-space: nowrap; }
+.cnc-head span:first-child { margin-right: auto; }
+.cnc-status { background: #111619; color: var(--cnc-dim); }
+.cnc-status span:last-child { margin-left: auto; }
+.cnc-status .on { color: var(--cnc-on); }
+.cnc-status .alm { color: var(--cnc-alarm); animation: blink 1s steps(2, start) infinite; }
+@keyframes blink { to { visibility: hidden; } }
 .line { cursor: pointer; padding-right: 10px; }
-.line:hover { background: color-mix(in srgb, var(--accent) 8%, transparent); }
-.line .n { border-right: 2px solid transparent; margin-right: 8px; }
-.line:not(.hit) .t { opacity: .78; }
-.line.current { background: color-mix(in srgb, var(--accent) 22%, transparent); }
-.line.current .n { border-right-color: var(--accent); color: var(--ink); }
-.line.alarm .n { color: var(--alarm); font-weight: 700; }
-.line.warning .n { color: var(--warn); }
+.line:hover { background: rgba(255, 255, 255, .06); }
+.line .n { margin-right: 8px; color: var(--cnc-num); }
+.line.done .t { color: var(--cnc-dim); }
+.line:not(.hit) .t { opacity: .8; }
+.line.current { background: var(--cnc-cursor); }
+.line.current .t, .line.current .n { color: var(--cnc-cursor-ink); opacity: 1; }
+.line.alarm .n { color: var(--cnc-alarm); font-weight: 700; }
+.line.warning .n { color: var(--cnc-warn); }
 
 /* view */
 .panel-title .layers { display: flex; gap: 12px; text-transform: none; letter-spacing: 0; font-weight: 400; }

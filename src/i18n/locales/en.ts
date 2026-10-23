@@ -12,6 +12,7 @@ export const en = {
   'action.simulate': 'Simulate',
 
   'program.lines': '{count} lines',
+  'cnc.program': 'PROGRAM',
   'code.smaller': 'Smaller text (Ctrl + wheel)',
   'code.larger': 'Larger text (Ctrl + wheel)',
   'layout.resize': 'Drag to resize the program panel',

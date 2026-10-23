@@ -352,6 +352,7 @@ export function App() {
             marks={marks}
             hits={hits}
             fontSize={fontSize}
+            state={playing ? 'start' : sim.time > 0 && sim.time < (tl?.total ?? 0) ? 'hold' : 'reset'}
             onZoom={changeFont}
             onLineClick={jumpToLine}
           />

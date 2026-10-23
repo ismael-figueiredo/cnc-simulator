@@ -13,6 +13,7 @@ export const es: Record<MessageKey, string> = {
   'action.simulate': 'Simular',
 
   'program.lines': '{count} líneas',
+  'cnc.program': 'PROGRAMA',
   'code.smaller': 'Texto más pequeño (Ctrl + rueda)',
   'code.larger': 'Texto más grande (Ctrl + rueda)',
   'layout.resize': 'Arrastre para ensanchar el panel del programa',
