@@ -217,3 +217,5 @@ button, select, input { font: inherit; color: inherit; }
 .table.offsets input { width: 100%; text-align: right; font-family: 'Share Tech Mono', var(--f-mono); }
 .list.mono { font: 12.5px 'Share Tech Mono', var(--f-mono); }
 .zero-label { color: #f2c418; font: 11px 'Share Tech Mono', monospace; white-space: nowrap; pointer-events: none; }
+.tool-preview .insert { fill: #e3b23c; stroke: #f2c418; stroke-width: 1; }
+.tool-preview .tip { fill: #6fd3ff; }

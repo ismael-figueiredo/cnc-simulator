@@ -18,7 +18,46 @@ export const GENERIC_HOLDERS: Record<'mill' | 'lathe', Holder> = {
 export function toolMount(tool: Tool, holder: Holder | undefined, lathe: boolean): ToolMount {
   if (!lathe) return 'axial'
   if (TURNING_TYPES.has(tool.type)) return 'turning'
-  return holder?.orientation === 'radial' ? 'radial' : 'axial'
+  return (tool.mount ?? holder?.orientation) === 'radial' ? 'radial' : 'axial'
+}
+
+export const isTurningTool = (tool: Tool) => TURNING_TYPES.has(tool.type)
+
+/** Default insert for each turning tool type. */
+const DEFAULT_INSERT: Partial<Record<Tool['type'], NonNullable<Tool['insert']>>> = { 'turning-insert': 'C', threading: 'T', 'boring-bar': 'C' }
+
+/**
+ * Top view of the insert, in mm: the cutting corner at the origin, the body in the +x/+y quadrant
+ * (x = toward +X, y = toward +Z) for a right-hand external tool; left hand mirrors y, internal mirrors x.
+ * Grooving inserts are a blade of the tool's diameter (its width).
+ */
+export function insertOutline(tool: Tool, size = 12): [number, number][] {
+  let pts: [number, number][]
+  if (tool.type === 'grooving') {
+    const w = Math.max(tool.diameter, 1)
+    pts = [[0, 0], [0, w], [size, w], [size, 0]]
+  } else {
+    const shape = tool.insert ?? DEFAULT_INSERT[tool.type] ?? 'C'
+    const corner = { C: 80, D: 55, V: 35, W: 80, T: 60, S: 90, R: 0 }[shape]
+    if (shape === 'R') {
+      // Round insert: the circle passes through the origin, centered on the bisector
+      const r = size / 2
+      const c = r / Math.SQRT2
+      pts = Array.from({ length: 24 }, (_, i) => {
+        const a = (i / 24) * 2 * Math.PI
+        return [c + r * Math.cos(a), c + r * Math.sin(a)] as [number, number]
+      })
+    } else {
+      // Edges leave the corner symmetric about the 45° bisector
+      const h = (corner * Math.PI) / 360
+      const e1: [number, number] = [size * Math.cos(Math.PI / 4 - h), size * Math.sin(Math.PI / 4 - h)]
+      const e2: [number, number] = [size * Math.cos(Math.PI / 4 + h), size * Math.sin(Math.PI / 4 + h)]
+      pts = shape === 'T' || shape === 'W' ? [[0, 0], e1, e2] : [[0, 0], e1, [e1[0] + e2[0], e1[1] + e2[1]], e2]
+    }
+  }
+  const sx = tool.side === 'internal' ? -1 : 1
+  const sy = tool.hand === 'left' ? -1 : 1
+  return pts.map(([x, y]) => [x * sx, y * sy])
 }
 
 export function holderOf(tool: Tool, library: ToolLibrary | null, lathe: boolean): Holder | undefined {

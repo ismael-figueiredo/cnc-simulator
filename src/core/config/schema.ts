@@ -200,7 +200,15 @@ export const ToolSchema = z.object({
   /** Fanuc tip direction (1–9) for lathe nose radius compensation. */
   tipDirection: z.number().int().min(0).max(9).optional(),
   flutes: z.number().int().positive().optional(),
-  holder: z.string().optional()
+  holder: z.string().optional(),
+  /** Rotating tools on a lathe (live tooling): along Z toward the face, or along X toward the axis. Default: the holder's. */
+  mount: z.enum(['axial', 'radial']).optional(),
+  /** Turning tools: outside diameter or bore. */
+  side: z.enum(['external', 'internal']).optional(),
+  /** Turning tools: right hand cuts toward the chuck (−Z), left hand away from it. */
+  hand: z.enum(['right', 'left']).optional(),
+  /** ISO insert shape: C 80°, D 55°, V 35°, W 80° trigon, T 60° triangle, S 90° square, R round. */
+  insert: z.enum(['C', 'D', 'V', 'W', 'T', 'S', 'R']).optional()
 })
 
 export const ToolLibrarySchema = z.object({

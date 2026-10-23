@@ -4,6 +4,7 @@ import { GizmoHelper, GizmoViewport, Grid, Html, OrbitControls } from '@react-th
 import { ExtrudeGeometry, LatheGeometry, Shape, Vector2, type Group } from 'three'
 import {
   holderOutline,
+  insertOutline,
   toolOutline,
   workShift,
   type Holder,
@@ -185,28 +186,38 @@ function RotaryTool({ tool, holder, colliding, spindleNose }: { tool: Tool; hold
   )
 }
 
-/** Turning tool: square shank along +X with a rhombic insert at the tip (drawn in the XZ plane). */
+/**
+ * Turning tool in the X/Z plane: the ISO insert at the tip (its shape, hand and side from the tool),
+ * with a square shank out along +X for external tools or a round boring bar along +Z for internal ones.
+ */
 function TurningTool({ tool }: { tool: Tool }) {
+  const outline = useMemo(() => insertOutline(tool), [tool])
   const insert = useMemo(() => {
     const s = new Shape()
-    const a = Math.max(6, (tool.cornerRadius ?? 0.4) * 15)
-    s.moveTo(0, 0)
-    s.lineTo(a, a * 0.35)
-    s.lineTo(a * 1.35, a * 1.35)
-    s.lineTo(a * 0.35, a)
+    outline.forEach(([x, y], i) => (i ? s.lineTo(x, y) : s.moveTo(x, y)))
     s.closePath()
     return new ExtrudeGeometry(s, { depth: 4, bevelEnabled: false })
-  }, [tool.cornerRadius])
+  }, [outline])
+  const internal = tool.side === 'internal'
+  const zSign = tool.hand === 'left' ? -1 : 1
+  const shank = Math.max(tool.length, 30)
   return (
-    // Insert in the X/Z plane: shape x → X, shape y → Z
+    // Shape x → X, shape y → Z (rotating +90° about X turns the drawing plane into X/Z)
     <group rotation={[Math.PI / 2, 0, 0]}>
       <mesh geometry={insert} position={[0, 0, -2]}>
         <meshStandardMaterial color="#e3b23c" metalness={0.5} roughness={0.4} />
       </mesh>
-      <mesh position={[tool.length / 2 + 6, 6, 0]}>
-        <boxGeometry args={[tool.length, 20, 20]} />
-        <meshStandardMaterial color={COLORS.holder} metalness={0.5} roughness={0.4} />
-      </mesh>
+      {internal ? (
+        <mesh position={[-8, (zSign * shank) / 2 + zSign * 6, 0]}>
+          <cylinderGeometry args={[7, 7, shank, 32]} />
+          <meshStandardMaterial color={COLORS.holder} metalness={0.5} roughness={0.4} />
+        </mesh>
+      ) : (
+        <mesh position={[shank / 2 + 8, zSign * 8, 0]}>
+          <boxGeometry args={[shank, 16, 16]} />
+          <meshStandardMaterial color={COLORS.holder} metalness={0.5} roughness={0.4} />
+        </mesh>
+      )}
     </group>
   )
 }
