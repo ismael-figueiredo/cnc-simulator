@@ -1,0 +1,56 @@
+name: Bug / Problema
+description: O simulador fez algo errado, travou ou mostrou um alarme indevido. · Something went wrong, froze or raised a wrong alarm.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Obrigado por relatar! O jeito mais fácil é pelo próprio app: **Ajuda → Relatar um problema**, que já preenche a versão e o sistema e tira um print da tela.
+        Thanks for reporting! The easiest way is from the app: **Help → Report a problem**, which fills in the version and system and takes a screenshot.
+
+        **Dicas · Tips**
+        - **Print · Screenshot:** cole com Ctrl+V / ⌘V na descrição, ou arraste o arquivo PNG. Paste it into the description or drag the PNG file.
+        - **Programa · Program:** o GitHub não aceita `.nc`. Renomeie para `.txt` ou compacte em `.zip`. Rename it to `.txt` or zip it. Se o programa for confidencial, cole só os blocos perto do problema. If the program is confidential, paste only the blocks around the problem.
+  - type: input
+    id: version
+    attributes:
+      label: Versão do simulador · Simulator version
+      description: Ajuda → Relatar um problema preenche sozinho. Filled in by the app.
+      placeholder: "0.1.1"
+    validations:
+      required: true
+  - type: input
+    id: os
+    attributes:
+      label: Sistema · Operating system
+      placeholder: "Windows 11, macOS 14, Ubuntu 24.04…"
+    validations:
+      required: true
+  - type: input
+    id: machine
+    attributes:
+      label: Máquina e comando · Machine and control
+      description: Os que estavam escolhidos no topo da tela. The ones selected at the top of the window.
+      placeholder: "Romi GL 250 M / fanuc-0i-tf-system-b"
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: O que aconteceu · What happened
+      description: O que você fez, o que aconteceu e o que esperava. What you did, what happened and what you expected.
+      placeholder: |
+        1. Abri o programa O1500…
+        2. Cliquei em Simular…
+        3. Apareceu o alarme PS0010 no bloco N120, mas na máquina roda sem alarme.
+    validations:
+      required: true
+  - type: textarea
+    id: program
+    attributes:
+      label: Trecho do programa · Program blocks
+      description: Os blocos perto do problema. Blocks around the problem.
+      render: gcode
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Prints e arquivos · Screenshots and files
+      description: Cole o print (Ctrl+V / ⌘V) ou arraste arquivos aqui. Paste the screenshot or drag files here.

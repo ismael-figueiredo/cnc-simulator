@@ -106,6 +106,33 @@ export const en = {
   'dialog.openProgram': 'Open CNC program',
   'dialog.filterCnc': 'CNC programs',
   'dialog.filterAll': 'All files',
+  'menu.help': 'Help',
+  'menu.reportProblem': 'Report a problem…',
+  'menu.knownIssues': 'Known problems',
+  'menu.checkUpdates': 'Check for updates…',
+  'common.cancel': 'Cancel',
+  'common.later': 'Later',
+  'report.title': 'Report a problem',
+  'report.message': 'Thank you for helping improve the simulator.',
+  'report.detail':
+    'How to report:\n' +
+    '1. Click "Open GitHub". A new issue opens with the version and system already filled in (a free GitHub account is needed).\n' +
+    '2. Describe what you did, what happened and what you expected.\n' +
+    '3. The screenshot is saved in your Downloads folder and copied: paste it into the description (Ctrl+V or ⌘V).\n' +
+    '4. If a program caused it, attach the file renamed to .txt, or paste the blocks around the problem.\n' +
+    '5. Click "Create".',
+  'report.screenshot': 'Attach a screenshot of the simulator',
+  'report.open': 'Open GitHub',
+  'update.title': 'Updates',
+  'update.ready': 'Version {version} is ready to install.',
+  'update.readyDetail': 'The simulator restarts to finish the update.',
+  'update.restart': 'Restart now',
+  'update.available': 'Version {version} is available.',
+  'update.availableDetail': 'Download it from the releases page and install it over the current version.',
+  'update.download': 'Open download page',
+  'update.latest': 'You have the latest version ({version}).',
+  'update.devOnly': 'Updates work only in the installed app.',
+  'update.failed': 'Could not check for updates.',
 
   // Interpreter diagnostics: one entry per code in src/core/interp/diagnostics.ts
   'diag.macro-alarm': 'Alarm #3000={num} {comment}',

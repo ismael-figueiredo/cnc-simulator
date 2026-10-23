@@ -107,6 +107,33 @@ export const es: Record<MessageKey, string> = {
   'dialog.openProgram': 'Abrir programa CNC',
   'dialog.filterCnc': 'Programas CNC',
   'dialog.filterAll': 'Todos los archivos',
+  'menu.help': 'Ayuda',
+  'menu.reportProblem': 'Informar un problema…',
+  'menu.knownIssues': 'Problemas conocidos',
+  'menu.checkUpdates': 'Buscar actualizaciones…',
+  'common.cancel': 'Cancelar',
+  'common.later': 'Más tarde',
+  'report.title': 'Informar un problema',
+  'report.message': 'Gracias por ayudar a mejorar el simulador.',
+  'report.detail':
+    'Cómo informar:\n' +
+    '1. Haga clic en "Abrir GitHub". Se abre un issue nuevo con la versión y el sistema ya completados (se necesita una cuenta gratuita de GitHub).\n' +
+    '2. Describa qué hizo, qué pasó y qué esperaba.\n' +
+    '3. La captura queda guardada en la carpeta Descargas y copiada: péguela en la descripción (Ctrl+V o ⌘V).\n' +
+    '4. Si fue un programa, adjunte el archivo renombrado a .txt, o pegue los bloques cerca del problema.\n' +
+    '5. Haga clic en "Create".',
+  'report.screenshot': 'Adjuntar una captura del simulador',
+  'report.open': 'Abrir GitHub',
+  'update.title': 'Actualizaciones',
+  'update.ready': 'La versión {version} está lista para instalar.',
+  'update.readyDetail': 'El simulador se reinicia para terminar la actualización.',
+  'update.restart': 'Reiniciar ahora',
+  'update.available': 'La versión {version} está disponible.',
+  'update.availableDetail': 'Descárguela de la página de versiones e instálela sobre la versión actual.',
+  'update.download': 'Abrir página de descarga',
+  'update.latest': 'Ya tiene la versión más reciente ({version}).',
+  'update.devOnly': 'Las actualizaciones solo funcionan en la app instalada.',
+  'update.failed': 'No se pudo buscar actualizaciones.',
 
   'diag.macro-alarm': 'Alarma #3000={num} {comment}',
   'diag.syntax-error': 'No se pudo leer el bloque: {detail}',

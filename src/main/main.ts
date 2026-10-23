@@ -1,9 +1,11 @@
 import { readFile } from 'node:fs/promises'
 import { basename, join } from 'node:path'
-import { app, BrowserWindow, dialog, ipcMain, Menu, type MenuItemConstructorOptions } from 'electron'
-import { DEFAULT_LANGUAGE, LANGUAGES, isLanguage, translate, type Language, type MessageKey } from '../i18n'
+import { app, BrowserWindow, dialog, ipcMain, Menu, shell, type MenuItemConstructorOptions } from 'electron'
+import { DEFAULT_LANGUAGE, LANGUAGES, isLanguage, translate, type Language, type MessageKey, type Params } from '../i18n'
 import { CHANNELS, type OpenedFile } from '../preload/api'
 import appIcon from '../../build/icon.png?asset'
+import { ISSUES_URL, reportProblem } from './report'
+import { checkForUpdates, setupUpdates } from './updater'
 
 const PROGRAM_EXTENSIONS = ['nc', 'tap', 'ngc', 'cnc', 'min', 'txt', 'iso', 'mpf', 'eia', 'ptp']
 const isMac = process.platform === 'darwin'
@@ -11,7 +13,7 @@ const isMac = process.platform === 'darwin'
 // The renderer owns the language choice and reports it on start and on every change.
 let language: Language = DEFAULT_LANGUAGE
 
-const t = (key: MessageKey) => translate(language, key)
+const t = (key: MessageKey, params?: Params) => translate(language, key, params)
 
 // Built-in role menus (fileMenu, viewMenu…) always show Electron's English labels,
 // so every item is listed here with a role for the behavior and a translated label.
@@ -64,6 +66,19 @@ function buildMenu(): void {
             click: () => applyLanguage(l.code)
           }))
         }
+      ]
+    },
+    {
+      role: 'help',
+      label: t('menu.help'),
+      submenu: [
+        {
+          label: t('menu.reportProblem'),
+          click: (_item, win) => void reportProblem(win instanceof BrowserWindow ? win : undefined, t)
+        },
+        { label: t('menu.knownIssues'), click: () => void shell.openExternal(ISSUES_URL) },
+        { type: 'separator' },
+        { label: t('menu.checkUpdates'), click: () => void checkForUpdates(true) }
       ]
     }
   ]
@@ -139,6 +154,8 @@ void app.whenReady().then(() => {
   buildMenu()
   if (isMac) app.dock?.setIcon(appIcon)
   createWindow()
+  setupUpdates(t)
+  void checkForUpdates(false)
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
   })
