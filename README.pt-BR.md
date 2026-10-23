@@ -35,8 +35,8 @@ Os instaladores de cada versão estão na **[página de Releases](https://github
 
 1. **Tela inicial:** abra um programa (`.nc`, `.tap`, `.txt`…) ou um projeto, crie um programa novo ou abra o **Exemplo** (coroa ANSI 40 num Romi GL 250 M). Os arquivos recentes ficam aqui e em **Arquivo → Abrir recente**.
 2. **Escolha a máquina e o comando** no topo. Um programa aberto sozinho usa o blank da máquina e as ferramentas padrão.
-3. **Simule:** executar, pausar, avançar bloco a bloco ou clicar numa linha para ir até ela. Mensagens e alarmes ficam à direita; clique numa para ir ao bloco.
-4. **EDIT / MEM:** EDIT altera o programa; MEM (ou **Simular**) roda como está. **Arquivo → Salvar** (Ctrl/⌘+S) grava.
+3. **Execute:** o programa abre em RESET, com o cursor no primeiro bloco, como no comando. **▶ Executar** roda; ◀ e ▶| andam bloco a bloco; **RESET** volta ao início e ⏭ vai ao fim. **Clique num bloco para começar dele.** Mensagens e alarmes ficam à direita; clique numa para ir ao bloco.
+4. **EDIT / MEM:** EDIT altera o programa; MEM roda como está. **Arquivo → Salvar** (Ctrl/⌘+S) grava.
 5. **Preparação:** no painel da direita, edite o **Blank**, os **Zeros de peça** e as **Ferramentas** e use **Salvar como projeto** para guardar tudo num `.cncsim` ao lado do programa.
 
 ### Zeros de peça: o que muda na simulação

@@ -35,8 +35,8 @@ Installers for every version are on the **[Releases page](https://github.com/ism
 
 1. **Start screen:** open a program (`.nc`, `.tap`, `.txt`…) or a project, create a new program, or open the **Example** (an ANSI 40 sprocket on a Romi GL 250 M). Recent files are listed here and in **File → Open recent**.
 2. **Pick the machine and the control** at the top. A program opened alone uses the machine's stock and the bundled tools.
-3. **Simulate:** play, pause, step block by block, or click a line to jump to it. Messages and alarms are listed on the right; click one to go to its block.
-4. **EDIT / MEM:** EDIT changes the program; MEM (or **Simulate**) runs it as edited. **File → Save** (Ctrl/⌘+S) writes it back.
+3. **Run:** the program opens at RESET, cursor on the first block, as on the control. **▶ Run** plays it; step block by block with ◀ and ▶|; **RESET** goes back to the start and ⏭ to the end. **Click a block to start from it.** Messages and alarms are listed on the right; click one to go to its block.
+4. **EDIT / MEM:** EDIT changes the program; MEM runs it as edited. **File → Save** (Ctrl/⌘+S) writes it back.
 5. **Setup:** in the right panel, edit the **Stock**, the **Work offsets** and the **Tools**, then **Save as project** to keep it all in a `.cncsim` file next to the program.
 
 ### Work offsets: what changes the simulation
