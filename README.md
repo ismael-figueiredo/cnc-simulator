@@ -6,7 +6,7 @@
 
 Lightweight, cross-platform CNC program simulator. It reads G-code, takes the **machine** and the **control** from JSON files (a post-processor in reverse) and shows the toolpath in 3D, with the control's own alarms.
 
-![The O1500 example running: Fanuc-style program screen, 3D toolpath with cutter compensation, absolute and machine position](docs/demo.gif)
+![The O2001 plate example being machined: Fanuc-style program screen, 3D toolpath, tool in its BT40 holder, the stock changing where it is cut](docs/demo.gif)
 
 ## Download
 
@@ -28,7 +28,9 @@ Installers for every version are on the **[Releases page](https://github.com/ism
 - **Automatic chamfer and corner R:** `,C` and `,R` at any angle, with the tangent arc followed by cutter compensation, and the control's alarms when they cannot be made. Lathes can also take `C`/`R` without comma (control option `cornerWithoutComma`).
 - **Projects (`.cncsim`):** keep the program with its machine, control, tools, stock and work offsets, to reopen or send the whole job.
 - **Tools in 3D:** each tool is drawn from its type and lengths with its holder (BT40 tapers, ER collets, live tool holders) and a faded spindle nose on machining centers. Turning tools show their ISO insert, external or internal, right or left hand.
-- **Possible collisions:** when a holder goes into the stock (the tool sticks out too little for the depth), the block is listed and the holder turns red.
+- **Machining view:** the stock changes color and shape where the tool cuts: a heightfield on blocks (flat and ball end mills) and the turned profile on bars. Rapids and live tooling on lathes do not cut in this view yet.
+- **Possible collisions:** when a holder goes into the stock (the tool sticks out too little for the depth), the block is listed and the holder turns red. On lathes, a tool that reaches the jaws or the chuck body is listed and the jaws turn red.
+- **Stock tools:** fit the stock to what the program cuts with one click, and put the work zero on a corner or the center of the block.
 - **Lathe machine view:** the chuck and the part turn in C while the tool stays in X/Z, as on the machine; the chuck spins when turning.
 - **Tools:** create and edit tools (mount, side, hand, insert; helix and insert drawings in the editor), save them as libraries and reuse them in any project.
 - **Stock:** bar or block, size, position and material color.
@@ -38,11 +40,11 @@ Installers for every version are on the **[Releases page](https://github.com/ism
 
 ## Using it
 
-1. **Start screen:** open a program (`.nc`, `.tap`, `.txt`…) or a project, create a new program, or open one of the **Examples**: an ANSI 40 sprocket on a Romi GL 250 M with live tooling, an aluminium plate and a two-vise job on a Romi D600 machining center. Recent files are listed here and in **File → Open recent**.
+1. **Start screen:** open a program (`.nc`, `.tap`, `.txt`…) or a project, create a new program, or open one of the **Examples**: an ANSI 40 sprocket on a Romi GL 250 M with live tooling, a stepped shaft turned on a Romi GL 300 (roughing, finishing with ,C/,R, grooving), an aluminium plate and a two-vise job on a Romi D600 machining center. Recent files are listed here and in **File → Open recent**.
 2. **Pick the machine and the control** at the top. A program opened alone uses the machine's stock and the bundled tools.
 3. **Run:** the program opens at RESET, cursor on the first block, as on the control. **▶ Run** plays it; step block by block with ◀ and ▶|; **RESET** goes back to the start and ⏭ to the end. **Click a block to start from it.** Messages and alarms are listed on the right; click one to go to its block.
 4. **EDIT / MEM:** EDIT changes the program and stops it if it was running; while you type, the path and messages are recomputed (the program goes back to RESET). MEM runs it as edited. **File → Save** (Ctrl/⌘+S) writes it back.
-5. **Setup:** in the right panel, edit the **Stock**, the **Work offsets** and the **Tools**, then **Save as project** to keep it all in a `.cncsim` file next to the program.
+5. **Setup:** in the right panel, edit the **Stock** (or fit it to the program, and choose where the work zero sits on it), the **Work offsets** and the **Tools**, then **Save as project (.cncsim)** to keep it all next to the program. The disk icon above the program saves only the program (`.nc`).
 
 ### Parametric programming (Macro B)
 
@@ -291,7 +293,7 @@ Three separate files you can mix: the same machine with another control, or one 
    - Next: 2D face and side views, a fit-to-path camera, tool length and wear offsets (G43, G10 L10–L13).
 3. **Machines and controls:** load the user's JSON; profiles for Fanuc T (A/B), Fanuc M, Haas and LinuxCNC; later Siemens and Mazak.
 4. ◐ **Tools:** done: tool editor, user libraries, import/export, 3D tools with holders and tapers, ISO inserts, holder-stock collision warnings. Next: turret and tool changer, collisions with the chuck and fixtures.
-5. **Machined part in 3D:** material removal (heightmap/dexel for facing and milling, solid of revolution for turning).
+5. ◐ **Machined part in 3D:** done: heightfield for milling on block stock, turned profile for bars. Next: live tooling on lathes, multi-axis, undercuts.
 6. ◐ **Desktop:** done: start screen with recent files, EDIT/MEM editor, open and save, `.cncsim` projects, installers, updates, bug reports. Next: auto-reload when the `.nc` changes, file associations.
 7. **Server:** `/api/simulate` API and use from a browser on the shop network.
 8. **Importers and collision:** read FreeCAD posts and Fusion `.cps`; tool and holder collision with part, chuck and turret.

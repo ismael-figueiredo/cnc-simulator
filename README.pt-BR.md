@@ -6,7 +6,7 @@ Português (Brasil) · [English](README.md)
 
 Simulador de programas CNC, leve e multiplataforma. Lê G-code, usa a **máquina** e o **comando** descritos em JSON (um pós-processador às avessas) e mostra o percurso em 3D, com os alarmes do próprio comando.
 
-![O exemplo O1500 rodando: tela de programa estilo Fanuc, percurso 3D com compensação de raio, posição absoluta e de máquina](docs/demo.gif)
+![O exemplo O2001 sendo usinado: tela de programa estilo Fanuc, percurso 3D, ferramenta no cone BT40, o blank mudando onde é cortado](docs/demo.gif)
 
 ## Baixar
 
@@ -28,7 +28,9 @@ Os instaladores de cada versão estão na **[página de Releases](https://github
 - **Chanfro e raio de canto automáticos:** `,C` e `,R` em qualquer ângulo, com o arco tangente seguido pela compensação de raio, e os alarmes do comando quando não dá para fazer. No torno também aceita `C`/`R` sem vírgula (opção `cornerWithoutComma` do comando).
 - **Projetos (`.cncsim`):** guardam o programa com máquina, comando, ferramentas, blank e zeros, para reabrir ou enviar o trabalho inteiro.
 - **Ferramentas em 3D:** cada ferramenta é desenhada pelo tipo e pelas medidas, com o suporte (cones BT40, pinças ER, suportes acionados) e o nariz do fuso em transparência no centro de usinagem. As de tornear mostram o inserto ISO, externas ou internas, direita ou esquerda.
-- **Possíveis colisões:** quando o suporte entra no blank (a ferramenta está pouco para fora para a profundidade), o bloco aparece nas mensagens e o suporte fica vermelho.
+- **Visão de usinagem:** o blank muda de cor e de forma onde a ferramenta corta: mapa de alturas no bloco (fresas reta e esférica) e o perfil torneado na barra. Rápidos e ferramenta acionada no torno ainda não cortam nesta visão.
+- **Possíveis colisões:** quando o suporte entra no blank (a ferramenta está pouco para fora para a profundidade), o bloco aparece nas mensagens e o suporte fica vermelho. No torno, uma ferramenta que chega nas castanhas ou no corpo da placa aparece nas mensagens e as castanhas ficam vermelhas.
+- **Blank:** ajustar ao que o programa corta com um clique, e escolher se o zero peça fica num canto ou no centro do bloco.
 - **Visão da máquina no torno:** a placa e a peça giram em C e a ferramenta fica em X/Z, como na máquina; a placa gira quando está torneando.
 - **Ferramentas:** criar e editar ferramentas (montagem, lado, mão, inserto; hélice e inserto desenhados no editor), salvar como biblioteca e reutilizar em qualquer projeto.
 - **Blank:** barra ou bloco, medidas, posição e cor do material.
@@ -38,11 +40,11 @@ Os instaladores de cada versão estão na **[página de Releases](https://github
 
 ## Como usar
 
-1. **Tela inicial:** abra um programa (`.nc`, `.tap`, `.txt`…) ou um projeto, crie um programa novo ou abra um dos **Exemplos**: coroa ANSI 40 num Romi GL 250 M com ferramenta acionada, uma placa de alumínio e um trabalho em duas morsas num centro de usinagem Romi D600. Os arquivos recentes ficam aqui e em **Arquivo → Abrir recente**.
+1. **Tela inicial:** abra um programa (`.nc`, `.tap`, `.txt`…) ou um projeto, crie um programa novo ou abra um dos **Exemplos**: coroa ANSI 40 num Romi GL 250 M com ferramenta acionada, um eixo escalonado torneado num Romi GL 300 (desbaste, acabamento com ,C/,R, canal), uma placa de alumínio e um trabalho em duas morsas num centro de usinagem Romi D600. Os arquivos recentes ficam aqui e em **Arquivo → Abrir recente**.
 2. **Escolha a máquina e o comando** no topo. Um programa aberto sozinho usa o blank da máquina e as ferramentas padrão.
 3. **Execute:** o programa abre em RESET, com o cursor no primeiro bloco, como no comando. **▶ Executar** roda; ◀ e ▶| andam bloco a bloco; **RESET** volta ao início e ⏭ vai ao fim. **Clique num bloco para começar dele.** Mensagens e alarmes ficam à direita; clique numa para ir ao bloco.
 4. **EDIT / MEM:** EDIT altera o programa e para a execução se estiver rodando; enquanto você digita, o percurso e as mensagens são recalculados (o programa volta para RESET). MEM roda como está. **Arquivo → Salvar** (Ctrl/⌘+S) grava.
-5. **Preparação:** no painel da direita, edite o **Blank**, os **Zeros de peça** e as **Ferramentas** e use **Salvar como projeto** para guardar tudo num `.cncsim` ao lado do programa.
+5. **Preparação:** no painel da direita, edite o **Blank** (ou gere pelo programa e escolha onde fica o zero peça nele), os **Zeros de peça** e as **Ferramentas** e use **Salvar como projeto (.cncsim)** para guardar tudo ao lado do programa. O disquete acima do programa salva só o programa (`.nc`).
 
 ### Programação parametrizada (Macro B)
 
