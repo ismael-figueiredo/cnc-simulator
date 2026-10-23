@@ -17,16 +17,21 @@ npm run dev          # app desktop com recarga automática
 npm run check        # tipos + lint + testes: rode antes de cada commit
 npm run lint:fix     # corrige o que o lint conseguir sozinho
 npm run server       # modo navegador em http://localhost:5174 (rode npm run build antes)
-npm run dist:win     # instalador do Windows em dist/
+npm run dist         # instalador do sistema atual em dist/
+npm run dist:win     # instalador do Windows (NSIS)
+npm run dist:mac     # dmg do macOS, arm64 e x64 (rode num Mac; sem assinatura)
+npm run dist:linux   # AppImage e .deb do Linux
 ```
 
 **`npm run dev` falha com `Cannot read properties of undefined (reading 'handle')`:** a variável `ELECTRON_RUN_AS_NODE=1` está ligada. Algumas extensões do VS Code a ligam. Desligue antes de rodar:
 - PowerShell: `Remove-Item Env:ELECTRON_RUN_AS_NODE`
 - Git Bash: `unset ELECTRON_RUN_AS_NODE`
 
+O workflow `Release` do GitHub Actions gera os instaladores de Windows, macOS e Linux a cada tag `v*` (ou à mão, na aba Actions).
+
 ## Qualidade
 
-`npm run check` precisa passar sem erros e sem avisos. O `npm run build` (e o `dist:win`) roda o check antes e para se algo falhar.
+`npm run check` precisa passar sem erros e sem avisos. O `npm run build` (e todo script `dist`) roda o check antes e para se algo falhar.
 
 - **Tipos:** TypeScript estrito. Fica na versão 6.0 porque o lint de TypeScript ainda não suporta o TypeScript 7 nativo.
 - **Lint:** ESLint 10 com as regras estritas do typescript-eslint (que leem os tipos) e as regras de hooks do React.
@@ -47,7 +52,7 @@ npm run dist:win     # instalador do Windows em dist/
   - Ponto decimal tipo I: `X1` = 0,001 mm.
   - Ponto decimal em M/S/T/… é ignorado, não dá alarme.
 - **Dados a conferir:** o que os manuais não trazem (cursos, rotação máxima, magazine) está marcado como **nota** no JSON da máquina e aparece no painel da máquina.
-- **Manuais:** ficam em `docs/manuals/`.
+- **Manuais:** ficam em `docs/manuals/`. Os PDFs são dos fabricantes e não estão no repositório.
 
 ## Alarmes do comando
 

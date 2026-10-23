@@ -14,7 +14,7 @@ It grew out of `Simulador_Fanuc.html` ([docs/legacy](docs/legacy/Simulador_Fanuc
 ## Requirements
 
 - Node.js 22.12 or newer
-- Windows 10/11. Linux and macOS use the same code but are not tested yet.
+- Windows 10/11, macOS (Apple Silicon and Intel) or Linux (AppImage or .deb)
 
 ## Getting started
 
@@ -28,7 +28,10 @@ npm run typecheck    # types only
 npm run lint         # lint only (ESLint, zero warnings allowed); lint:fix fixes what it can
 npm run build        # check, then build to out/ (build:only skips the check)
 npm run server       # browser mode at http://localhost:5174 (run npm run build first)
-npm run dist:win     # Windows installer in dist/
+npm run dist         # installer for the current OS in dist/
+npm run dist:win     # Windows installer (NSIS)
+npm run dist:mac     # macOS dmg, arm64 and x64 (run on a Mac; unsigned)
+npm run dist:linux   # Linux AppImage and .deb
 ```
 
 ### Troubleshooting
@@ -37,9 +40,13 @@ npm run dist:win     # Windows installer in dist/
   - PowerShell: `Remove-Item Env:ELECTRON_RUN_AS_NODE`
   - Git Bash: `unset ELECTRON_RUN_AS_NODE`
 
+### Release builds
+
+The `Release` GitHub Actions workflow builds the Windows, macOS and Linux installers on every `v*` tag (or by hand from the Actions tab) and attaches them to the run as artifacts.
+
 ## Quality checks
 
-`npm run check` must pass with no errors and no warnings. `npm run build` (and therefore `dist:win`) runs it first and stops on any failure.
+`npm run check` must pass with no errors and no warnings. `npm run build` (and therefore every `dist` script) runs it first and stops on any failure.
 
 - **Types:** `tsc` in strict mode with `noUncheckedIndexedAccess`.
   - TypeScript stays on **6.0** because typescript-eslint does not support the native TypeScript 7 yet.
@@ -118,7 +125,7 @@ docs/legacy/       original HTML simulator, reference for the port
 | Generic 3-axis machining center | `fanuc-0i-mf` | — |
 
 - **Data to check on the machine plate:** each machine file has `notes` for anything the manuals do not give, such as travels, maximum speed and magazine size. The app shows these notes in the machine panel.
-- **Manuals:** they are kept in `docs/manuals/`, by maker.
+- **Manuals:** they are kept in `docs/manuals/`, by maker. The PDFs belong to their makers and are not in the repository.
 - **Mitsubishi lathe G-code lists:** the lathe has six lists, selected by parameter `#1037 cmdtyp`.
   - **List 2** works like Fanuc system A: G98/G99 feed, G90/G92/G94 simple cycles, G190/G191 absolute and incremental.
   - **List 3** works like Fanuc system B: G94/G95 feed, G77/G78/G79 simple cycles, G90/G91.

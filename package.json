@@ -5,7 +5,10 @@
   "private": true,
   "description": "Lightweight cross-platform CNC simulator: reads G-code, uses machine and control definitions in JSON, and shows toolpath and machined part in 3D.",
   "main": "./out/main/main.js",
-  "author": "maelio@live.com",
+  "author": {
+    "name": "Ismael Figueiredo",
+    "email": "maelio@live.com"
+  },
   "license": "UNLICENSED",
   "engines": {
     "node": ">=22.12"
@@ -22,7 +25,10 @@
     "test:watch": "vitest",
     "check": "npm run typecheck && npm run lint && npm run test",
     "server": "tsx src/server/server.ts",
-    "dist:win": "npm run build && electron-builder --win"
+    "dist:win": "npm run build && electron-builder --win",
+    "dist": "npm run build && electron-builder",
+    "dist:mac": "npm run build && electron-builder --mac",
+    "dist:linux": "npm run build && electron-builder --linux"
   },
   "dependencies": {
     "@fastify/static": "^10.1.7",

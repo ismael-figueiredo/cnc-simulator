@@ -26,7 +26,15 @@ nsis:
 #   - ext: [nc, tap, ngc, cnc, min]
 #     name: CNC Program
 #     role: Viewer
+# No icon yet: electron-builder uses the default Electron icon until build/icon.png (1024x1024) exists
 linux:
-  target: [AppImage]
+  target: [AppImage, deb]
+  category: Development
+  maintainer: Ismael Figueiredo <maelio@live.com>
 mac:
-  target: [dmg]
+  target:
+    - target: dmg
+      arch: [arm64, x64]
+  category: public.app-category.developer-tools
+  # Unsigned: on first launch macOS asks to allow the app (right-click > Open)
+  identity: null
