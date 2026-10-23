@@ -2,9 +2,9 @@
   "format": "cnc-simulator-project",
   "version": 1,
   "description": {
-    "en": "Two vises · Romi D600, Fanuc 0i-MF · G54 and G55 work offsets, subprograms M98/M99, machine coordinates",
-    "pt-BR": "Duas morsas · Romi D600, Fanuc 0i-MF · zeros G54 e G55, subprogramas M98/M99, coordenadas de máquina",
-    "es": "Dos mordazas · Romi D600, Fanuc 0i-MF · ceros G54 y G55, subprogramas M98/M99, coordenadas de máquina"
+    "en": "Two vises · Romi D600, Fanuc 0i-MF · G54 and G55 work offsets, subprograms M98/M99, automatic corner radius ,R, machine coordinates",
+    "pt-BR": "Duas morsas · Romi D600, Fanuc 0i-MF · zeros G54 e G55, subprogramas M98/M99, cantos com raio automático ,R, coordenadas de máquina",
+    "es": "Dos mordazas · Romi D600, Fanuc 0i-MF · ceros G54 y G55, subprogramas M98/M99, radio de esquina automático ,R, coordenadas de máquina"
   },
   "program": "O2002_DUAS_MORSAS_D600.nc",
   "machine": "romi-d600",

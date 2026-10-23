@@ -54,6 +54,12 @@ export const DIAGNOSTIC_CODES = [
   'arc-plane-axis',
   'arc-negative-radius',
   'offset-number-too-large',
+  // chamfer and corner R (",C" ",R")
+  'corner-without-move',
+  'corner-next-not-linear',
+  'corner-both',
+  'corner-taper',
+  'corner-too-large',
   'overtravel',
   'work-offset-not-set',
   'peck-q-missing',

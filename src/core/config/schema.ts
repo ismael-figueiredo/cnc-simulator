@@ -115,7 +115,12 @@ export const ControlSchema = z.object({
      * A decimal point on an integer address (M, N, O, T, D, H, L, P): Fanuc raises an alarm,
      * Mitsubishi drops the decimals. Defaults to "alarm".
      */
-    integerAddressDecimal: z.enum(['alarm', 'ignore']).optional()
+    integerAddressDecimal: z.enum(['alarm', 'ignore']).optional(),
+    /**
+     * Lathe option: chamfer and corner R also with C and R without comma in a one-axis G01 block
+     * (Fanuc T, needs a machine without C axis). ",C" and ",R" always work.
+     */
+    cornerWithoutComma: z.boolean().optional()
   }),
   gCodes: z.record(z.string(), code(GFunction)),
   mCodes: z.record(z.string(), code(MFunction)),

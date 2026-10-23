@@ -18,6 +18,7 @@ import type {
   SimulationResult,
   ToolUse,
   VariableChange,
+  Vec2,
   Vec3
 } from '../types'
 import { buildCodeTable, formatCode, type GFn } from './codes'
@@ -240,6 +241,15 @@ export function simulate(input: SimulationInput): SimulationResult {
 
   // ---------- state ----------
   const pos: Position = { ...machineZero }
+  /** A ",C"/",R" block waits for the next move to know the corner it rounds or chamfers. */
+  interface Corner {
+    kind: 'C' | 'R'
+    size: number
+    move: Move
+    /** C/R without comma (lathe option): the next move must be at 90°. */
+    perpendicular: boolean
+  }
+  let corner: Corner | null = null
   const st = {
     motion: 0 as 0 | 1 | 2 | 3,
     absolute: true,
@@ -691,6 +701,7 @@ export function simulate(input: SimulationInput): SimulationResult {
     const ms: number[] = []
     let liveSpeedWord = false
     const movesBefore = moves.length
+    const cornerBefore = corner
     for (const w of parseWords(b.text)) {
       if (w.value === null) continue // address with an empty variable = not programmed
       let v = w.value
@@ -707,7 +718,8 @@ export function simulate(input: SimulationInput): SimulationResult {
           W['S2'] = v
           liveSpeedWord = true
         } else W['S'] = v
-      } else if (w.addr.startsWith(',')) diag('warning', 'direct-corner-not-simulated', { word: w.addr }, line)
+      } else if (w.addr === ',C' || w.addr === ',R') W[w.addr] = v
+      else if (w.addr.startsWith(',')) diag('warning', 'direct-corner-not-simulated', { word: w.addr }, line)
       else W[w.addr] = v
     }
 
@@ -728,6 +740,27 @@ export function simulate(input: SimulationInput): SimulationResult {
       calls.push({ ret: pc + 1, count: W['L'] ?? 1, start: start + 1, macro: true })
       pc = start + 1
       return 'jump'
+    }
+
+    // Lathes with the chamfer/corner R option without comma: C or R in a one-axis G01 block.
+    // Machines with a C axis use ",C" (C alone is the axis), as on the control.
+    let cornerNoComma = false
+    if (dialect.cornerWithoutComma && lathe && !machineAxes.has('C')) {
+      const motion = gs.map((g) => codes.g.get(g)).filter((f) => f === 'rapid' || f === 'linear' || f === 'arc-cw' || f === 'arc-ccw')
+      const linearNow = motion.length ? motion[motion.length - 1] === 'linear' : st.motion === 1
+      const moves = (ax: Axis) => W[ax] !== undefined || [...incremental].some(([a, x]) => x === ax && W[a] !== undefined)
+      if (linearNow && moves('X') !== moves('Z')) {
+        if (W['C'] !== undefined && W[',C'] === undefined) {
+          W[',C'] = W['C']
+          delete W['C']
+          cornerNoComma = true
+        }
+        if (W['R'] !== undefined && W[',R'] === undefined) {
+          W[',R'] = W['R']
+          delete W['R']
+          cornerNoComma = true
+        }
+      }
     }
 
     let oneShot: GFn | null = null
@@ -1146,6 +1179,24 @@ export function simulate(input: SimulationInput): SimulationResult {
       }
     }
 
+    // ---- chamfer / corner R (",C" ",R", or C/R without comma on lathes that allow it) ----
+    const made = moves.slice(movesBefore)
+    if (cornerBefore) {
+      corner = null
+      const next = made[0]
+      if (!next || next.kind === 'dwell') fatal('corner-without-move')
+      if (next.kind === 'rapid') fatal('corner-next-not-linear')
+      makeCorner(cornerBefore, next)
+    }
+    const cWord = W[',C']
+    const rWord = W[',R']
+    if (cWord !== undefined || rWord !== undefined) {
+      if (cWord !== undefined && rWord !== undefined) fatal('corner-both')
+      const m = made[made.length - 1]
+      if (!m || m.kind !== 'feed') fatal('corner-next-not-linear')
+      corner = { kind: cWord !== undefined ? 'C' : 'R', size: cWord ?? rWord ?? 0, move: m, perpendicular: cornerNoComma }
+    }
+
     // Cutter compensation looks ahead along the plane; blocks without movement there blind it
     if (st.cutterComp !== 40 && inCompPlaneNow()) {
       const planeMoved = moves.slice(movesBefore).some((m) => m.element)
@@ -1153,6 +1204,71 @@ export function simulate(input: SimulationInput): SimulationResult {
       if (st.compNoMove > limits.compNoMoveBlocks) diag('warning', 'comp-no-move-blocks', { count: st.compNoMove, max: limits.compNoMoveBlocks })
     } else st.compNoMove = 0
     return flow
+  }
+
+  /**
+   * Chamfer or corner R between the corner block's line and the next line: both are shortened and the
+   * chamfer line or tangent arc goes between them, in the plane of the two lines. Corners next to an
+   * arc are reported as not simulated and stay sharp.
+   */
+  function makeCorner(c: Corner, next: Move): void {
+    const prev = c.move
+    if (prev.element?.type === 'arc' || next.element?.type === 'arc' || prev.points.length !== 2 || next.points.length !== 2) {
+      diag('warning', 'direct-corner-not-simulated', { word: `,${c.kind}` }, `corner-arc|${line}`)
+      return
+    }
+    const sub = (a: Vec3, b: Vec3): Vec3 => [a[0] - b[0], a[1] - b[1], a[2] - b[2]]
+    const add = (a: Vec3, b: Vec3): Vec3 => [a[0] + b[0], a[1] + b[1], a[2] + b[2]]
+    const mul = (a: Vec3, k: number): Vec3 => [a[0] * k, a[1] * k, a[2] * k]
+    const norm = (a: Vec3) => Math.hypot(a[0], a[1], a[2])
+    const A0 = prev.points[0] as Vec3
+    const P = prev.points[1] as Vec3
+    const B1 = next.points[1] as Vec3
+    const L1 = norm(sub(P, A0))
+    const L2 = norm(sub(B1, P))
+    if (L1 < 1e-9 || L2 < 1e-9) fatal('corner-without-move')
+    const d1 = mul(sub(P, A0), 1 / L1)
+    const d2 = mul(sub(B1, P), 1 / L2)
+    const cos = Math.min(1, Math.max(-1, d1[0] * d2[0] + d1[1] * d2[1] + d1[2] * d2[2]))
+    if (c.perpendicular && Math.abs(cos) > 1e-6) fatal('corner-taper')
+    const phi = Math.acos(cos)
+    if (phi < 1e-9) return // straight on: no corner to cut
+    // How far the corner starts from the programmed intersection, along each line
+    const t = c.kind === 'C' ? c.size : c.size * Math.tan(phi / 2)
+    if (t > L1 + 1e-9 || t > L2 + 1e-9) fatal('corner-too-large', { size: c.size })
+    const A = add(P, mul(d1, -t))
+    const B = add(P, mul(d2, t))
+    const flat = (q: Vec3): Vec2 => [q[0], q[1]]
+    const inPlane = !!prev.element && !!next.element
+    let points: Vec3[] = [A, B]
+    let element: PlaneElement | undefined = inPlane ? { type: 'line', p0: flat(A), p1: flat(B) } : undefined
+    if (c.kind === 'R') {
+      // Tangent arc: its center is R from A toward the inside of the turn
+      const inward = sub(d2, mul(d1, cos))
+      const n = mul(inward, 1 / norm(inward))
+      const center = add(A, mul(n, c.size))
+      const steps = Math.max(4, Math.ceil(phi / (Math.PI / 24)))
+      points = Array.from({ length: steps + 1 }, (_, i) => {
+        const a = (phi * i) / steps
+        return add(center, add(mul(n, -c.size * Math.cos(a)), mul(d1, c.size * Math.sin(a))))
+      })
+      const cross = d1[0] * d2[1] - d1[1] * d2[0]
+      if (inPlane) element = { type: 'arc', center: flat(center), radius: c.size, cw: cross < 0, p0: flat(A), p1: flat(B), sweep: phi }
+    }
+    // Shorten both lines; times scale with length at the same feed
+    const rate1 = prev.durationS / L1
+    const rate2 = next.durationS / L2
+    prev.points = [A0, A]
+    prev.durationS = rate1 * (L1 - t)
+    if (prev.element?.type === 'line') prev.element = { ...prev.element, p1: flat(A) }
+    next.points = [B, B1]
+    next.durationS = rate2 * (L2 - t)
+    if (next.element?.type === 'line') next.element = { ...next.element, p0: flat(B) }
+    let length = 0
+    for (let i = 1; i < points.length; i++) length += norm(sub(points[i] as Vec3, points[i - 1] as Vec3))
+    const { compStart: _start, compCancel: _cancel, element: _element, ...base } = prev
+    const cornerMove: Move = { ...base, points, durationS: rate2 * length, inCompPlane: inPlane, ...(element ? { element } : {}) }
+    moves.splice(moves.indexOf(next), 0, cornerMove)
   }
 
   /** G10 L2 P1–P6 (G54–G59) and L20 P n (G54.1 P n): writes the work offset table, as the program runs. */
@@ -1350,6 +1466,13 @@ export function simulate(input: SimulationInput): SimulationResult {
         if (e instanceof MacroError) fatal(MACRO_ERROR_CODE[e.kind], { detail: e.detail })
         throw e
       }
+    }
+    // Set inside execWords, which the compiler's narrowing does not follow
+    const pendingCorner = corner as Corner | null
+    if (pendingCorner) {
+      // The program ended right after a chamfer or corner R block
+      line = pendingCorner.move.line
+      fatal('corner-without-move')
     }
     if (pc >= blocks.length && !finished) {
       // Reaching the end of record (%) without M30/M02/M99
