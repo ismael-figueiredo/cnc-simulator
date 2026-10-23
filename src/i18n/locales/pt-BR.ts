@@ -59,6 +59,7 @@ export const ptBR: Record<MessageKey, string> = {
   'alarm.line': 'linha {line}',
 
   'view.title': 'Vista 3D',
+  'view.editNote': 'EDIT: o percurso e as mensagens acompanham as alterações. Passe para MEM para executar.',
   'view.hint': 'arraste: girar · botão direito: mover · roda: zoom',
   'legend.programmed': 'Caminho programado',
   'legend.center': 'Centro da ferramenta (G41/G42)',
@@ -66,6 +67,7 @@ export const ptBR: Record<MessageKey, string> = {
   'layers.rapids': 'Rápidos',
   'layers.stock': 'Blank',
 
+  'player.editMode': 'Em EDIT o programa não roda: passe para MEM.',
   'player.start': 'RESET: volta ao início do programa',
   'player.back': 'Movimento anterior',
   'player.play': 'Executar',

@@ -58,6 +58,7 @@ export const en = {
   'alarm.line': 'line {line}',
 
   'view.title': '3D view',
+  'view.editNote': 'EDIT: the path and messages follow your changes. Switch to MEM to run.',
   'view.hint': 'drag: rotate · right button: pan · wheel: zoom',
   'legend.programmed': 'Programmed path',
   'legend.center': 'Tool center (G41/G42)',
@@ -65,6 +66,7 @@ export const en = {
   'layers.rapids': 'Rapids',
   'layers.stock': 'Stock',
 
+  'player.editMode': 'In EDIT the program does not run: switch to MEM.',
   'player.start': 'RESET: back to the start of the program',
   'player.back': 'Previous move',
   'player.play': 'Play',

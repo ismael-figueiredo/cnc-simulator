@@ -59,6 +59,7 @@ export const es: Record<MessageKey, string> = {
   'alarm.line': 'línea {line}',
 
   'view.title': 'Vista 3D',
+  'view.editNote': 'EDIT: la trayectoria y los mensajes siguen sus cambios. Pase a MEM para ejecutar.',
   'view.hint': 'arrastrar: girar · botón derecho: mover · rueda: zoom',
   'legend.programmed': 'Trayectoria programada',
   'legend.center': 'Centro de la herramienta (G41/G42)',
@@ -66,6 +67,7 @@ export const es: Record<MessageKey, string> = {
   'layers.rapids': 'Rápidos',
   'layers.stock': 'Material',
 
+  'player.editMode': 'En EDIT el programa no se ejecuta: pase a MEM.',
   'player.start': 'RESET: vuelve al inicio del programa',
   'player.back': 'Movimiento anterior',
   'player.play': 'Ejecutar',

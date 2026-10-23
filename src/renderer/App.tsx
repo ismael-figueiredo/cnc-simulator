@@ -174,6 +174,8 @@ export function App() {
   /** Bumped on every new or opened program, so the editor starts over with the new text. */
   const [programKey, setProgramKey] = useState(0)
   const editor = useRef<EditorHandle>(null)
+  /** Bumped on each edit: the path is recomputed a moment after typing stops. */
+  const [editTick, setEditTick] = useState(0)
   // Stock, tools and work offsets: from the open project, or the machine's defaults
   const [setup, setSetup] = useState<Setup>(() => defaultSetup(machine, cfg.libraries))
   /** The .cncsim file the setup came from, or null for a program opened alone. */
@@ -360,6 +362,15 @@ export function App() {
     setDirty(false)
     return p
   }
+  /** EDIT, like on the control: a running program stops (it only runs in MEM). */
+  function startEdit() {
+    setSim((s) => ({ ...s, playing: false }))
+    setMode('edit')
+  }
+  function edited() {
+    setDirty(true)
+    setEditTick((n) => n + 1)
+  }
   /** MEM: take the edited text and run it, like switching the control from EDIT to MEM. */
   function runMem() {
     const p = currentProgram()
@@ -511,6 +522,17 @@ export function App() {
     window.addEventListener('keydown', key)
     return () => window.removeEventListener('keydown', key)
   }, [])
+  // While editing, the path, messages and alarms follow the text: recomputed (at RESET)
+  // a moment after typing stops, so the view never shows a program that is no longer there
+  const refreshFromEditor = useEffectEvent(() => {
+    if (mode === 'edit') simulateWith(currentProgram(), machine, control)
+  })
+  useEffect(() => {
+    if (!editTick) return
+    const id = setTimeout(refreshFromEditor, 700)
+    return () => clearTimeout(id)
+  }, [editTick])
+
   // The main process asks before closing the window with unsaved edits
   useEffect(() => {
     void window.api?.setDirty(dirty)
@@ -645,7 +667,7 @@ export function App() {
                 {isExample(program.path) && <span className="tag">{t('start.example')}</span>}
               </span>
               <span className="modes" role="group">
-                <button className={`btn tiny ${mode === 'edit' ? 'on' : ''}`} title={t('mode.editHint')} onClick={() => setMode('edit')}>EDIT</button>
+                <button className={`btn tiny ${mode === 'edit' ? 'on' : ''}`} title={t('mode.editHint')} onClick={startEdit}>EDIT</button>
                 <button className={`btn tiny ${mode === 'mem' ? 'on' : ''}`} title={t('mode.memHint')} onClick={runMem}>MEM</button>
               </span>
               <span className="zoom">
@@ -654,7 +676,7 @@ export function App() {
               </span>
             </div>
             {mode === 'edit' ? (
-              <ProgramEditor key={programKey} ref={editor} text={program.text} fontSize={fontSize} onEdit={() => setDirty(true)} />
+              <ProgramEditor key={programKey} ref={editor} text={program.text} fontSize={fontSize} onEdit={edited} />
             ) : (
               <CodeView
                 lines={lines}
@@ -719,6 +741,7 @@ export function App() {
                 <span><i style={{ borderColor: PATH_COLORS.rapid }} />{t('legend.rapid')}</span>
               </div>
               <div className="hint">{t('view.hint')}</div>
+              {mode === 'edit' && <div className="edit-note">{t('view.editNote')}</div>}
               {stoppedBy && (
                 <button className="alarm-banner" onClick={() => jumpToDiagnostic(stoppedBy)}>
                   <b>
@@ -737,6 +760,7 @@ export function App() {
               playing={playing}
               speed={speed}
               disabled={!result?.moves.length}
+              runDisabled={mode === 'edit'}
               onSeek={seek}
               onTogglePlay={togglePlay}
               onStep={step}

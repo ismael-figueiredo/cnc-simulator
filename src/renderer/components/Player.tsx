@@ -7,6 +7,8 @@ interface Props {
   playing: boolean
   speed: number
   disabled: boolean
+  /** EDIT mode: the program can be looked through but only runs in MEM. */
+  runDisabled: boolean
   onSeek: (time: number) => void
   onTogglePlay: () => void
   onStep: (dir: -1 | 1) => void
@@ -16,13 +18,13 @@ interface Props {
 const SPEEDS = [1, 5, 20, 100, 1000]
 const STEPS = 10000
 
-export function Player({ time, total, playing, speed, disabled, onSeek, onTogglePlay, onStep, onSpeed }: Props) {
+export function Player({ time, total, playing, speed, disabled, runDisabled, onSeek, onTogglePlay, onStep, onSpeed }: Props) {
   const { t } = useI18n()
   return (
     <div className="player">
       <button className="btn reset" disabled={disabled} title={t('player.start')} onClick={() => onSeek(0)}>RESET</button>
       <button className="btn icon" disabled={disabled} title={t('player.back')} aria-label={t('player.back')} onClick={() => onStep(-1)}>◀</button>
-      <button className="btn primary play" disabled={disabled} onClick={onTogglePlay}>
+      <button className="btn primary play" disabled={disabled || runDisabled} title={runDisabled ? t('player.editMode') : undefined} onClick={onTogglePlay}>
         {playing ? `⏸ ${t('player.pause')}` : `▶ ${t('player.play')}`}
       </button>
       <button className="btn icon" disabled={disabled} title={t('player.forward')} aria-label={t('player.forward')} onClick={() => onStep(1)}>▶|</button>
