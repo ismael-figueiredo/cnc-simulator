@@ -25,7 +25,10 @@ Installers for every version are on the **[Releases page](https://github.com/ism
 - **Stops on the machine's alarms:** program errors stop at the block with the control's own number and message (for example `PS0010 IMPROPER G-CODE`).
 - **Program screen like the control:** Fanuc-style MEM screen with the running block, O and N numbers and run state. **EDIT** turns it into an editor (colors, undo, find and replace).
 - **Projects (`.cncsim`):** keep the program with its machine, control, tools, stock and work offsets, to reopen or send the whole job.
-- **Tools:** create and edit tools, save them as libraries and reuse them in any project.
+- **Tools in 3D:** each tool is drawn from its type and lengths with its holder (BT40 tapers, ER collets, live tool holders) and a faded spindle nose on machining centers. Turning tools show their ISO insert, external or internal, right or left hand.
+- **Possible collisions:** when a holder goes into the stock (the tool sticks out too little for the depth), the block is listed and the holder turns red.
+- **Lathe machine view:** the chuck and the part turn in C while the tool stays in X/Z, as on the machine; the chuck spins when turning.
+- **Tools:** create and edit tools (mount, side, hand, insert; helix and insert drawings in the editor), save them as libraries and reuse them in any project.
 - **Stock:** bar or block, size, position and material color.
 - **Work offsets:** G54–G59 and G54.1 P n, G10 L2/L20 in the program, G53 in machine coordinates, absolute and machine position side by side, and travel limit warnings.
 - **Help menu:** report a problem (with a screenshot and a prefilled GitHub issue) and check for updates.
@@ -33,7 +36,7 @@ Installers for every version are on the **[Releases page](https://github.com/ism
 
 ## Using it
 
-1. **Start screen:** open a program (`.nc`, `.tap`, `.txt`…) or a project, create a new program, or open the **Example** (an ANSI 40 sprocket on a Romi GL 250 M). Recent files are listed here and in **File → Open recent**.
+1. **Start screen:** open a program (`.nc`, `.tap`, `.txt`…) or a project, create a new program, or open one of the **Examples**: an ANSI 40 sprocket on a Romi GL 250 M with live tooling, an aluminium plate and a two-vise job on a Romi D600 machining center. Recent files are listed here and in **File → Open recent**.
 2. **Pick the machine and the control** at the top. A program opened alone uses the machine's stock and the bundled tools.
 3. **Run:** the program opens at RESET, cursor on the first block, as on the control. **▶ Run** plays it; step block by block with ◀ and ▶|; **RESET** goes back to the start and ⏭ to the end. **Click a block to start from it.** Messages and alarms are listed on the right; click one to go to its block.
 4. **EDIT / MEM:** EDIT changes the program; MEM runs it as edited. **File → Save** (Ctrl/⌘+S) writes it back.
@@ -270,7 +273,7 @@ Three separate files you can mix: the same machine with another control, or one 
    - Done: 3D path with done/remaining parts, tool marker, playback, click-to-block, translated diagnostics, absolute and machine position, work offsets (G54–G59, G54.1, G10 L2/L20, G53) with travel warnings.
    - Next: 2D face and side views, a fit-to-path camera, tool length and wear offsets (G43, G10 L10–L13).
 3. **Machines and controls:** load the user's JSON; profiles for Fanuc T (A/B), Fanuc M, Haas and LinuxCNC; later Siemens and Mazak.
-4. ◐ **Tools:** done: tool editor, user libraries, import/export. Next: holders and tapers with 3D tool drawing.
+4. ◐ **Tools:** done: tool editor, user libraries, import/export, 3D tools with holders and tapers, ISO inserts, holder-stock collision warnings. Next: turret and tool changer, collisions with the chuck and fixtures.
 5. **Machined part in 3D:** material removal (heightmap/dexel for facing and milling, solid of revolution for turning).
 6. ◐ **Desktop:** done: start screen with recent files, EDIT/MEM editor, open and save, `.cncsim` projects, installers, updates, bug reports. Next: auto-reload when the `.nc` changes, file associations.
 7. **Server:** `/api/simulate` API and use from a browser on the shop network.

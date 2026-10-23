@@ -25,7 +25,10 @@ Os instaladores de cada versão estão na **[página de Releases](https://github
 - **Para nos alarmes da máquina:** erros de programa param no bloco com o número e a mensagem do próprio comando (por exemplo `PS0010 IMPROPER G-CODE`).
 - **Tela de programa como a do comando:** tela MEM estilo Fanuc com o bloco em execução, números O e N e estado de execução. **EDIT** vira um editor (cores, desfazer, buscar e substituir).
 - **Projetos (`.cncsim`):** guardam o programa com máquina, comando, ferramentas, blank e zeros, para reabrir ou enviar o trabalho inteiro.
-- **Ferramentas:** criar e editar ferramentas, salvar como biblioteca e reutilizar em qualquer projeto.
+- **Ferramentas em 3D:** cada ferramenta é desenhada pelo tipo e pelas medidas, com o suporte (cones BT40, pinças ER, suportes acionados) e o nariz do fuso em transparência no centro de usinagem. As de tornear mostram o inserto ISO, externas ou internas, direita ou esquerda.
+- **Possíveis colisões:** quando o suporte entra no blank (a ferramenta está pouco para fora para a profundidade), o bloco aparece nas mensagens e o suporte fica vermelho.
+- **Visão da máquina no torno:** a placa e a peça giram em C e a ferramenta fica em X/Z, como na máquina; a placa gira quando está torneando.
+- **Ferramentas:** criar e editar ferramentas (montagem, lado, mão, inserto; hélice e inserto desenhados no editor), salvar como biblioteca e reutilizar em qualquer projeto.
 - **Blank:** barra ou bloco, medidas, posição e cor do material.
 - **Zeros de peça:** G54–G59 e G54.1 P n, G10 L2/L20 no programa, G53 em coordenadas de máquina, posição absoluta e de máquina lado a lado e aviso de fim de curso.
 - **Menu Ajuda:** relatar um problema (com print e issue preenchida no GitHub) e procurar atualizações.
@@ -33,7 +36,7 @@ Os instaladores de cada versão estão na **[página de Releases](https://github
 
 ## Como usar
 
-1. **Tela inicial:** abra um programa (`.nc`, `.tap`, `.txt`…) ou um projeto, crie um programa novo ou abra o **Exemplo** (coroa ANSI 40 num Romi GL 250 M). Os arquivos recentes ficam aqui e em **Arquivo → Abrir recente**.
+1. **Tela inicial:** abra um programa (`.nc`, `.tap`, `.txt`…) ou um projeto, crie um programa novo ou abra um dos **Exemplos**: coroa ANSI 40 num Romi GL 250 M com ferramenta acionada, uma placa de alumínio e um trabalho em duas morsas num centro de usinagem Romi D600. Os arquivos recentes ficam aqui e em **Arquivo → Abrir recente**.
 2. **Escolha a máquina e o comando** no topo. Um programa aberto sozinho usa o blank da máquina e as ferramentas padrão.
 3. **Execute:** o programa abre em RESET, com o cursor no primeiro bloco, como no comando. **▶ Executar** roda; ◀ e ▶| andam bloco a bloco; **RESET** volta ao início e ⏭ vai ao fim. **Clique num bloco para começar dele.** Mensagens e alarmes ficam à direita; clique numa para ir ao bloco.
 4. **EDIT / MEM:** EDIT altera o programa; MEM roda como está. **Arquivo → Salvar** (Ctrl/⌘+S) grava.
