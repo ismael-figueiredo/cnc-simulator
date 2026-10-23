@@ -1,14 +1,15 @@
 import { existsSync } from 'node:fs'
 import { readFile, writeFile } from 'node:fs/promises'
-import { basename, dirname, isAbsolute, join } from 'node:path'
+import { basename, dirname, extname, isAbsolute, join, relative, resolve, sep } from 'node:path'
 import { app, BrowserWindow, dialog, ipcMain, Menu, shell, type MenuItemConstructorOptions } from 'electron'
 import { DEFAULT_LANGUAGE, LANGUAGES, isLanguage, translate, type Language, type MessageKey, type Params } from '../i18n'
-import { CHANNELS, type MenuCommand, type OpenedFile } from '../preload/api'
+import { CHANNELS, type MenuCommand, type OpenedFile, type SaveProjectRequest } from '../preload/api'
 import appIcon from '../../build/icon.png?asset'
 import { addRecent, listRecent, loadRecent, removeRecent } from './recent'
 import { ISSUES_URL, reportProblem } from './report'
 import { checkForUpdates, setupUpdates } from './updater'
 
+const PROJECT_EXTENSION = 'cncsim'
 const PROGRAM_EXTENSIONS = ['nc', 'tap', 'ngc', 'cnc', 'min', 'txt', 'iso', 'mpf', 'eia', 'ptp']
 const isMac = process.platform === 'darwin'
 
@@ -39,6 +40,7 @@ function buildMenu(): void {
         { type: 'separator' },
         { label: t('menu.save'), accelerator: 'CmdOrCtrl+S', click: (_item, win) => sendCommand(win, 'save') },
         { label: t('menu.saveAs'), accelerator: 'CmdOrCtrl+Shift+S', click: (_item, win) => sendCommand(win, 'saveAs') },
+        { label: t('menu.saveProject'), accelerator: 'CmdOrCtrl+Alt+S', click: (_item, win) => sendCommand(win, 'saveProject') },
         { type: 'separator' },
         {
           label: t('menu.home'),
@@ -163,17 +165,53 @@ function clearRecent(): void {
   recentChanged()
 }
 
-/** Reads a program from disk and records it as recent; null if it is gone. */
+/** Reads a program (or a project and its program) from disk and records it as recent; null if it is gone. */
 async function readProgram(path: string): Promise<OpenedFile | null> {
   if (!existsSync(path)) {
     recentChanged()
     return null
   }
-  // CNC programs are usually ASCII; latin1 keeps accents in old comments.
-  const text = await readFile(path, 'latin1')
   addRecent(path)
   recentChanged()
-  return { name: basename(path), path, text }
+  // CNC programs are usually ASCII; latin1 keeps accents in old comments.
+  if (extname(path).toLowerCase() !== `.${PROJECT_EXTENSION}`) return { name: basename(path), path, text: await readFile(path, 'latin1') }
+
+  // Project: the renderer validates it; here only its program path is needed
+  const projectText = await readFile(path, 'utf8')
+  let program = ''
+  try {
+    const p = (JSON.parse(projectText) as { program?: unknown }).program
+    if (typeof p === 'string') program = resolve(dirname(path), p)
+  } catch {
+    // invalid JSON: reported by the renderer's validation
+  }
+  const found = program !== '' && existsSync(program)
+  return {
+    name: program ? basename(program) : basename(path),
+    path: program,
+    text: found ? await readFile(program, 'latin1') : '',
+    project: { path, text: projectText, programMissing: !found }
+  }
+}
+
+async function saveProject(win: BrowserWindow | undefined, req: SaveProjectRequest, saveAs: boolean): Promise<string | null> {
+  let path = req.projectPath
+  if (saveAs || !isAbsolute(path)) {
+    const opts = {
+      title: t('dialog.saveProject'),
+      defaultPath: join(dirname(req.programPath), `${basename(req.programPath, extname(req.programPath))}.${PROJECT_EXTENSION}`),
+      filters: [{ name: t('dialog.filterProject'), extensions: [PROJECT_EXTENSION] }]
+    }
+    const r = win ? await dialog.showSaveDialog(win, opts) : await dialog.showSaveDialog(opts)
+    if (r.canceled || !r.filePath) return null
+    path = r.filePath
+  }
+  // Relative with "/" so the project keeps working when the folder moves or opens on another OS
+  const program = relative(dirname(path), req.programPath).split(sep).join('/')
+  await writeFile(path, `${JSON.stringify({ ...req.project, program }, null, 2)}\n`, 'utf8')
+  addRecent(path)
+  recentChanged()
+  return path
 }
 
 /** Language picked in the native menu: rebuild the menu and tell every window. */
@@ -189,7 +227,9 @@ async function chooseProgram(win: BrowserWindow | undefined): Promise<OpenedFile
     title: t('dialog.openProgram'),
     properties: ['openFile'] as Array<'openFile'>,
     filters: [
+      { name: t('dialog.filterCncOrProject'), extensions: [...PROGRAM_EXTENSIONS, PROJECT_EXTENSION] },
       { name: t('dialog.filterCnc'), extensions: PROGRAM_EXTENSIONS },
+      { name: t('dialog.filterProject'), extensions: [PROJECT_EXTENSION] },
       { name: t('dialog.filterAll'), extensions: ['*'] }
     ]
   }
@@ -252,6 +292,9 @@ ipcMain.handle(CHANNELS.setLanguage, (_e, lang: unknown) => {
 ipcMain.handle(CHANNELS.openFile, (e) => chooseProgram(BrowserWindow.fromWebContents(e.sender) ?? undefined))
 ipcMain.handle(CHANNELS.saveFile, (e, file: OpenedFile, saveAs: unknown) =>
   saveProgram(BrowserWindow.fromWebContents(e.sender) ?? undefined, file, saveAs === true)
+)
+ipcMain.handle(CHANNELS.saveProject, (e, req: SaveProjectRequest, saveAs: unknown) =>
+  saveProject(BrowserWindow.fromWebContents(e.sender) ?? undefined, req, saveAs === true)
 )
 ipcMain.handle(CHANNELS.setDirty, (_e, value: unknown) => {
   dirty = value === true

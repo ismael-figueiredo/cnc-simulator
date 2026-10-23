@@ -13,6 +13,7 @@ import {
   loadAlarmCatalog,
   loadControl,
   loadMachine,
+  loadProject,
   loadToolLibrary,
   simulate,
   type AlarmCatalog,
@@ -24,7 +25,7 @@ import {
   type ToolLibrary
 } from '@core/index'
 import { LANGUAGES, isLanguage } from '@i18n/index'
-import type { MenuCommand } from '../preload/api'
+import type { MenuCommand, OpenedFile } from '../preload/api'
 import { CodeView } from './components/CodeView'
 import { ProgramEditor, type EditorHandle } from './components/ProgramEditor'
 import { Player } from './components/Player'
@@ -32,6 +33,7 @@ import { PositionPanel } from './components/PositionPanel'
 import { StartScreen } from './components/StartScreen'
 import { PATH_COLORS, Viewport3D } from './components/Viewport3D'
 import { useI18n } from './i18n'
+import { defaultSetup, projectData, setupFromProject, type Setup } from './project'
 import { useRecent } from './recent'
 import { buildTimeline, formatTime, fractionOf, moveAt, pointAlong, positionAlong, type Timeline } from './playback'
 
@@ -92,10 +94,10 @@ interface Simulation {
   playing: boolean
 }
 
-function run(program: Program | null, machine: Machine | undefined, control: Control | undefined, cfg: BundledConfigs): Simulation {
+function run(program: Program | null, machine: Machine | undefined, control: Control | undefined, cfg: BundledConfigs, setup: Setup): Simulation {
   if (!program || !machine || !control) return { timeline: null, time: 0, playing: false }
   const alarms = cfg.alarmCatalogs.find((a) => a.id === control.alarms) ?? null
-  const timeline = buildTimeline(simulate({ text: program.text, machine, control, tools: cfg.library, alarms }))
+  const timeline = buildTimeline(simulate({ text: program.text, machine, control, tools: setup.tools, alarms }))
   return { timeline, time: timeline.total, playing: false }
 }
 
@@ -117,6 +119,15 @@ const writeNumber = (key: string, v: number) => {
   }
 }
 
+/** Browser mode: hands a file to the downloads folder. */
+function download(name: string, text: string, type: string) {
+  const a = document.createElement('a')
+  a.href = URL.createObjectURL(new Blob([text], { type }))
+  a.download = name
+  a.click()
+  URL.revokeObjectURL(a.href)
+}
+
 const SEVERITY_ORDER: Record<Severity, number> = { alarm: 0, warning: 1, info: 2 }
 
 export function App() {
@@ -136,7 +147,11 @@ export function App() {
   /** Bumped on every new or opened program, so the editor starts over with the new text. */
   const [programKey, setProgramKey] = useState(0)
   const editor = useRef<EditorHandle>(null)
-  const [sim, setSim] = useState<Simulation>(() => run(program, machine, control, cfg))
+  // Stock, tools and work offsets: from the open project, or the machine's defaults
+  const [setup, setSetup] = useState<Setup>(() => defaultSetup(machine, cfg.library))
+  /** The .cncsim file the setup came from, or null for a program opened alone. */
+  const [projectPath, setProjectPath] = useState<string | null>(null)
+  const [sim, setSim] = useState<Simulation>(() => run(program, machine, control, cfg, setup))
   const [fontSize, setFontSize] = useState(() => readNumber(FONT_KEY, 11.5))
   const [codeWidth, setCodeWidth] = useState(() => readNumber(WIDTH_KEY, 300))
   const [speed, setSpeed] = useState(20)
@@ -154,8 +169,8 @@ export function App() {
   const position = move ? positionAlong(moves[index - 1], move, fraction) : undefined
 
   // ---- actions (simulation is recomputed in event handlers, not in effects) ----
-  function simulateWith(p: Program | null, m: Machine | undefined, c: Control | undefined) {
-    setSim(run(p, m, c, cfg))
+  function simulateWith(p: Program | null, m: Machine | undefined, c: Control | undefined, s: Setup = setup) {
+    setSim(run(p, m, c, cfg, s))
   }
   const changeFont = useCallback((delta: number) => {
     setFontSize((f) => {
@@ -198,11 +213,62 @@ export function App() {
     setDirty(false)
     setProgramKey((k) => k + 1)
   }
-  function openProgram(p: Program) {
+  function openProgram(f: OpenedFile) {
     if (!canDiscard()) return
+    if (f.project) {
+      openProject(f, f.project)
+      return
+    }
+    // A program opened alone takes the machine's own stock and no work offsets
+    const p = { name: f.name, path: f.path, text: f.text }
+    const s = defaultSetup(machine, cfg.library)
     load(p)
+    setSetup(s)
+    setProjectPath(null)
     recent.record(p)
-    simulateWith(p, machine, control)
+    simulateWith(p, machine, control, s)
+  }
+  function openProject(f: OpenedFile, project: NonNullable<OpenedFile['project']>) {
+    const r = loadProject(project.text, project.path)
+    if (!r.ok) {
+      window.alert(`${t('project.invalid')}\n\n${r.issues.map(issueText).join('\n')}`)
+      return
+    }
+    const pr = r.value
+    const m = cfg.machines.find((x) => x.id === pr.machine)
+    const c = cfg.controls.find((x) => x.id === pr.control)
+    if (!m || !c) window.alert(t('project.unknownConfig', { machine: pr.machine, control: pr.control }))
+    const mm = m ?? machine
+    const cc = c ?? control
+    // Desktop: the program file next to the project; browser: the copy inside it
+    const text = window.api ? f.text : (pr.programText ?? '')
+    if (window.api && project.programMissing) window.alert(t('project.programMissing', { program: pr.program }))
+    const p = { name: pr.program.slice(pr.program.lastIndexOf('/') + 1), path: f.path || pr.program, text }
+    const s = setupFromProject(pr, mm, cfg.library)
+    if (mm) setMachineId(mm.id)
+    if (cc) setControlId(cc.id)
+    load(p)
+    setSetup(s)
+    setProjectPath(project.path)
+    simulateWith(p, mm, cc, s)
+  }
+  async function saveProject(saveAs: boolean) {
+    let p = currentProgram()
+    if (!p || !machine || !control) return
+    const data = projectData(machine.id, control.id, setup)
+    if (!window.api) {
+      const name = projectPath ?? `${p.name.replace(/\.[^.]+$/, '')}.cncsim`
+      download(name, JSON.stringify({ ...data, program: p.name, programText: p.text }, null, 2), 'application/json')
+      setProjectPath(name)
+      return
+    }
+    // The project points to the program file, so a new or edited program is saved first
+    if (dirty || !p.path || p.path.startsWith('example:')) {
+      p = await save(false)
+      if (!p) return
+    }
+    const path = await window.api.saveProject({ project: data, projectPath: saveAs ? '' : (projectPath ?? ''), programPath: p.path }, saveAs)
+    if (path) setProjectPath(path)
   }
   function newProgram() {
     if (!canDiscard()) return
@@ -213,25 +279,23 @@ export function App() {
     load(p, 'edit')
     simulateWith(p, machine, control)
   }
-  async function save(saveAs: boolean) {
-    const p = currentProgram()
-    if (!p) return
+  /** Saves the program; returns it with its new name and path, or null if cancelled. */
+  async function save(saveAs: boolean): Promise<Program | null> {
+    let p = currentProgram()
+    if (!p) return null
     if (window.api) {
       // The example and new programs have no file yet: always ask where to save
       const r = await window.api.saveFile(p, saveAs || !p.path || p.path.startsWith('example:'))
-      if (!r) return
-      setProgram(r)
+      if (!r) return null
+      p = { name: r.name, path: r.path, text: r.text }
     } else {
       // Browser: the file goes to the downloads folder
-      const a = document.createElement('a')
-      a.href = URL.createObjectURL(new Blob([p.text], { type: 'text/plain' }))
-      a.download = p.name
-      a.click()
-      URL.revokeObjectURL(a.href)
-      setProgram(p)
+      download(p.name, p.text, 'text/plain')
       recent.record(p)
     }
+    setProgram(p)
     setDirty(false)
+    return p
   }
   /** MEM: take the edited text and run it, like switching the control from EDIT to MEM. */
   function runMem() {
@@ -242,25 +306,32 @@ export function App() {
   }
   function openExample() {
     if (!canDiscard()) return
+    setProjectPath(null)
     // The example is a Romi GL 250 M program: select that machine and its control with it
     const m = cfg.machines.find((x) => x.id === FIRST_MACHINE) ?? machine
     const c = cfg.controls.find((x) => x.id === m?.defaultControl) ?? control
     if (m) setMachineId(m.id)
     if (c) setControlId(c.id)
+    const s = defaultSetup(m, cfg.library)
     load(EXAMPLE)
-    simulateWith(EXAMPLE, m, c)
+    setSetup(s)
+    simulateWith(EXAMPLE, m, c, s)
   }
   function showStart() {
     if (!canDiscard()) return
     load(null)
-    setSim(run(null, machine, control, cfg))
+    setProjectPath(null)
+    setSim(run(null, machine, control, cfg, setup))
   }
   function changeMachine(id: string) {
     const m = cfg.machines.find((x) => x.id === id)
     const c = cfg.controls.find((x) => x.id === m?.defaultControl) ?? control
     setMachineId(id)
     if (c) setControlId(c.id)
-    simulateWith(currentProgram(), m, c)
+    // Another machine brings its own stock; tools and work offsets stay
+    const s = { ...setup, stock: defaultSetup(m, cfg.library).stock }
+    setSetup(s)
+    simulateWith(currentProgram(), m, c, s)
   }
   function changeControl(id: string) {
     setControlId(id)
@@ -276,7 +347,9 @@ export function App() {
   function readInput(e: ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0]
     if (!f) return
-    void f.text().then((text) => openProgram({ name: f.name, path: f.name, text }))
+    void f.text().then((text) =>
+      openProgram(f.name.toLowerCase().endsWith('.cncsim') ? { name: f.name, path: '', text: '', project: { path: f.name, text, programMissing: false } } : { name: f.name, path: f.name, text })
+    )
     e.target.value = ''
   }
 
@@ -336,6 +409,7 @@ export function App() {
   useEffect(() => window.api?.onShowStart(onMenuHome), [])
   const onMenuCommand = useEffectEvent((command: MenuCommand) => {
     if (command === 'new') newProgram()
+    else if (command === 'saveProject') void saveProject(false)
     else if (program) void save(command === 'saveAs')
   })
   useEffect(() => window.api?.onMenuCommand(onMenuCommand), [])
@@ -345,7 +419,7 @@ export function App() {
     const key = (e: KeyboardEvent) => {
       if (!(e.ctrlKey || e.metaKey)) return
       const k = e.key.toLowerCase()
-      if (k === 's') onMenuCommand(e.shiftKey ? 'saveAs' : 'save')
+      if (k === 's') onMenuCommand(e.altKey ? 'saveProject' : e.shiftKey ? 'saveAs' : 'save')
       else if (k === 'n' && e.altKey) onMenuCommand('new') // Ctrl+N opens a browser window
       else return
       e.preventDefault()
@@ -513,6 +587,7 @@ export function App() {
               {machine && (
                 <Viewport3D
                   machine={machine}
+                  stock={setup.stock}
                   result={result}
                   index={index}
                   toolTip={move ? pointAlong(move, fraction) : null}
@@ -553,6 +628,11 @@ export function App() {
           </section>
 
           <aside className="panel sidebar">
+            <div className="block">
+              <h2>{t('project.title')}</h2>
+              <p className="muted">{projectPath ? projectPath.slice(Math.max(projectPath.lastIndexOf('/'), projectPath.lastIndexOf('\\')) + 1) : t('project.none')}</p>
+              <button className="btn" onClick={() => void saveProject(false)}>{t(projectPath ? 'project.save' : 'project.create')}</button>
+            </div>
             <div className="block">
               <h2>{t('position.title')}</h2>
               <PositionPanel move={move} position={position} index={index} total={result?.moves.length ?? 0} axes={shownAxes} />
@@ -634,11 +714,11 @@ export function App() {
                 )}
               </div>
             )}
-            {cfg.library && (
+            {setup.tools && (
               <div className="block">
                 <h2>{t('tools.title')}</h2>
                 <ul className="list">
-                  {cfg.library.tools.map((tool) => (
+                  {setup.tools.tools.map((tool) => (
                     <li key={tool.number}>
                       <b>T{String(tool.number).padStart(2, '0')}</b> {l(tool.name)}
                       <span className="muted"> · {t('tools.radius', { radius: tool.diameter / 2 })} · {tool.holder ?? t('tools.noHolder')}</span>

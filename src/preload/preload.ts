@@ -11,6 +11,7 @@ function subscribe(channel: string, listener: (...args: never[]) => void): () =>
 const api: CncApi = {
   openFile: () => ipcRenderer.invoke(CHANNELS.openFile),
   saveFile: (file, saveAs) => ipcRenderer.invoke(CHANNELS.saveFile, file, saveAs),
+  saveProject: (request, saveAs) => ipcRenderer.invoke(CHANNELS.saveProject, request, saveAs),
   setDirty: (dirty) => ipcRenderer.invoke(CHANNELS.setDirty, dirty),
   onMenuCommand: (listener) => subscribe(CHANNELS.menuCommand, listener),
   listRecent: () => ipcRenderer.invoke(CHANNELS.listRecent),

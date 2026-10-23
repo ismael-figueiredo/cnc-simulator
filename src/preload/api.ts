@@ -4,6 +4,16 @@ export interface OpenedFile {
   name: string
   path: string
   text: string
+  /** Set when a project (.cncsim) was opened: name, path and text above are its program's. */
+  project?: { path: string; text: string; programMissing: boolean }
+}
+
+export interface SaveProjectRequest {
+  /** Project fields except `program`, which the main process writes relative to the project file. */
+  project: Record<string, unknown>
+  /** Current project file, or '' for a new one. */
+  projectPath: string
+  programPath: string
 }
 
 /** A file in File > Open recent and on the start screen. */
@@ -17,7 +27,7 @@ export interface RecentItem {
 }
 
 /** File menu items handled by the window (it owns the program text). */
-export type MenuCommand = 'new' | 'save' | 'saveAs'
+export type MenuCommand = 'new' | 'save' | 'saveAs' | 'saveProject'
 
 export interface CncApi {
   /** Shows the system dialog and returns the chosen program, or null if cancelled. */
@@ -27,6 +37,8 @@ export interface CncApi {
    * Returns the saved file (new name and path), or null if cancelled.
    */
   saveFile: (file: OpenedFile, saveAs: boolean) => Promise<OpenedFile | null>
+  /** Writes the project file (asks where for a new one or with saveAs). Returns its path, or null if cancelled. */
+  saveProject: (request: SaveProjectRequest, saveAs: boolean) => Promise<string | null>
   /** Unsaved changes: closing the window asks first. */
   setDirty: (dirty: boolean) => Promise<void>
   onMenuCommand: (listener: (command: MenuCommand) => void) => () => void
@@ -52,6 +64,7 @@ export const CHANNELS = {
   openFile: 'file:open',
   fileOpened: 'file:opened',
   saveFile: 'file:save',
+  saveProject: 'project:save',
   setDirty: 'file:set-dirty',
   menuCommand: 'menu:command',
   listRecent: 'recent:list',
