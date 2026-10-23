@@ -42,7 +42,8 @@ npm run dist:linux   # Linux AppImage and .deb
 
 ### Release builds
 
-The `Release` GitHub Actions workflow builds the Windows, macOS and Linux installers on every `v*` tag (or by hand from the Actions tab) and attaches them to the run as artifacts.
+- **CI:** every push to `main` and every pull request runs `npm run check`.
+- **Release:** pushing a `v*` tag (`git tag v0.1.0 && git push origin v0.1.0`) builds the Windows, macOS and Linux installers and publishes them on the GitHub Releases page. Running the workflow by hand from the Actions tab only keeps them as run artifacts.
 
 ## Quality checks
 

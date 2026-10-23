@@ -27,7 +27,8 @@ npm run dist:linux   # AppImage e .deb do Linux
 - PowerShell: `Remove-Item Env:ELECTRON_RUN_AS_NODE`
 - Git Bash: `unset ELECTRON_RUN_AS_NODE`
 
-O workflow `Release` do GitHub Actions gera os instaladores de Windows, macOS e Linux a cada tag `v*` (ou à mão, na aba Actions).
+- **CI:** todo push na `main` e todo pull request rodam o `npm run check`.
+- **Release:** enviar uma tag `v*` (`git tag v0.1.0 && git push origin v0.1.0`) gera os instaladores de Windows, macOS e Linux e publica na página Releases do GitHub. Rodando à mão pela aba Actions, eles ficam só como artifacts do run.
 
 ## Qualidade
 
