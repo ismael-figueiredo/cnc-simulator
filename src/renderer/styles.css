@@ -147,3 +147,11 @@ button, select, input { font: inherit; color: inherit; }
 .start-recent li:hover .remove, .start-recent li.missing .remove { visibility: visible; }
 .tag { display: inline-block; margin-left: 6px; padding: 0 6px; border-radius: 3px; background: color-mix(in srgb, var(--accent) 20%, transparent); color: var(--accent); font: 600 10.5px var(--f-ui); text-transform: uppercase; letter-spacing: .06em; vertical-align: middle; }
 @media (max-width: 700px) { .start { grid-template-columns: 1fr; padding: 24px 16px; } }
+
+/* EDIT mode */
+.cnc-editor { flex: 1; min-height: 0; overflow: hidden; background: #05080a; }
+.cnc-editor .cm-editor { height: 100%; }
+.cnc-editor .cm-editor.cm-focused { outline: none; }
+.panel-title .modes { display: flex; gap: 2px; }
+.btn.tiny.on { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.panel-title .dirty { color: var(--accent); }
