@@ -1,0 +1,57 @@
+{
+  "id": "lathe-turning",
+  "name": { "en": "Lathe turning tools (examples)", "pt-BR": "Ferramentas de torneamento (exemplos)", "es": "Herramientas de torneado (ejemplos)" },
+  "units": "mm",
+  "holders": [],
+  "tools": [
+    {
+      "number": 1,
+      "offset": 1,
+      "name": { "en": "External roughing, CNMG 80°", "pt-BR": "Desbaste externo, CNMG 80°", "es": "Desbaste exterior, CNMG 80°" },
+      "type": "turning-insert",
+      "diameter": 1.6,
+      "length": 100,
+      "cornerRadius": 0.8,
+      "tipDirection": 3,
+      "side": "external",
+      "hand": "right",
+      "insert": "C"
+    },
+    {
+      "number": 2,
+      "offset": 2,
+      "name": { "en": "External finishing, DNMG 55°", "pt-BR": "Acabamento externo, DNMG 55°", "es": "Acabado exterior, DNMG 55°" },
+      "type": "turning-insert",
+      "diameter": 0.8,
+      "length": 100,
+      "cornerRadius": 0.4,
+      "tipDirection": 3,
+      "side": "external",
+      "hand": "right",
+      "insert": "D"
+    },
+    {
+      "number": 3,
+      "offset": 3,
+      "name": { "en": "Grooving 3 mm", "pt-BR": "Bedame 3 mm", "es": "Ranurado 3 mm" },
+      "type": "grooving",
+      "diameter": 3,
+      "length": 100,
+      "side": "external",
+      "hand": "right"
+    },
+    {
+      "number": 4,
+      "offset": 4,
+      "name": { "en": "Boring bar Ø16, CCMT 80°", "pt-BR": "Barra de mandrilar Ø16, CCMT 80°", "es": "Barra de mandrinar Ø16, CCMT 80°" },
+      "type": "boring-bar",
+      "diameter": 0.8,
+      "length": 120,
+      "cornerRadius": 0.4,
+      "tipDirection": 2,
+      "side": "internal",
+      "hand": "right",
+      "insert": "C"
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "format": "cnc-simulator-project",
+  "version": 1,
+  "description": {
+    "en": "Stepped shaft · Romi GL 300, Fanuc 0i-TF · facing, roughing passes, finishing with automatic ,C chamfers and ,R radius, grooving; the bar is cut as the tools pass",
+    "pt-BR": "Eixo escalonado · Romi GL 300, Fanuc 0i-TF · faceamento, passes de desbaste, acabamento com chanfro ,C e raio ,R automáticos, canal; a barra é usinada conforme as ferramentas passam",
+    "es": "Eje escalonado · Romi GL 300, Fanuc 0i-TF · refrentado, pasadas de desbaste, acabado con chaflán ,C y radio ,R automáticos, ranura; la barra se mecaniza al paso de las herramientas"
+  },
+  "program": "O1001_EIXO_GL300.nc",
+  "machine": "romi-gl300",
+  "control": "fanuc-0i-tf-system-b",
+  "stock": { "shape": "cylinder", "diameter": 50, "length": 80, "color": "#9aa6b1", "offset": { "Z": 1 } }
+}

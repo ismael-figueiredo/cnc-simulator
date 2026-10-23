@@ -1,4 +1,4 @@
-// Records docs/demo.gif for the README: start screen, then the bundled example running at 100×.
+// Records docs/demo.gif for the README: start screen, then the plate example (O2001) being machined at 20×.
 // Run with `npm run demo` (builds first). Needs Electron and gifenc, no ffmpeg.
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
@@ -35,11 +35,11 @@ void app.whenReady().then(async () => {
   const js = (code) => win.webContents.executeJavaScript(code)
   const frames = []
   await record(win, 1.5, frames)
-  await js(`document.querySelector('.recent-item').click()`)
+  await js(`[...document.querySelectorAll('.recent-item')].find((b) => b.textContent.includes('O2001')).click()`)
   await sleep(1200)
   await js(`{
     const s = document.getElementById('player-speed')
-    Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set.call(s, '100')
+    Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set.call(s, '20')
     s.dispatchEvent(new Event('change', { bubbles: true }))
   }`)
   await sleep(300)
