@@ -24,7 +24,9 @@ import {
   type ToolLibrary
 } from '@core/index'
 import { LANGUAGES, isLanguage } from '@i18n/index'
+import type { MenuCommand } from '../preload/api'
 import { CodeView } from './components/CodeView'
+import { ProgramEditor, type EditorHandle } from './components/ProgramEditor'
 import { Player } from './components/Player'
 import { PositionPanel } from './components/PositionPanel'
 import { StartScreen } from './components/StartScreen'
@@ -128,6 +130,12 @@ export function App() {
   // No program on start: the start screen lists the recent files and the example
   const [program, setProgram] = useState<Program | null>(null)
   const recent = useRecent()
+  // EDIT: the text is in CodeMirror (read it with editor.current.getText()); MEM: read-only run screen
+  const [mode, setMode] = useState<'mem' | 'edit'>('mem')
+  const [dirty, setDirty] = useState(false)
+  /** Bumped on every new or opened program, so the editor starts over with the new text. */
+  const [programKey, setProgramKey] = useState(0)
+  const editor = useRef<EditorHandle>(null)
   const [sim, setSim] = useState<Simulation>(() => run(program, machine, control, cfg))
   const [fontSize, setFontSize] = useState(() => readNumber(FONT_KEY, 11.5))
   const [codeWidth, setCodeWidth] = useState(() => readNumber(WIDTH_KEY, 300))
@@ -175,22 +183,76 @@ export function App() {
     el.addEventListener('pointermove', move)
     el.addEventListener('pointerup', up)
   }
-  function openProgram(p: Program) {
+  /** The program with the text being edited, if any. */
+  function currentProgram(): Program | null {
+    if (!program || mode !== 'edit' || !editor.current) return program
+    return { ...program, text: editor.current.getText() }
+  }
+  /** Asks before throwing away unsaved edits. */
+  function canDiscard(): boolean {
+    return !dirty || !program || window.confirm(t('dialog.unsavedDiscard', { name: program.name }))
+  }
+  function load(p: Program | null, nextMode: 'mem' | 'edit' = 'mem') {
     setProgram(p)
+    setMode(nextMode)
+    setDirty(false)
+    setProgramKey((k) => k + 1)
+  }
+  function openProgram(p: Program) {
+    if (!canDiscard()) return
+    load(p)
     recent.record(p)
     simulateWith(p, machine, control)
   }
+  function newProgram() {
+    if (!canDiscard()) return
+    // Skeleton in the selected control's format: % leader, program number, M30
+    const eob = control?.fileFormat?.eob === 'semicolon' ? ';' : ''
+    const text = ['%', `O0001 (${t('program.newComment')})${eob}`, '', `M30${eob}`, '%', ''].join('\n')
+    const p = { name: 'O0001.nc', path: '', text }
+    load(p, 'edit')
+    simulateWith(p, machine, control)
+  }
+  async function save(saveAs: boolean) {
+    const p = currentProgram()
+    if (!p) return
+    if (window.api) {
+      // The example and new programs have no file yet: always ask where to save
+      const r = await window.api.saveFile(p, saveAs || !p.path || p.path.startsWith('example:'))
+      if (!r) return
+      setProgram(r)
+    } else {
+      // Browser: the file goes to the downloads folder
+      const a = document.createElement('a')
+      a.href = URL.createObjectURL(new Blob([p.text], { type: 'text/plain' }))
+      a.download = p.name
+      a.click()
+      URL.revokeObjectURL(a.href)
+      setProgram(p)
+      recent.record(p)
+    }
+    setDirty(false)
+  }
+  /** MEM: take the edited text and run it, like switching the control from EDIT to MEM. */
+  function runMem() {
+    const p = currentProgram()
+    if (p !== program) setProgram(p)
+    setMode('mem')
+    simulateWith(p, machine, control)
+  }
   function openExample() {
+    if (!canDiscard()) return
     // The example is a Romi GL 250 M program: select that machine and its control with it
     const m = cfg.machines.find((x) => x.id === FIRST_MACHINE) ?? machine
     const c = cfg.controls.find((x) => x.id === m?.defaultControl) ?? control
     if (m) setMachineId(m.id)
     if (c) setControlId(c.id)
-    setProgram(EXAMPLE)
+    load(EXAMPLE)
     simulateWith(EXAMPLE, m, c)
   }
   function showStart() {
-    setProgram(null)
+    if (!canDiscard()) return
+    load(null)
     setSim(run(null, machine, control, cfg))
   }
   function changeMachine(id: string) {
@@ -198,11 +260,11 @@ export function App() {
     const c = cfg.controls.find((x) => x.id === m?.defaultControl) ?? control
     setMachineId(id)
     if (c) setControlId(c.id)
-    simulateWith(program, m, c)
+    simulateWith(currentProgram(), m, c)
   }
   function changeControl(id: string) {
     setControlId(id)
-    simulateWith(program, machine, cfg.controls.find((x) => x.id === id))
+    simulateWith(currentProgram(), machine, cfg.controls.find((x) => x.id === id))
   }
   async function pickProgram() {
     // Electron uses the native dialog; the browser (server mode) falls back to <input type=file>.
@@ -272,6 +334,29 @@ export function App() {
   useEffect(() => window.api?.onFileOpened(onMenuOpen), [])
   const onMenuHome = useEffectEvent(showStart)
   useEffect(() => window.api?.onShowStart(onMenuHome), [])
+  const onMenuCommand = useEffectEvent((command: MenuCommand) => {
+    if (command === 'new') newProgram()
+    else if (program) void save(command === 'saveAs')
+  })
+  useEffect(() => window.api?.onMenuCommand(onMenuCommand), [])
+  // Browser mode has no native menu: the same shortcuts from the keyboard
+  useEffect(() => {
+    if (window.api) return
+    const key = (e: KeyboardEvent) => {
+      if (!(e.ctrlKey || e.metaKey)) return
+      const k = e.key.toLowerCase()
+      if (k === 's') onMenuCommand(e.shiftKey ? 'saveAs' : 'save')
+      else if (k === 'n' && e.altKey) onMenuCommand('new') // Ctrl+N opens a browser window
+      else return
+      e.preventDefault()
+    }
+    window.addEventListener('keydown', key)
+    return () => window.removeEventListener('keydown', key)
+  }, [])
+  // The main process asks before closing the window with unsaved edits
+  useEffect(() => {
+    void window.api?.setDirty(dirty)
+  }, [dirty])
 
   // ---- derived lists ----
   const diagnostics = useMemo(
@@ -355,7 +440,7 @@ export function App() {
           <input ref={fileInput} type="file" hidden onChange={readInput} />
           {program && <button className="btn" onClick={showStart}>{t('action.home')}</button>}
           <button className="btn" onClick={() => void pickProgram()}>{t('action.openProgram')}</button>
-          <button className="btn primary" disabled={!program} onClick={() => simulateWith(program, machine, control)}>{t('action.simulate')}</button>
+          <button className="btn primary" disabled={!program} onClick={runMem}>{t('action.simulate')}</button>
         </div>
       </header>
 
@@ -363,6 +448,7 @@ export function App() {
         <StartScreen
           recent={recent.items}
           onOpenExample={openExample}
+          onNew={newProgram}
           onPick={() => void pickProgram()}
           onOpenRecent={(item) => {
             void recent.open(item).then((f) => {
@@ -375,25 +461,36 @@ export function App() {
         <main className="layout" style={{ '--code-w': `${codeWidth}px` } as CSSProperties}>
           <section className="panel">
             <div className="panel-title">
-              <span className="file">{program.name}</span>
+              <span className="file">
+                {dirty && <span className="dirty" title={t('program.unsaved')}>● </span>}
+                {program.name}
+              </span>
               {program === EXAMPLE && <span className="tag">{t('start.example')}</span>}
               <span className="muted">{t('program.lines', { count: lines.length })}</span>
+              <span className="modes" role="group">
+                <button className={`btn tiny ${mode === 'edit' ? 'on' : ''}`} title={t('mode.editHint')} onClick={() => setMode('edit')}>EDIT</button>
+                <button className={`btn tiny ${mode === 'mem' ? 'on' : ''}`} title={t('mode.memHint')} onClick={runMem}>MEM</button>
+              </span>
               <span className="zoom">
                 <button className="btn tiny" title={t('code.smaller')} aria-label={t('code.smaller')} onClick={() => changeFont(-0.5)}>A−</button>
                 <button className="btn tiny" title={t('code.larger')} aria-label={t('code.larger')} onClick={() => changeFont(0.5)}>A+</button>
               </span>
             </div>
-            <CodeView
-              lines={lines}
-              currentLine={move?.line ?? -1}
-              alarmLine={stoppedBy?.line ?? -1}
-              marks={marks}
-              hits={hits}
-              fontSize={fontSize}
-              state={playing ? 'start' : sim.time > 0 && sim.time < (tl?.total ?? 0) ? 'hold' : 'reset'}
-              onZoom={changeFont}
-              onLineClick={jumpToLine}
-            />
+            {mode === 'edit' ? (
+              <ProgramEditor key={programKey} ref={editor} text={program.text} fontSize={fontSize} onEdit={() => setDirty(true)} />
+            ) : (
+              <CodeView
+                lines={lines}
+                currentLine={move?.line ?? -1}
+                alarmLine={stoppedBy?.line ?? -1}
+                marks={marks}
+                hits={hits}
+                fontSize={fontSize}
+                state={playing ? 'start' : sim.time > 0 && sim.time < (tl?.total ?? 0) ? 'hold' : 'reset'}
+                onZoom={changeFont}
+                onLineClick={jumpToLine}
+              />
+            )}
           </section>
 
           <div className="splitter" role="separator" aria-orientation="vertical" aria-label={t('layout.resize')} title={t('layout.resize')} onPointerDown={startResize} />

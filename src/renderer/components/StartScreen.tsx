@@ -4,13 +4,14 @@ import { useI18n } from '../i18n'
 interface Props {
   recent: RecentItem[]
   onOpenExample: () => void
+  onNew: () => void
   onPick: () => void
   onOpenRecent: (item: RecentItem) => void
   onRemoveRecent: (item: RecentItem) => void
 }
 
 /** Shown when no program is open: actions on the left, recent files (example pinned first) on the right. */
-export function StartScreen({ recent, onOpenExample, onPick, onOpenRecent, onRemoveRecent }: Props) {
+export function StartScreen({ recent, onOpenExample, onNew, onPick, onOpenRecent, onRemoveRecent }: Props) {
   const { t, lang } = useI18n()
   const when = (ms: number) => new Date(ms).toLocaleString(lang, { dateStyle: 'short', timeStyle: 'short' })
 
@@ -19,6 +20,7 @@ export function StartScreen({ recent, onOpenExample, onPick, onOpenRecent, onRem
       <section className="start-actions">
         <h2>{t('start.begin')}</h2>
         <button className="btn primary" onClick={onPick}>{t('action.openProgram')}…</button>
+        <button className="btn" onClick={onNew}>{t('action.newProgram')}</button>
       </section>
 
       <section className="start-recent">

@@ -16,9 +16,20 @@ export interface RecentItem {
   missing?: boolean
 }
 
+/** File menu items handled by the window (it owns the program text). */
+export type MenuCommand = 'new' | 'save' | 'saveAs'
+
 export interface CncApi {
   /** Shows the system dialog and returns the chosen program, or null if cancelled. */
   openFile: () => Promise<OpenedFile | null>
+  /**
+   * Writes the program. Without a usable path, or with saveAs, shows the save dialog first.
+   * Returns the saved file (new name and path), or null if cancelled.
+   */
+  saveFile: (file: OpenedFile, saveAs: boolean) => Promise<OpenedFile | null>
+  /** Unsaved changes: closing the window asks first. */
+  setDirty: (dirty: boolean) => Promise<void>
+  onMenuCommand: (listener: (command: MenuCommand) => void) => () => void
   /** Recently opened files, newest first. */
   listRecent: () => Promise<RecentItem[]>
   /** Reads a recent file again from disk; null if it no longer exists. */
@@ -40,6 +51,9 @@ export interface CncApi {
 export const CHANNELS = {
   openFile: 'file:open',
   fileOpened: 'file:opened',
+  saveFile: 'file:save',
+  setDirty: 'file:set-dirty',
+  menuCommand: 'menu:command',
   listRecent: 'recent:list',
   openRecent: 'recent:open',
   removeRecent: 'recent:remove',

@@ -1,9 +1,9 @@
 import { existsSync } from 'node:fs'
-import { readFile } from 'node:fs/promises'
-import { basename, join } from 'node:path'
+import { readFile, writeFile } from 'node:fs/promises'
+import { basename, dirname, isAbsolute, join } from 'node:path'
 import { app, BrowserWindow, dialog, ipcMain, Menu, shell, type MenuItemConstructorOptions } from 'electron'
 import { DEFAULT_LANGUAGE, LANGUAGES, isLanguage, translate, type Language, type MessageKey, type Params } from '../i18n'
-import { CHANNELS, type OpenedFile } from '../preload/api'
+import { CHANNELS, type MenuCommand, type OpenedFile } from '../preload/api'
 import appIcon from '../../build/icon.png?asset'
 import { addRecent, listRecent, loadRecent, removeRecent } from './recent'
 import { ISSUES_URL, reportProblem } from './report'
@@ -14,6 +14,8 @@ const isMac = process.platform === 'darwin'
 
 // The renderer owns the language choice and reports it on start and on every change.
 let language: Language = DEFAULT_LANGUAGE
+/** The window reports unsaved program changes, so closing it can ask first. */
+let dirty = false
 
 const t = (key: MessageKey, params?: Params) => translate(language, key, params)
 
@@ -24,6 +26,7 @@ function buildMenu(): void {
     {
       label: t('menu.file'),
       submenu: [
+        { label: t('menu.newProgram'), accelerator: 'CmdOrCtrl+N', click: (_item, win) => sendCommand(win, 'new') },
         {
           label: t('menu.openProgram'),
           accelerator: 'CmdOrCtrl+O',
@@ -33,6 +36,10 @@ function buildMenu(): void {
           label: t('menu.openRecent'),
           submenu: recentMenu()
         },
+        { type: 'separator' },
+        { label: t('menu.save'), accelerator: 'CmdOrCtrl+S', click: (_item, win) => sendCommand(win, 'save') },
+        { label: t('menu.saveAs'), accelerator: 'CmdOrCtrl+Shift+S', click: (_item, win) => sendCommand(win, 'saveAs') },
+        { type: 'separator' },
         {
           label: t('menu.home'),
           accelerator: 'CmdOrCtrl+Shift+H',
@@ -96,6 +103,32 @@ function buildMenu(): void {
     }
   ]
   Menu.setApplicationMenu(Menu.buildFromTemplate(template))
+}
+
+function sendCommand(win: Electron.BaseWindow | undefined, command: MenuCommand): void {
+  if (win instanceof BrowserWindow) win.webContents.send(CHANNELS.menuCommand, command)
+}
+
+async function saveProgram(win: BrowserWindow | undefined, file: OpenedFile, saveAs: boolean): Promise<OpenedFile | null> {
+  let path = file.path
+  if (saveAs || !isAbsolute(path) || !existsSync(dirname(path))) {
+    const opts = {
+      title: t('dialog.saveProgram'),
+      defaultPath: isAbsolute(path) ? path : join(app.getPath('documents'), file.name),
+      filters: [
+        { name: t('dialog.filterCnc'), extensions: PROGRAM_EXTENSIONS },
+        { name: t('dialog.filterAll'), extensions: ['*'] }
+      ]
+    }
+    const r = win ? await dialog.showSaveDialog(win, opts) : await dialog.showSaveDialog(opts)
+    if (r.canceled || !r.filePath) return null
+    path = r.filePath
+  }
+  // Same encoding as reading, so accents in old comments survive a round trip
+  await writeFile(path, file.text, 'latin1')
+  addRecent(path)
+  recentChanged()
+  return { name: basename(path), path, text: file.text }
 }
 
 function recentMenu(): MenuItemConstructorOptions[] {
@@ -190,6 +223,18 @@ function createWindow(): BrowserWindow {
     }
   })
   win.once('ready-to-show', () => win.show())
+  win.on('close', (e) => {
+    if (!dirty) return
+    const choice = dialog.showMessageBoxSync(win, {
+      type: 'warning',
+      message: t('dialog.unsavedClose'),
+      buttons: [t('dialog.discard'), t('common.cancel')],
+      defaultId: 1,
+      cancelId: 1
+    })
+    if (choice === 0) dirty = false
+    else e.preventDefault()
+  })
 
   // electron-vite sets ELECTRON_RENDERER_URL in dev mode (Vite server with hot reload).
   const devUrl = process.env['ELECTRON_RENDERER_URL']
@@ -205,6 +250,12 @@ ipcMain.handle(CHANNELS.setLanguage, (_e, lang: unknown) => {
 })
 
 ipcMain.handle(CHANNELS.openFile, (e) => chooseProgram(BrowserWindow.fromWebContents(e.sender) ?? undefined))
+ipcMain.handle(CHANNELS.saveFile, (e, file: OpenedFile, saveAs: unknown) =>
+  saveProgram(BrowserWindow.fromWebContents(e.sender) ?? undefined, file, saveAs === true)
+)
+ipcMain.handle(CHANNELS.setDirty, (_e, value: unknown) => {
+  dirty = value === true
+})
 ipcMain.handle(CHANNELS.listRecent, () => listRecent())
 ipcMain.handle(CHANNELS.openRecent, (_e, path: unknown) => (typeof path === 'string' ? readProgram(path) : null))
 ipcMain.handle(CHANNELS.removeRecent, (_e, path: unknown) => {
