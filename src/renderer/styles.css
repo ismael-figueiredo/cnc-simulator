@@ -93,9 +93,12 @@ button, select, input { font: inherit; color: inherit; }
 .btn.play { min-width: 104px; }
 
 /* position */
-.dro { display: grid; grid-template-columns: 1fr; gap: 1px; font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
-.dro .axis { display: flex; justify-content: space-between; font-size: 18px; font-weight: 600; }
-.dro .k { color: var(--muted); }
+.dro { display: grid; grid-template-columns: auto 1fr auto; align-items: baseline; gap: 1px 10px; font-family: 'Share Tech Mono', var(--f-mono); font-variant-numeric: tabular-nums; }
+.dro .axis { display: contents; }
+.dro .h { font: 600 10.5px var(--f-ui); text-transform: uppercase; letter-spacing: .08em; color: var(--muted); text-align: right; }
+.dro .k { color: var(--muted); font-size: 18px; font-weight: 600; }
+.dro .v { font-size: 20px; text-align: right; }
+.dro .m { font-size: 13px; color: var(--muted); text-align: right; }
 .facts { display: grid; grid-template-columns: auto 1fr; gap: 2px 10px; margin: 4px 0 0; font: 12.5px var(--f-mono); }
 .facts dt { color: var(--muted); }
 .facts dd { margin: 0; text-align: right; }
@@ -205,3 +208,11 @@ button, select, input { font: inherit; color: inherit; }
 .custom-color input { width: 34px; height: 30px; padding: 0 2px; }
 .stock-summary { display: flex; align-items: center; gap: 6px; font-size: 13px; }
 .stock-summary i { width: 14px; height: 14px; border-radius: 50%; border: 1px solid var(--line); flex: none; }
+
+/* work offsets */
+.offsets-editor { width: min(640px, 100%); }
+.offsets-body { padding: 12px 14px; overflow: auto; display: flex; flex-direction: column; gap: 10px; }
+.table.offsets th { font-family: 'Share Tech Mono', var(--f-mono); }
+.table.offsets input { width: 100%; text-align: right; font-family: 'Share Tech Mono', var(--f-mono); }
+.list.mono { font: 12.5px 'Share Tech Mono', var(--f-mono); }
+.zero-label { color: #f2c418; font: 11px 'Share Tech Mono', monospace; white-space: nowrap; pointer-events: none; }

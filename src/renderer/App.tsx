@@ -23,7 +23,8 @@ import {
   type Machine,
   type Severity,
   type Stock,
-  type ToolLibrary
+  type ToolLibrary,
+  type WorkOffsets
 } from '@core/index'
 import { LANGUAGES, isLanguage } from '@i18n/index'
 import type { MenuCommand, OpenedFile } from '../preload/api'
@@ -34,6 +35,7 @@ import { PositionPanel } from './components/PositionPanel'
 import { StartScreen } from './components/StartScreen'
 import { StockEditor } from './components/StockEditor'
 import { ToolEditor } from './components/ToolEditor'
+import { WorkOffsetsEditor } from './components/WorkOffsetsEditor'
 import { PATH_COLORS, Viewport3D } from './components/Viewport3D'
 import { useI18n } from './i18n'
 import { useLibraries } from './libraries'
@@ -102,7 +104,7 @@ interface Simulation {
 function run(program: Program | null, machine: Machine | undefined, control: Control | undefined, cfg: BundledConfigs, setup: Setup): Simulation {
   if (!program || !machine || !control) return { timeline: null, time: 0, playing: false }
   const alarms = cfg.alarmCatalogs.find((a) => a.id === control.alarms) ?? null
-  const timeline = buildTimeline(simulate({ text: program.text, machine, control, tools: setup.tools, alarms }))
+  const timeline = buildTimeline(simulate({ text: program.text, machine, control, tools: setup.tools, alarms, workOffsets: setup.workOffsets }))
   return { timeline, time: timeline.total, playing: false }
 }
 
@@ -166,6 +168,7 @@ export function App() {
   const libraries = useLibraries()
   const [editingTools, setEditingTools] = useState(false)
   const [editingStock, setEditingStock] = useState(false)
+  const [editingOffsets, setEditingOffsets] = useState(false)
 
   const lines = useMemo(() => (program?.text ?? '').replace(/\r/g, '').split('\n'), [program])
   const tl = sim.timeline
@@ -175,6 +178,7 @@ export function App() {
   const moves = result?.moves ?? []
   const move = moves[index]
   const position = move ? positionAlong(moves[index - 1], move, fraction) : undefined
+  const machinePosition = move ? positionAlong(moves[index - 1], move, fraction, (m) => m.machinePosition) : undefined
 
   // ---- actions (simulation is recomputed in event handlers, not in effects) ----
   function simulateWith(p: Program | null, m: Machine | undefined, c: Control | undefined, s: Setup = setup) {
@@ -349,6 +353,12 @@ export function App() {
     // The stock is only drawn for now (no material removal), so the simulation stays as is
     setSetup({ ...setup, stock })
     setEditingStock(false)
+  }
+  function applyOffsets(workOffsets: WorkOffsets) {
+    const s = { ...setup, workOffsets }
+    setSetup(s)
+    setEditingOffsets(false)
+    simulateWith(currentProgram(), machine, control, s)
   }
   function applyTools(lib: ToolLibrary) {
     const s = { ...setup, tools: lib }
@@ -606,6 +616,7 @@ export function App() {
                 <Viewport3D
                   machine={machine}
                   stock={setup.stock}
+                  workOffsets={setup.workOffsets}
                   result={result}
                   index={index}
                   toolTip={move ? pointAlong(move, fraction) : null}
@@ -653,7 +664,7 @@ export function App() {
             </div>
             <div className="block">
               <h2>{t('position.title')}</h2>
-              <PositionPanel move={move} position={position} index={index} total={result?.moves.length ?? 0} axes={shownAxes} />
+              <PositionPanel move={move} position={position} machinePosition={machinePosition} index={index} total={result?.moves.length ?? 0} axes={shownAxes} />
               {result && (
                 <p className="muted">
                   {t('sim.summary', { moves: result.moves.length, time: formatTime(result.totalTimeS) })} ·{' '}
@@ -751,6 +762,26 @@ export function App() {
             </div>
             <div className="block">
               <h2>
+                {t('offsets.title')}
+                <button className="btn tiny head-action" onClick={() => setEditingOffsets(true)}>{t('tools.edit')}</button>
+              </h2>
+              {Object.keys(setup.workOffsets).length ? (
+                <ul className="list mono">
+                  {Object.entries(setup.workOffsets).map(([name, o]) => (
+                    <li key={name}>
+                      <b>{name}</b>{' '}
+                      {Object.entries(o)
+                        .map(([ax, v]) => `${ax}${v}`)
+                        .join(' ')}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="muted">{t('offsets.none')}</p>
+              )}
+            </div>
+            <div className="block">
+              <h2>
                 {t('tools.title')}
                 <button className="btn tiny head-action" onClick={() => setEditingTools(true)}>{t('tools.edit')}</button>
               </h2>
@@ -775,6 +806,15 @@ export function App() {
           workOffsets={Object.keys(setup.workOffsets)}
           onApply={applyStock}
           onClose={() => setEditingStock(false)}
+        />
+      )}
+      {editingOffsets && machine && (
+        <WorkOffsetsEditor
+          offsets={setup.workOffsets}
+          axes={machine.axes.filter((a) => a.type === 'linear' && ['X', 'Y', 'Z'].includes(a.name)).map((a) => a.name)}
+          extended={machineKind === 'mill'}
+          onApply={applyOffsets}
+          onClose={() => setEditingOffsets(false)}
         />
       )}
       {editingTools && (

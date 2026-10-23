@@ -59,10 +59,11 @@ export function pointAlong(m: Move, f: number): Vec3 {
 }
 
 /** Program position between the previous move's end and this move's end. */
-export function positionAlong(prev: Move | undefined, m: Move, f: number): ProgramPosition {
-  if (!prev) return m.position
-  const p = prev.position
-  const q = m.position
+/** Position a fraction f along the move: absolute by default, or machine coordinates with pick. */
+export function positionAlong(prev: Move | undefined, m: Move, f: number, pick: (m: Move) => ProgramPosition = (x) => x.position): ProgramPosition {
+  if (!prev) return pick(m)
+  const p = pick(prev)
+  const q = pick(m)
   const mix = (a: number, b: number) => a + (b - a) * f
   return { X: mix(p.X, q.X), Y: mix(p.Y, q.Y), Z: mix(p.Z, q.Z), A: mix(p.A, q.A), B: mix(p.B, q.B), C: mix(p.C, q.C) }
 }

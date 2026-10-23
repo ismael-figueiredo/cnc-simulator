@@ -4,6 +4,8 @@ import { useI18n } from '../i18n'
 interface Props {
   move: Move | undefined
   position: ProgramPosition | undefined
+  /** Machine coordinates at the same point (G53). */
+  machinePosition: ProgramPosition | undefined
   index: number
   total: number
   /** Axes to show, from the machine definition. */
@@ -12,13 +14,14 @@ interface Props {
 
 const fmt = (v: number) => (Math.abs(v) < 5e-7 ? 0 : v).toFixed(3)
 
-export function PositionPanel({ move, position, index, total, axes }: Props) {
+export function PositionPanel({ move, position, machinePosition, index, total, axes }: Props) {
   const { t } = useI18n()
   if (!move || !position) return <p className="muted">{t('position.empty')}</p>
   const s = move.state
   const motion = move.kind === 'rapid' ? 'G00' : `G0${s.motion}`
   const chips: [string, boolean][] = [
     [motion, true],
+    [s.workOffset, true],
     [s.absolute ? 'G90' : 'G91', false],
     [s.feedPerMinute ? 'G94' : 'G95', false],
     [t('chip.polar'), s.polar],
@@ -34,16 +37,28 @@ export function PositionPanel({ move, position, index, total, axes }: Props) {
       : t('position.stopped')
   return (
     <>
+      {/* Like the control's POSITION (ALL) screen: absolute in the work offset, and machine */}
       <div className="dro">
-        {axes.map((ax) => (
-          <div key={ax} className="axis">
-            <span className="k">{ax}</span>
-            <span className="v">
-              {fmt(position[ax as keyof ProgramPosition])}
-              {ax === 'C' && !s.polar ? '°' : ''}
-            </span>
-          </div>
-        ))}
+        <span />
+        <span className="h">{t('position.absolute')}</span>
+        <span className="h">{t('position.machine')}</span>
+        {axes.map((ax) => {
+          const k = ax as keyof ProgramPosition
+          const unit = ax === 'C' && !s.polar ? '°' : ''
+          return (
+            <div key={ax} className="axis">
+              <span className="k">{ax}</span>
+              <span className="v">
+                {fmt(position[k])}
+                {unit}
+              </span>
+              <span className="m">
+                {machinePosition ? fmt(machinePosition[k]) : '—'}
+                {unit}
+              </span>
+            </div>
+          )
+        })}
       </div>
       <dl className="facts">
         <dt>{t('position.block')}</dt>

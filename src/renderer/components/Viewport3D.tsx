@@ -1,12 +1,14 @@
 import { useMemo } from 'react'
 import { Canvas } from '@react-three/fiber'
-import { GizmoHelper, GizmoViewport, Grid, OrbitControls } from '@react-three/drei'
-import type { Machine, Move, SimulationResult, Stock as StockData, Vec3 } from '@core/index'
+import { GizmoHelper, GizmoViewport, Grid, Html, OrbitControls } from '@react-three/drei'
+import { workShift, type Machine, type Move, type SimulationResult, type Stock as StockData, type Vec3, type WorkOffsets } from '@core/index'
 
 interface Props {
   machine: Machine
   /** Raw material from the project (or the machine's default), null for none. */
   stock: StockData | null
+  /** Work offset table: the stock sits on its offset and each set offset gets a marker. */
+  workOffsets: WorkOffsets
   result: SimulationResult | null
   /** Move being executed; everything up to it is drawn as done. */
   index: number
@@ -71,11 +73,28 @@ function PathLayer({ layer, color, done, ghostOpacity }: { layer: Layer; color: 
   )
 }
 
-function Stock({ stock: s, faded }: { stock: StockData; faded: boolean }) {
+/** Scene position of a work offset's zero (the drawing frame is G54). Lathe: on the spindle axis. */
+function zeroOf(offsets: WorkOffsets, name: string, lathe: boolean): Vec3 {
+  const s = workShift(offsets, name)
+  return lathe ? [0, 0, s.Z] : [s.X, s.Y, s.Z]
+}
+
+function WorkZero({ at, name, size }: { at: Vec3; name: string; size: number }) {
+  return (
+    <group position={at}>
+      <axesHelper args={[size]} />
+      <Html position={[size * 0.15, size * 0.15, 0]} className="zero-label" zIndexRange={[10, 0]}>
+        {name}
+      </Html>
+    </group>
+  )
+}
+
+function Stock({ stock: s, faded, zero }: { stock: StockData; faded: boolean; zero: Vec3 }) {
   const material = (
     <meshStandardMaterial color={s.color ?? COLORS.stock} metalness={0.5} roughness={0.4} transparent={faded} opacity={faded ? 0.22 : 1} depthWrite={!faded} />
   )
-  const o: Vec3 = [s.offset?.X ?? 0, s.offset?.Y ?? 0, s.offset?.Z ?? 0]
+  const o: Vec3 = [zero[0] + (s.offset?.X ?? 0), zero[1] + (s.offset?.Y ?? 0), zero[2] + (s.offset?.Z ?? 0)]
   if (s.shape === 'cylinder') {
     const r = (s.diameter ?? 50) / 2
     const len = s.length ?? 30
@@ -98,7 +117,7 @@ function Stock({ stock: s, faded }: { stock: StockData; faded: boolean }) {
   )
 }
 
-export function Viewport3D({ machine, stock, result, index, toolTip, toolRadius, showRapids, showStock }: Props) {
+export function Viewport3D({ machine, stock, workOffsets, result, index, toolTip, toolRadius, showRapids, showStock }: Props) {
   const lathe = isLathe(machine)
   const size = lathe ? (stock?.diameter ?? 60) : Math.max(stock?.x ?? 100, stock?.y ?? 80)
   const dist = size * 1.6
@@ -122,7 +141,12 @@ export function Viewport3D({ machine, stock, result, index, toolTip, toolRadius,
       <directionalLight position={[-150, -60, -120]} intensity={0.35} />
       {/* Machine coordinates. Lathe: Z = spindle axis (scene Z). Mill: machine Z is up (scene Y). */}
       <group rotation={lathe ? [0, 0, 0] : [-Math.PI / 2, 0, 0]}>
-        {showStock && stock && <Stock stock={stock} faded={!!result?.moves.length} />}
+        {showStock && stock && <Stock stock={stock} faded={!!result?.moves.length} zero={zeroOf(workOffsets, stock.workOffset ?? 'G54', lathe)} />}
+        {Object.keys(workOffsets)
+          .filter((n) => n !== 'G54')
+          .map((n) => (
+            <WorkZero key={n} name={n} at={zeroOf(workOffsets, n, lathe)} size={size * 0.25} />
+          ))}
         <PathLayer layer={layers.feed} color={COLORS.feed} done={doneOf(layers.feed)} ghostOpacity={0.2} />
         <PathLayer layer={layers.center} color={COLORS.center} done={doneOf(layers.center)} ghostOpacity={0.2} />
         {showRapids && <PathLayer layer={layers.rapid} color={COLORS.rapid} done={doneOf(layers.rapid)} ghostOpacity={0.12} />}
