@@ -39,6 +39,10 @@ export interface CncApi {
   saveFile: (file: OpenedFile, saveAs: boolean) => Promise<OpenedFile | null>
   /** Writes the project file (asks where for a new one or with saveAs). Returns its path, or null if cancelled. */
   saveProject: (request: SaveProjectRequest, saveAs: boolean) => Promise<string | null>
+  /** The user's tool libraries, as JSON texts (validated by the caller). */
+  listLibraries: () => Promise<string[]>
+  saveLibrary: (id: string, json: string) => Promise<void>
+  deleteLibrary: (id: string) => Promise<void>
   /** Unsaved changes: closing the window asks first. */
   setDirty: (dirty: boolean) => Promise<void>
   onMenuCommand: (listener: (command: MenuCommand) => void) => () => void
@@ -65,6 +69,9 @@ export const CHANNELS = {
   fileOpened: 'file:opened',
   saveFile: 'file:save',
   saveProject: 'project:save',
+  listLibraries: 'tools:list',
+  saveLibrary: 'tools:save',
+  deleteLibrary: 'tools:delete',
   setDirty: 'file:set-dirty',
   menuCommand: 'menu:command',
   listRecent: 'recent:list',

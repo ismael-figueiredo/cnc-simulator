@@ -5,6 +5,7 @@ import { app, BrowserWindow, dialog, ipcMain, Menu, shell, type MenuItemConstruc
 import { DEFAULT_LANGUAGE, LANGUAGES, isLanguage, translate, type Language, type MessageKey, type Params } from '../i18n'
 import { CHANNELS, type MenuCommand, type OpenedFile, type SaveProjectRequest } from '../preload/api'
 import appIcon from '../../build/icon.png?asset'
+import { deleteLibrary, listLibraries, saveLibrary } from './libraries'
 import { addRecent, listRecent, loadRecent, removeRecent } from './recent'
 import { ISSUES_URL, reportProblem } from './report'
 import { checkForUpdates, setupUpdates } from './updater'
@@ -296,6 +297,13 @@ ipcMain.handle(CHANNELS.saveFile, (e, file: OpenedFile, saveAs: unknown) =>
 ipcMain.handle(CHANNELS.saveProject, (e, req: SaveProjectRequest, saveAs: unknown) =>
   saveProject(BrowserWindow.fromWebContents(e.sender) ?? undefined, req, saveAs === true)
 )
+ipcMain.handle(CHANNELS.listLibraries, () => listLibraries())
+ipcMain.handle(CHANNELS.saveLibrary, (_e, id: unknown, json: unknown) => {
+  if (typeof id === 'string' && typeof json === 'string') return saveLibrary(id, json)
+})
+ipcMain.handle(CHANNELS.deleteLibrary, (_e, id: unknown) => {
+  if (typeof id === 'string') return deleteLibrary(id)
+})
 ipcMain.handle(CHANNELS.setDirty, (_e, value: unknown) => {
   dirty = value === true
 })
