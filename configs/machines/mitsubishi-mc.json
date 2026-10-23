@@ -49,6 +49,7 @@
     "Z": 250
   },
   "defaultControl": "mitsubishi-m80-mc",
+  "defaultTools": "machining-center",
   "notes": {
     "en": "Generic machine for the Mitsubishi M800/M80 control: replace axes, travels and speeds with the real machine data. The control files assume decimal point type I (#1078 Decpt2 = 0: X1 = 0.001 mm).",
     "pt-BR": "Máquina genérica para o comando Mitsubishi M800/M80: troque eixos, cursos e rotações pelos dados da máquina real. Os comandos assumem ponto decimal tipo I (#1078 Decpt2 = 0: X1 = 0,001 mm).",

@@ -49,6 +49,7 @@
     "Z": 250
   },
   "defaultControl": "fanuc-0i-mf-romi-d",
+  "defaultTools": "machining-center",
   "notes": {
     "en": "Manual PA09403B — Fanuc 0i-MF Plus. Rapid 30 m/min is from the manual. Travels, maximum spindle speed and magazine size are reference values not given in the programming manual: check them on the machine plate. The optional 4th axis (A) is not included.",
     "pt-BR": "Manual PA09403B — Fanuc 0i-MF Plus. O rápido de 30 m/min está no manual. Cursos, rotação máxima e tamanho do magazine são valores de referência que o manual de programação não traz: conferir na placa da máquina. O 4º eixo (A), opcional, não está incluído.",

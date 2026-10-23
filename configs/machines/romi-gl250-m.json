@@ -16,5 +16,6 @@
   "turret": { "positions": 12, "type": "BMT" },
   "toolChangePosition": { "X": 300, "Z": 200 },
   "defaultControl": "fanuc-0i-tf-system-b",
+  "defaultTools": "sample-library",
   "defaultStock": { "shape": "cylinder", "diameter": 67.37, "length": 30 }
 }

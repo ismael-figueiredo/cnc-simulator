@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { parse, validate, type LoadResult } from './load'
-import { AxisNameSchema, StockShapeSchema, ToolLibrarySchema } from './schema'
+import { AxisNameSchema, LocalizedTextSchema, StockShapeSchema, ToolLibrarySchema } from './schema'
 
 // A project (.cncsim) keeps everything a job needs besides the program: machine, control,
 // tools, stock and work offsets. The program stays a separate file next to it.
@@ -25,6 +25,8 @@ export const PROJECT_FORMAT = 'cnc-simulator-project'
 export const ProjectSchema = z.object({
   format: z.literal(PROJECT_FORMAT),
   version: z.literal(1),
+  /** What the job is, shown on the start screen for the bundled examples. */
+  description: LocalizedTextSchema.optional(),
   /** Program file, relative to the project file. */
   program: z.string(),
   /** Browser mode only: the program text itself, since there are no file paths to follow. */

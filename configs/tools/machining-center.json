@@ -1,0 +1,109 @@
+{
+  "id": "machining-center",
+  "name": { "en": "Machining center BT40 (examples)", "pt-BR": "Centro de usinagem BT40 (exemplos)", "es": "Centro de mecanizado BT40 (ejemplos)" },
+  "units": "mm",
+  "holders": [
+    {
+      "id": "bt40-shell-mill",
+      "name": { "en": "BT40 shell mill arbor Ø22", "pt-BR": "Cone BT40 porta-cabeçote Ø22", "es": "Cono BT40 portafresas Ø22" },
+      "standard": "BT40",
+      "profile": [[31.75, 0], [31.75, 27], [24, 27], [24, 60]]
+    },
+    {
+      "id": "bt40-weldon-12",
+      "name": { "en": "BT40 Weldon holder Ø12", "pt-BR": "Cone BT40 Weldon Ø12", "es": "Cono BT40 Weldon Ø12" },
+      "standard": "BT40",
+      "profile": [[31.75, 0], [31.75, 27], [22, 27], [22, 80]]
+    },
+    {
+      "id": "bt40-er32",
+      "name": { "en": "BT40 taper with ER32 collet", "pt-BR": "Cone BT40 com pinça ER32", "es": "Cono BT40 con pinza ER32" },
+      "standard": "BT40",
+      "profile": [[31.75, 0], [31.75, 27], [25, 27], [25, 60], [20, 60], [20, 75]]
+    },
+    {
+      "id": "bt40-er16-slim",
+      "name": { "en": "BT40 slim ER16 extension", "pt-BR": "Cone BT40 com extensão fina ER16", "es": "Cono BT40 con extensión fina ER16" },
+      "standard": "BT40",
+      "profile": [[31.75, 0], [31.75, 27], [16, 27], [16, 70], [11, 70], [11, 100]]
+    }
+  ],
+  "tools": [
+    {
+      "number": 1,
+      "offset": 1,
+      "name": { "en": "Ø50 face mill", "pt-BR": "Cabeçote fresador Ø50", "es": "Planeadora Ø50" },
+      "type": "flat-endmill",
+      "diameter": 50,
+      "length": 45,
+      "fluteLength": 6,
+      "flutes": 5,
+      "holder": "bt40-shell-mill"
+    },
+    {
+      "number": 2,
+      "offset": 2,
+      "name": { "en": "Ø12 endmill (roughing and contour)", "pt-BR": "Fresa de topo Ø12 (desbaste e contorno)", "es": "Fresa plana Ø12 (desbaste y contorno)" },
+      "type": "flat-endmill",
+      "diameter": 12,
+      "length": 45,
+      "fluteLength": 26,
+      "flutes": 3,
+      "holder": "bt40-weldon-12"
+    },
+    {
+      "number": 3,
+      "offset": 3,
+      "name": { "en": "Ø10 spot drill 90°", "pt-BR": "Broca de centro Ø10 90°", "es": "Broca de punto Ø10 90°" },
+      "type": "chamfer-mill",
+      "diameter": 10,
+      "length": 40,
+      "fluteLength": 8,
+      "flutes": 2,
+      "holder": "bt40-er32"
+    },
+    {
+      "number": 4,
+      "offset": 4,
+      "name": { "en": "Ø8.5 drill (M10 tap drill)", "pt-BR": "Broca Ø8,5 (furo para M10)", "es": "Broca Ø8,5 (para roscar M10)" },
+      "type": "drill",
+      "diameter": 8.5,
+      "length": 75,
+      "fluteLength": 55,
+      "flutes": 2,
+      "holder": "bt40-er32"
+    },
+    {
+      "number": 5,
+      "offset": 5,
+      "name": { "en": "M10×1.5 tap", "pt-BR": "Macho M10×1,5", "es": "Macho M10×1,5" },
+      "type": "tap",
+      "diameter": 10,
+      "length": 70,
+      "fluteLength": 20,
+      "holder": "bt40-er32"
+    },
+    {
+      "number": 6,
+      "offset": 6,
+      "name": { "en": "Ø6 ball endmill (engraving)", "pt-BR": "Fresa esférica Ø6 (gravação)", "es": "Fresa esférica Ø6 (grabado)" },
+      "type": "ball-endmill",
+      "diameter": 6,
+      "length": 40,
+      "fluteLength": 12,
+      "flutes": 2,
+      "holder": "bt40-er16-slim"
+    },
+    {
+      "number": 7,
+      "offset": 7,
+      "name": { "en": "Ø8 endmill, short (deep pocket)", "pt-BR": "Fresa de topo Ø8 curta (bolsão fundo)", "es": "Fresa plana Ø8 corta (cajera profunda)" },
+      "type": "flat-endmill",
+      "diameter": 8,
+      "length": 22,
+      "fluteLength": 16,
+      "flutes": 3,
+      "holder": "bt40-er32"
+    }
+  ]
+}

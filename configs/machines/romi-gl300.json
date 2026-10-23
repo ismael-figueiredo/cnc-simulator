@@ -12,6 +12,7 @@
   "turret": { "positions": 12, "type": "VDI" },
   "toolChangePosition": { "X": 300, "Z": 200 },
   "defaultControl": "fanuc-0i-tf-system-b",
+  "defaultTools": "sample-library",
   "notes": {
     "en": "Same machine line and control as the GL 250 M (Romi manual GL 250/300/350/450 T/M/Y, version T): no C axis and no live tool, so G12.1, C words and S2= raise alarms. Travels, maximum speed and turret type follow the GL line pattern: check them on the machine plate.",
     "pt-BR": "Mesma linha e mesmo comando da GL 250 M (manual Romi GL 250/300/350/450 T/M/Y, versão T): sem eixo C e sem ferramenta acionada, então G12.1, palavras C e S2= dão alarme. Cursos, rotação máxima e tipo de torre seguem o padrão da linha GL: conferir na placa da máquina.",

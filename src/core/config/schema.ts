@@ -55,6 +55,8 @@ export const MachineSchema = z.object({
   /** Where G53 X0 Z0 (machine zero) sits in part coordinates, to draw tool changes. */
   toolChangePosition: z.record(z.string(), z.number()),
   defaultControl: z.string(),
+  /** Tool library (configs/tools id) used when a program is opened without a project. */
+  defaultTools: z.string().optional(),
   /** Remarks for whoever maintains the file, e.g. data still to be checked on the machine plate. */
   notes: LocalizedTextSchema.optional(),
   defaultStock: StockShapeSchema.optional()

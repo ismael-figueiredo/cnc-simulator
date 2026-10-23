@@ -12,5 +12,6 @@
   "turret": { "positions": 24, "type": "changer" },
   "toolChangePosition": { "X": 0, "Y": 0, "Z": 0 },
   "defaultControl": "fanuc-0i-mf",
+  "defaultTools": "machining-center",
   "defaultStock": { "shape": "block", "x": 100, "y": 80, "z": 30 }
 }
