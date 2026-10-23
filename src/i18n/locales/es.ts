@@ -243,6 +243,9 @@ export const es: Record<MessageKey, string> = {
   'update.devOnly': 'Las actualizaciones solo funcionan en la app instalada.',
   'update.failed': 'No se pudo buscar actualizaciones.',
 
+  'diag.overtravel': 'Sobrerrecorrido: el {axis} de máquina llegaría a {value} (recorrido {min} … {max}). El corrector de herramienta aún no se considera.',
+  'diag.work-offset-not-set': '{name} no está en la tabla de ceros del proyecto: se dibuja como si fuera igual a G54.',
+  'diag.work-offset-set': 'G10 escribió {name} = {values}.',
   'diag.macro-alarm': 'Alarma #3000={num} {comment}',
   'diag.syntax-error': 'No se pudo leer el bloque: {detail}',
   'diag.goto-target-missing': 'GOTO {n}: el bloque N{n} no existe.',

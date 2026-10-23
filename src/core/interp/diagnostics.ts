@@ -54,6 +54,8 @@ export const DIAGNOSTIC_CODES = [
   'arc-plane-axis',
   'arc-negative-radius',
   'offset-number-too-large',
+  'overtravel',
+  'work-offset-not-set',
   'peck-q-missing',
   'cycle-pq-missing',
   'cycle-sequence-missing',
@@ -105,7 +107,8 @@ export const DIAGNOSTIC_CODES = [
   'main-ended-without-m30',
   'turning-comp-not-drawn',
   'tool-radius-from-comment',
-  'macro-message'
+  'macro-message',
+  'work-offset-set'
 ] as const
 
 export type DiagnosticCode = (typeof DIAGNOSTIC_CODES)[number]

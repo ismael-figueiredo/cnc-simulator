@@ -2,6 +2,7 @@
 // ("rapid", "polar-on", "brake-on"…); nothing here is specific to one brand. Diagnostics go through
 // the control's alarm catalog: a mapped check becomes the machine's alarm and stops the program at
 // that block, as on the machine. Ported from docs/legacy/Simulador_Fanuc.html.
+import type { WorkOffsets } from '../config/project'
 import type { AlarmCatalog, Control, Machine, ToolLibrary } from '../config/schema'
 import { Expr, MacroError, type MacroErrorKind, type Value, type VariableReader } from '../macro/expr'
 import { parseProgram, type Block } from '../program/parse'
@@ -39,6 +40,11 @@ export interface SimulationInput {
   tools?: ToolLibrary | null
   /** The control's alarm catalog (control.alarms names it). */
   alarms?: AlarmCatalog | null
+  /**
+   * Work offset table before the run (machine position of each part zero). The path is drawn in the
+   * G54 frame; G55… are shifted by their difference to G54, and G54's own values place machine zero.
+   */
+  workOffsets?: WorkOffsets
   options?: SimulationOptions
 }
 
@@ -214,9 +220,26 @@ export function simulate(input: SimulationInput): SimulationResult {
     throw new Stop()
   }
 
-  // ---------- state ----------
+  // ---------- work offsets ----------
+  // Positions are kept in the frame of G54 as set before the run (where the stock sits).
+  // Without G54 values, machine zero falls back to the machine's toolChangePosition.
   const tc = machine.toolChangePosition
-  const pos: Position = { X: tc['X'] ?? 0, Y: tc['Y'] ?? 0, Z: tc['Z'] ?? 0, A: tc['A'] ?? 0, B: tc['B'] ?? 0, C: tc['C'] ?? 0 }
+  const table = new Map<string, Partial<Record<Axis, number>>>(Object.entries(input.workOffsets ?? {}))
+  const base: Partial<Record<Axis, number>> = { ...table.get('G54') }
+  const configuredOffsets = table.size > 0
+  const shiftOf = (name: string): Position => {
+    const o = table.get(name) ?? {}
+    const s = {} as Position
+    for (const ax of AXES) s[ax] = ax === 'X' || ax === 'Y' || ax === 'Z' ? (o[ax] ?? 0) - (base[ax] ?? 0) : 0
+    return s
+  }
+  /** Machine zero in the drawing frame. */
+  const machineZero = {} as Position
+  for (const ax of AXES) machineZero[ax] = base[ax] !== undefined ? -(base[ax] ?? 0) : (tc[ax] ?? 0)
+  let shift = shiftOf('G54')
+
+  // ---------- state ----------
+  const pos: Position = { ...machineZero }
   const st = {
     motion: 0 as 0 | 1 | 2 | 3,
     absolute: true,
@@ -238,6 +261,7 @@ export function simulate(input: SimulationInput): SimulationResult {
     tool: 0,
     offset: 0,
     pendingTool: null as { t: number; comment: string } | null,
+    workOffset: 'G54',
     cAxisEnabled: false,
     brake: false,
     cycle: null as Cycle | null,
@@ -252,8 +276,9 @@ export function simulate(input: SimulationInput): SimulationResult {
   for (const [k, v] of Object.entries(opt.forcedVariables ?? {})) forced.set(Number(k), v)
   forced.forEach((value, n) => variables.push({ moveIndex: 0, n, value }))
 
-  const programX = () => (st.polar ? st.px * xDia : pos.X)
   const programC = () => (st.polar ? st.py : pos.C)
+  /** X in the active work offset (polar mode has no work shift on X/C). */
+  const absX = () => (st.polar ? st.px * xDia : pos.X - shift.X)
   /** #0, locals #1–#33, commons #100–#199 and #500–#999, system variables from #1000. */
   const validVariable = (n: number) => n === 0 || (n >= 1 && n <= 33) || (n >= 100 && n <= 199) || (n >= 500 && n <= 999) || n >= 1000
   /** Modal information and positions cannot be written. */
@@ -272,9 +297,13 @@ export function simulate(input: SimulationInput): SimulationResult {
       if (n === 4109) return st.feed
       if (n === 4119) return st.spindleSpeed
       if (n === 4120) return st.tool
-      if (n === 5001 || n === 5021 || n === 5041) return programX()
-      if (n === 5002 || n === 5022 || n === 5042) return pos.Z
-      if (n === 5003 || n === 5023 || n === 5043) return programC()
+      // #5001… absolute (work), #5021… machine, #5041… current position
+      if (n === 5001 || n === 5041) return absX()
+      if (n === 5002 || n === 5042) return pos.Z - shift.Z
+      if (n === 5003 || n === 5043) return programC()
+      if (n === 5021) return pos.X - machineZero.X
+      if (n === 5022) return pos.Z - machineZero.Z
+      if (n === 5023) return programC()
       if (n === 3001 || n === 3002) return moves.length
       diag('warning', 'system-variable-not-simulated', { n }, n)
       return null
@@ -313,7 +342,7 @@ export function simulate(input: SimulationInput): SimulationResult {
   const toolRadius = () => radiusByTool.get(st.tool) ?? 0
   const inCompPlaneNow = () => st.polar || (!lathe && st.plane === 17)
 
-  const snapshot = (): { state: ModalState; position: ProgramPosition } => ({
+  const snapshot = (): { state: ModalState; position: ProgramPosition; machinePosition: ProgramPosition } => ({
     state: {
       motion: st.motion,
       absolute: st.absolute,
@@ -330,10 +359,30 @@ export function simulate(input: SimulationInput): SimulationResult {
       offset: st.offset,
       cAxisEnabled: st.cAxisEnabled,
       brake: st.brake,
-      cycle: st.cycle?.code ?? null
+      cycle: st.cycle?.code ?? null,
+      workOffset: st.workOffset
     },
-    position: { ...pos, X: programX(), C: programC() }
+    position: { X: absX(), Y: pos.Y - shift.Y, Z: pos.Z - shift.Z, A: pos.A, B: pos.B, C: programC() },
+    machinePosition: {
+      X: pos.X - machineZero.X,
+      Y: pos.Y - machineZero.Y,
+      Z: pos.Z - machineZero.Z,
+      A: pos.A,
+      B: pos.B,
+      C: programC()
+    }
   })
+
+  /** Travel limits are checked only on axes whose G54 was given: otherwise machine zero is a guess. */
+  function checkTravel(): void {
+    if (!configuredOffsets) return
+    for (const a of machine.axes) {
+      if (a.type !== 'linear' || base[a.name as Axis] === undefined || !isAxis(a.name)) continue
+      const m = pos[a.name] - machineZero[a.name]
+      if (m < a.min - 1e-6 || m > a.max + 1e-6)
+        diag('warning', 'overtravel', { axis: a.name, value: Math.round(m * 1000) / 1000, min: a.min, max: a.max }, `ot${a.name}${m > a.max ? '+' : '-'}`)
+    }
+  }
 
   function pushMove(kind: MoveKind, points: Vec3[], extra: Partial<Move> = {}, dwellS = 0): Move {
     let length = 0
@@ -402,6 +451,7 @@ export function simulate(input: SimulationInput): SimulationResult {
     }
     // The move records the state at its end point
     Object.assign(pos, t.pos)
+    checkTravel()
     if (st.polar) {
       st.px = t.px
       st.py = t.py
@@ -493,6 +543,7 @@ export function simulate(input: SimulationInput): SimulationResult {
       extra.element = { type: 'arc', center: [cu, cv], radius: r0, cw, p0: [u0, v0], p1: [u1, v1], sweep } satisfies PlaneElement
     }
     Object.assign(pos, t.pos)
+    checkTravel()
     if (st.polar) {
       st.px = t.px
       st.py = t.py
@@ -825,8 +876,20 @@ export function simulate(input: SimulationInput): SimulationResult {
         case 'mirror-off':
         case 'rotation-off':
         case 'macro-call':
+        case 'work-offset': {
+          // G54.1 P n selects an additional offset (P1 when P is left out)
+          const name = code === 'G54.1' ? `G54.1 P${W['P'] ?? 1}` : code
+          if (code === 'G54.1') delete W['P']
+          st.workOffset = name
+          shift = shiftOf(name)
+          if (configuredOffsets && !table.has(name)) diag('info', 'work-offset-not-set', { name }, name)
+          break
+        }
+        case 'data-setting':
+          dataSetting(code, W)
+          skipMotion = true
+          break
         case 'macro-modal-cancel':
-        case 'work-offset':
         case 'tool-length-comp':
         case 'tool-length-comp-cancel':
         case 'constant-rpm':
@@ -985,7 +1048,7 @@ export function simulate(input: SimulationInput): SimulationResult {
         if (w === undefined) continue
         if (st.polar && ax === 'X') t.px = st.absolute ? w / xDia : st.px + w / xDia
         else if (st.polar && ax === 'C') t.py = st.absolute ? w : st.py + w
-        else t.pos[ax] = st.absolute ? w : pos[ax] + w
+        else t.pos[ax] = st.absolute ? w + shift[ax] : pos[ax] + w
       }
       for (const [addr, ax] of incremental) {
         const w = W[addr]
@@ -1006,7 +1069,7 @@ export function simulate(input: SimulationInput): SimulationResult {
         const p: Partial<Position> = {}
         for (const ax of AXES) {
           const w = W[ax]
-          if (w !== undefined) p[ax] = (tc[ax] ?? 0) + w
+          if (w !== undefined) p[ax] = machineZero[ax] + w
         }
         linear('rapid', at(p))
       } else if (oneShot === 'reference-return') {
@@ -1015,7 +1078,7 @@ export function simulate(input: SimulationInput): SimulationResult {
         for (const ax of AXES) {
           const inc = [...incremental].find(([, a]) => a === ax)?.[0]
           if (!has(ax) && !(inc && has(inc))) continue
-          p[ax] = ax === 'C' || ax === 'A' || ax === 'B' ? 0 : (tc[ax] ?? 0)
+          p[ax] = ax === 'C' || ax === 'A' || ax === 'B' ? 0 : machineZero[ax]
           if (ax === 'C') st.cAxisEnabled = true
         }
         linear('rapid', at(p))
@@ -1089,6 +1152,35 @@ export function simulate(input: SimulationInput): SimulationResult {
     return flow
   }
 
+  /** G10 L2 P1–P6 (G54–G59) and L20 P n (G54.1 P n): writes the work offset table, as the program runs. */
+  function dataSetting(code: string, W: Partial<Record<string, number>>): void {
+    const L = W['L']
+    const P = W['P']
+    let name: string | null = null
+    if (L === 2 && P !== undefined && P >= 1 && P <= 6) name = `G${53 + P}`
+    else if (L === 20 && P !== undefined && P >= 1) name = `G54.1 P${P}`
+    if (!name) {
+      // L2 P0 (external shift) and tool offsets (L1, L10–L13, lathe G10 P n) are not drawn
+      diag('warning', 'function-not-simulated', { code: `${code} L${L ?? '-'} P${P ?? '-'}` }, `g10:${L}:${P}`)
+      return
+    }
+    const o = { ...table.get(name) }
+    for (const ax of AXES) {
+      const w = W[ax]
+      if (w !== undefined) o[ax] = st.absolute ? w : (o[ax] ?? 0) + w
+    }
+    for (const [addr, ax] of incremental) {
+      const w = W[addr]
+      if (w !== undefined) o[ax] = (o[ax] ?? 0) + w
+    }
+    table.set(name, o)
+    if (name === st.workOffset) shift = shiftOf(name)
+    const values = AXES.filter((ax) => o[ax] !== undefined)
+      .map((ax) => `${ax}${o[ax] ?? 0}`)
+      .join(' ')
+    diag('info', 'work-offset-set', { name, values })
+  }
+
   function runCycle(cy: Cycle, W: Partial<Record<string, number>>, t: Target): void {
     if (st.cutterComp !== 40) diag('warning', 'cycle-in-comp', { code: cy.code }, line)
     if (cy.fn === 'peck-drill' && !latheControl && !((W['Q'] ?? cy.q ?? 0) > 0)) fatal('peck-q-missing', { code: cy.code })
@@ -1100,7 +1192,7 @@ export function simulate(input: SimulationInput): SimulationResult {
     const rWord = W['R']
     if (rWord !== undefined) {
       // Fanuc lathe: R is the distance from the initial level; mill in G90: absolute level
-      cy.r = latheControl || !st.absolute ? cy.initial + rWord : rWord
+      cy.r = latheControl || !st.absolute ? cy.initial + rWord : rWord + shift[depthAxis]
     }
     const position: Partial<Position> = {}
     for (const ax of AXES) if (ax !== depthAxis) position[ax] = t.pos[ax]

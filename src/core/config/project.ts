@@ -41,6 +41,16 @@ export type Stock = z.infer<typeof StockSchema>
 export type WorkOffsets = z.infer<typeof WorkOffsetsSchema>
 export type Project = z.infer<typeof ProjectSchema>
 
+/**
+ * Shift of a work offset from G54, per axis. The 3D view is drawn in the G54 frame,
+ * so a program running in G55 (or a stock sitting on G55) is moved by this much.
+ */
+export function workShift(offsets: WorkOffsets, name: string): Record<'X' | 'Y' | 'Z', number> {
+  const o = offsets[name] ?? {}
+  const base = offsets['G54'] ?? {}
+  return { X: (o.X ?? 0) - (base.X ?? 0), Y: (o.Y ?? 0) - (base.Y ?? 0), Z: (o.Z ?? 0) - (base.Z ?? 0) }
+}
+
 export function loadProject(data: unknown, source = 'project'): LoadResult<Project> {
   const j = parse(data, source)
   return j.ok ? validate(ProjectSchema, j.value, source) : j

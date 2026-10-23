@@ -19,6 +19,7 @@
     "G03": { "function": "arc-ccw" },
     "G04": { "function": "dwell" },
     "G07.1": { "function": "cylindrical", "description": { "en": "Cylindrical interpolation", "pt-BR": "Interpolação cilíndrica", "es": "Interpolación cilíndrica" } },
+    "G10": { "function": "data-setting", "description": { "en": "Programmable data input (work offsets L2/L20)", "pt-BR": "Entrada de dados programável (zeros L2/L20)", "es": "Entrada de datos programable (ceros L2/L20)" } },
     "G12.1": { "function": "polar-on", "description": { "en": "Polar coordinate interpolation X/C", "pt-BR": "Coordenadas polares X/C", "es": "Interpolación en coordenadas polares X/C" } },
     "G13.1": { "function": "polar-off" },
     "G17": { "function": "plane-xy" },

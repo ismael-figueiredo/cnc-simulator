@@ -243,6 +243,9 @@ export const en = {
   'update.failed': 'Could not check for updates.',
 
   // Interpreter diagnostics: one entry per code in src/core/interp/diagnostics.ts
+  'diag.overtravel': 'Overtravel: machine {axis} would reach {value} (travel {min} … {max}). Tool offsets are not counted yet.',
+  'diag.work-offset-not-set': '{name} is not in the work offset table of the project: drawn as if equal to G54.',
+  'diag.work-offset-set': 'G10 wrote {name} = {values}.',
   'diag.macro-alarm': 'Alarm #3000={num} {comment}',
   'diag.syntax-error': 'Cannot read the block: {detail}',
   'diag.goto-target-missing': 'GOTO {n}: block N{n} does not exist.',

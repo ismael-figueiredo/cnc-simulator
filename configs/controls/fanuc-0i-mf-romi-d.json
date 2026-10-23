@@ -18,7 +18,7 @@
     "G03": { "function": "arc-ccw" },
     "G04": { "function": "dwell" },
     "G07.1": { "function": "cylindrical", "description": { "en": "Cylindrical interpolation (4th axis A)", "pt-BR": "Interpolação cilíndrica (4º eixo A)", "es": "Interpolación cilíndrica (4º eje A)" } },
-    "G10": { "function": "not-simulated", "description": { "en": "Programmable data input", "pt-BR": "Entrada de dados", "es": "Entrada de datos" } },
+    "G10": { "function": "data-setting", "description": { "en": "Programmable data input", "pt-BR": "Entrada de dados", "es": "Entrada de datos" } },
     "G11": { "function": "other" },
     "G15": { "function": "polar-coords-off" },
     "G16": { "function": "polar-coords-on", "description": { "en": "Polar coordinate command", "pt-BR": "Sistema de coordenadas polares", "es": "Coordenadas polares" } },

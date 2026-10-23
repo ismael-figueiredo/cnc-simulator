@@ -53,6 +53,8 @@ export interface ModalState {
   brake: boolean
   /** Active canned cycle code, e.g. "G83". */
   cycle: string | null
+  /** Active work offset, e.g. "G54" or "G54.1 P3". */
+  workOffset: string
 }
 
 /** Program coordinates at the end of a move (X as programmed: diameter on lathes). */
@@ -80,7 +82,10 @@ export interface Move {
   toolRadius: number
   durationS: number
   state: ModalState
+  /** Absolute position in the active work offset, as the control's ABSOLUTE screen shows it. */
   position: ProgramPosition
+  /** Machine coordinates (G53), as the MACHINE screen shows them. */
+  machinePosition: ProgramPosition
   /** Made in the compensation plane (polar mode, or XY on a mill). */
   inCompPlane?: boolean
   /** Geometry in the compensation plane; absent for Z-only moves. */

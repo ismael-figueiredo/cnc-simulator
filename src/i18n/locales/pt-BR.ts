@@ -243,6 +243,9 @@ export const ptBR: Record<MessageKey, string> = {
   'update.devOnly': 'As atualizações só funcionam no app instalado.',
   'update.failed': 'Não foi possível procurar atualizações.',
 
+  'diag.overtravel': 'Sobrecurso: o {axis} de máquina iria a {value} (curso {min} … {max}). O corretor de ferramenta ainda não é considerado.',
+  'diag.work-offset-not-set': '{name} não está na tabela de zeros do projeto: desenhado como se fosse igual ao G54.',
+  'diag.work-offset-set': 'G10 gravou {name} = {values}.',
   'diag.macro-alarm': 'Alarme #3000={num} {comment}',
   'diag.syntax-error': 'Não foi possível ler o bloco: {detail}',
   'diag.goto-target-missing': 'GOTO {n}: o bloco N{n} não existe.',

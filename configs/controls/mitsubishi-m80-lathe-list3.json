@@ -39,7 +39,7 @@
       "function": "other"
     },
     "G10": {
-      "function": "not-simulated",
+      "function": "data-setting",
       "description": {
         "en": "Programmable data input",
         "pt-BR": "Entrada de dados programável",

@@ -65,6 +65,8 @@ export const GFunction = z.enum([
   'rapid', 'linear', 'arc-cw', 'arc-ccw', 'dwell',
   'plane-xy', 'plane-zx', 'plane-yz', 'inch', 'metric',
   'reference-return', 'machine-coords', 'work-offset', 'set-origin',
+  // G10 programmable data input: work offsets (L2, L20); other L numbers are not simulated
+  'data-setting',
   'polar-on', 'polar-off', 'cylindrical',
   'cutter-comp-cancel', 'cutter-comp-left', 'cutter-comp-right', 'tool-length-comp', 'tool-length-comp-cancel',
   'absolute', 'incremental', 'feed-per-minute', 'feed-per-rev', 'constant-surface-speed', 'constant-rpm',
