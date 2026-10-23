@@ -9,14 +9,19 @@ export interface Setup {
 
 export const STOCK_COLOR = '#9aa6b1'
 
-/** A machine's own stock and the bundled tools, with no work offsets: the setup of a program opened alone. */
-export function defaultSetup(machine: Machine | undefined, library: ToolLibrary | null): Setup {
-  const stock = machine?.defaultStock
-  return { tools: library, stock: stock ? { ...stock, color: STOCK_COLOR } : null, workOffsets: {} }
+/** The tool library the machine names (defaultTools), else the first bundled one. */
+export function defaultTools(machine: Machine | undefined, libraries: ToolLibrary[]): ToolLibrary | null {
+  return libraries.find((l) => l.id === machine?.defaultTools) ?? libraries[0] ?? null
 }
 
-export function setupFromProject(project: Project, machine: Machine | undefined, library: ToolLibrary | null): Setup {
-  const fallback = defaultSetup(machine, library)
+/** A machine's own stock and default tools, with no work offsets: the setup of a program opened alone. */
+export function defaultSetup(machine: Machine | undefined, libraries: ToolLibrary[]): Setup {
+  const stock = machine?.defaultStock
+  return { tools: defaultTools(machine, libraries), stock: stock ? { ...stock, color: STOCK_COLOR } : null, workOffsets: {} }
+}
+
+export function setupFromProject(project: Project, machine: Machine | undefined, libraries: ToolLibrary[]): Setup {
+  const fallback = defaultSetup(machine, libraries)
   return {
     tools: project.tools ?? fallback.tools,
     stock: project.stock ?? fallback.stock,

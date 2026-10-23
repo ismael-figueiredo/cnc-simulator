@@ -13,9 +13,13 @@ import {
   loadAlarmCatalog,
   loadControl,
   loadMachine,
+  findHolderCollisions,
+  holderOf,
   loadProject,
   loadToolLibrary,
   simulate,
+  toolMount,
+  workShift,
   type AlarmCatalog,
   type ConfigIssue,
   type Control,
@@ -23,6 +27,7 @@ import {
   type Machine,
   type Severity,
   type Stock,
+  type Tool,
   type ToolLibrary,
   type WorkOffsets
 } from '@core/index'
@@ -43,7 +48,6 @@ import { defaultSetup, projectData, setupFromProject, STOCK_COLOR, type Setup } 
 import { useRecent } from './recent'
 import { buildTimeline, formatTime, fractionOf, moveAt, pointAlong, positionAlong, type Timeline } from './playback'
 
-import sampleO1500 from '../../examples/O1500_COROA_ANSI40.nc?raw'
 
 // Every JSON in configs/ ships with the app: dropping a file in the folder adds it.
 const machineFiles = import.meta.glob<unknown>('../../configs/machines/*.json', { eager: true, import: 'default' })
@@ -53,7 +57,19 @@ const alarmFiles = import.meta.glob<unknown>('../../configs/alarms/*.json', { ea
 const fileName = (path: string) => path.slice(path.lastIndexOf('/') + 1)
 /** The Romi GL 250 M opens first: it is the machine of the bundled O1500 example. */
 const FIRST_MACHINE = 'romi-gl250-m'
-const EXAMPLE = { name: 'O1500_COROA_ANSI40.nc', path: 'example:O1500', text: sampleO1500 }
+// Bundled examples: each is a project (examples/*.cncsim) next to its program
+const exampleProjects = import.meta.glob<string>('../../examples/*.cncsim', { eager: true, query: '?raw', import: 'default' })
+const examplePrograms = import.meta.glob<string>('../../examples/*.nc', { eager: true, query: '?raw', import: 'default' })
+const EXAMPLES = Object.entries(exampleProjects)
+  .map(([path, text]) => {
+    const r = loadProject(text, fileName(path))
+    if (!r.ok) return null
+    const program = examplePrograms[`../../examples/${r.value.program}`]
+    return program === undefined ? null : { id: fileName(path), project: r.value, projectText: text, programText: program }
+  })
+  .filter((e) => e !== null)
+  .sort((a, b) => a.id.localeCompare(b.id))
+const isExample = (path: string) => path.startsWith('example:')
 
 
 interface Program {
@@ -155,7 +171,7 @@ export function App() {
   const [programKey, setProgramKey] = useState(0)
   const editor = useRef<EditorHandle>(null)
   // Stock, tools and work offsets: from the open project, or the machine's defaults
-  const [setup, setSetup] = useState<Setup>(() => defaultSetup(machine, cfg.library))
+  const [setup, setSetup] = useState<Setup>(() => defaultSetup(machine, cfg.libraries))
   /** The .cncsim file the setup came from, or null for a program opened alone. */
   const [projectPath, setProjectPath] = useState<string | null>(null)
   const [sim, setSim] = useState<Simulation>(() => run(program, machine, control, cfg, setup))
@@ -164,6 +180,8 @@ export function App() {
   const [speed, setSpeed] = useState(20)
   const [showRapids, setShowRapids] = useState(true)
   const [showStock, setShowStock] = useState(true)
+  /** Lathe: chuck and part turn in C while the tool stays in X/Z (off: the part stands still). */
+  const [machineView, setMachineView] = useState(true)
   const fileInput = useRef<HTMLInputElement>(null)
   const libraries = useLibraries()
   const [editingTools, setEditingTools] = useState(false)
@@ -237,7 +255,7 @@ export function App() {
     }
     // A program opened alone takes the machine's own stock and no work offsets
     const p = { name: f.name, path: f.path, text: f.text }
-    const s = defaultSetup(machine, cfg.library)
+    const s = defaultSetup(machine, cfg.libraries)
     load(p)
     setSetup(s)
     setProjectPath(null)
@@ -257,10 +275,11 @@ export function App() {
     const mm = m ?? machine
     const cc = c ?? control
     // Desktop: the program file next to the project; browser: the copy inside it
-    const text = window.api ? f.text : (pr.programText ?? '')
+    // Desktop and examples: the program file read with it; browser files: the copy inside the project
+    const text = f.text || (pr.programText ?? '')
     if (window.api && project.programMissing) window.alert(t('project.programMissing', { program: pr.program }))
     const p = { name: pr.program.slice(pr.program.lastIndexOf('/') + 1), path: f.path || pr.program, text }
-    const s = setupFromProject(pr, mm, cfg.library)
+    const s = setupFromProject(pr, mm, cfg.libraries)
     if (mm) setMachineId(mm.id)
     if (cc) setControlId(cc.id)
     load(p)
@@ -320,18 +339,12 @@ export function App() {
     setMode('mem')
     simulateWith(p, machine, control)
   }
-  function openExample() {
-    if (!canDiscard()) return
-    setProjectPath(null)
-    // The example is a Romi GL 250 M program: select that machine and its control with it
-    const m = cfg.machines.find((x) => x.id === FIRST_MACHINE) ?? machine
-    const c = cfg.controls.find((x) => x.id === m?.defaultControl) ?? control
-    if (m) setMachineId(m.id)
-    if (c) setControlId(c.id)
-    const s = defaultSetup(m, cfg.library)
-    load(EXAMPLE)
-    setSetup(s)
-    simulateWith(EXAMPLE, m, c, s)
+  /** Bundled examples open like projects: machine, control, stock and work offsets come with them. */
+  function openExample(id: string) {
+    const ex = EXAMPLES.find((e) => e.id === id)
+    if (!ex || !canDiscard()) return
+    const path = `example:${ex.project.program}`
+    openProject({ name: ex.project.program, path, text: ex.programText }, { path: `example:${ex.id}`, text: ex.projectText, programMissing: false })
   }
   function showStart() {
     if (!canDiscard()) return
@@ -345,7 +358,7 @@ export function App() {
     setMachineId(id)
     if (c) setControlId(c.id)
     // Another machine brings its own stock; tools and work offsets stay
-    const s = { ...setup, stock: defaultSetup(m, cfg.library).stock }
+    const s = { ...setup, stock: defaultSetup(m, cfg.libraries).stock }
     setSetup(s)
     simulateWith(currentProgram(), m, c, s)
   }
@@ -389,8 +402,13 @@ export function App() {
   const seek = useCallback((time: number) => {
     setSim((s) => ({ ...s, playing: false, time: Math.max(0, Math.min(s.timeline?.total ?? 0, time)) }))
   }, [])
+  /** Shows move k just finished. A hair before its end: exactly at the end the next move would be current. */
   const seekMove = useCallback((k: number) => {
-    setSim((s) => ({ ...s, playing: false, time: s.timeline?.cumulative[k + 1] ?? 0 }))
+    setSim((s) => {
+      const end = s.timeline?.cumulative[k + 1] ?? 0
+      const start = s.timeline?.cumulative[k] ?? 0
+      return { ...s, playing: false, time: Math.max(start, end - 1e-6) }
+    })
   }, [])
   /** Puts the tool at the start of move k, so Play runs that block first (start from the middle). */
   const startAt = useCallback((k: number) => {
@@ -502,6 +520,32 @@ export function App() {
 
   const machineKind = machine && (machine.kinematics.startsWith('lathe') ? 'lathe' : 'mill')
   const shownAxes = machine ? machine.axes.map((a) => a.name) : ['X', 'Y', 'Z']
+  const lathe = machineKind === 'lathe'
+
+  // ---- tool in the spindle, holder and possible holder collisions ----
+  const toolTip = move ? pointAlong(move, fraction) : null
+  const libraryTool = move ? setup.tools?.tools.find((x) => x.number === move.state.tool) : undefined
+  // A T word without a library entry still gets a body, sized by the compensation radius
+  const currentTool: Tool | undefined =
+    libraryTool ?? (move && move.state.tool > 0 ? { number: move.state.tool, name: '', type: 'flat-endmill', diameter: Math.max(1, move.toolRadius * 2), length: 40 } : undefined)
+  const holder = currentTool ? holderOf(currentTool, setup.tools, lathe) : undefined
+  const mount = currentTool ? toolMount(currentTool, holder, lathe) : 'axial'
+  const collisions = useMemo(() => {
+    const s = setup.stock
+    const shift = workShift(setup.workOffsets, s?.workOffset ?? 'G54')
+    return findHolderCollisions({
+      moves: result?.moves ?? [],
+      tools: setup.tools,
+      stock: s,
+      stockZero: lathe ? [0, 0, shift.Z] : [shift.X, shift.Y, shift.Z],
+      lathe
+    })
+  }, [result, setup, lathe])
+  const colliding = !!move && collisions.some((c) => c.line === move.line && c.tool === move.state.tool)
+  // C angle: from the tip in polar interpolation (C is not tracked as an angle there), else the C position
+  const spindleAngle = move ? (move.state.polar && toolTip ? Math.atan2(toolTip[1], toolTip[0]) : ((position?.C ?? 0) * Math.PI) / 180) : 0
+  const spinning = playing && !!move?.state.spindleOn && !move.state.liveToolOn
+  const messageCount = diagnostics.length + cfg.issues.length + collisions.length
 
   return (
     <div className="app">
@@ -552,6 +596,7 @@ export function App() {
       {!program ? (
         <StartScreen
           recent={recent.items}
+          examples={EXAMPLES.map((e) => ({ id: e.id, name: e.project.program, detail: l(e.project.description ?? '') }))}
           onOpenExample={openExample}
           onNew={newProgram}
           onPick={() => void pickProgram()}
@@ -569,7 +614,7 @@ export function App() {
               <span className="file" title={`${program.name} · ${t('program.lines', { count: lines.length })}`}>
                 {dirty && <span className="dirty" title={t('program.unsaved')}>● </span>}
                 {program.name}
-                {program === EXAMPLE && <span className="tag">{t('start.example')}</span>}
+                {isExample(program.path) && <span className="tag">{t('start.example')}</span>}
               </span>
               <span className="modes" role="group">
                 <button className={`btn tiny ${mode === 'edit' ? 'on' : ''}`} title={t('mode.editHint')} onClick={() => setMode('edit')}>EDIT</button>
@@ -611,6 +656,12 @@ export function App() {
                   <input id="layer-stock" type="checkbox" checked={showStock} onChange={(e) => setShowStock(e.target.checked)} />
                   {t('layers.stock')}
                 </label>
+                {lathe && (
+                  <label title={t('layers.machineViewHint')}>
+                    <input id="layer-machine-view" type="checkbox" checked={machineView} onChange={(e) => setMachineView(e.target.checked)} />
+                    {t('layers.machineView')}
+                  </label>
+                )}
               </span>
             </div>
             <div className="stage">
@@ -621,8 +672,15 @@ export function App() {
                   workOffsets={setup.workOffsets}
                   result={result}
                   index={index}
-                  toolTip={move ? pointAlong(move, fraction) : null}
+                  toolTip={toolTip}
                   toolRadius={move?.toolRadius ?? 0}
+                  tool={currentTool}
+                  holder={holder}
+                  mount={mount}
+                  colliding={colliding}
+                  machineView={machineView}
+                  spindleAngle={spindleAngle}
+                  spinning={spinning}
                   showRapids={showRapids}
                   showStock={showStock}
                 />
@@ -661,7 +719,9 @@ export function App() {
           <aside className="panel sidebar">
             <div className="block">
               <h2>{t('project.title')}</h2>
-              <p className="muted">{projectPath ? projectPath.slice(Math.max(projectPath.lastIndexOf('/'), projectPath.lastIndexOf('\\')) + 1) : t('project.none')}</p>
+              <p className="muted">
+                {projectPath ? projectPath.slice(Math.max(projectPath.lastIndexOf('/'), projectPath.lastIndexOf('\\'), projectPath.indexOf(':')) + 1) : t('project.none')}
+              </p>
               <button className="btn" onClick={() => void saveProject(false)}>{t(projectPath ? 'project.save' : 'project.create')}</button>
             </div>
             <div className="block">
@@ -677,7 +737,7 @@ export function App() {
             <div className="block">
               <h2>
                 {t('messages.title')}
-                {diagnostics.length + cfg.issues.length > 0 && <span className="count">{diagnostics.length + cfg.issues.length}</span>}
+                {messageCount > 0 && <span className="count">{messageCount}</span>}
               </h2>
               {cfg.issues.map((i, k) => (
                 <p key={`cfg${k}`} className="msg alarm">
@@ -694,7 +754,15 @@ export function App() {
                   </span>
                 </button>
               ))}
-              {!diagnostics.length && !cfg.issues.length && <p className="muted">{t('messages.none')}</p>}
+              {collisions.map((c) => (
+                <button key={`col${c.tool}|${c.line}`} className="msg warning" onClick={() => seekMove(c.moveIndex)}>
+                  <b>{t('collision.label')}</b>
+                  <span>
+                    L{c.line + 1} · {t('collision.holder', { tool: String(c.tool).padStart(2, '0'), depth: c.depth })}
+                  </span>
+                </button>
+              ))}
+              {!messageCount && <p className="muted">{t('messages.none')}</p>}
             </div>
             {machine && (
               <div className="block">
@@ -803,7 +871,7 @@ export function App() {
       {editingStock && machine && (
         <StockEditor
           stock={setup.stock}
-          machineDefault={defaultSetup(machine, null).stock}
+          machineDefault={defaultSetup(machine, []).stock}
           lathe={machineKind === 'lathe'}
           workOffsets={Object.keys(setup.workOffsets)}
           onApply={applyStock}

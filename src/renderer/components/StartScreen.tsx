@@ -3,7 +3,9 @@ import { useI18n } from '../i18n'
 
 interface Props {
   recent: RecentItem[]
-  onOpenExample: () => void
+  /** Bundled examples, pinned above the recent files. */
+  examples: { id: string; name: string; detail: string }[]
+  onOpenExample: (id: string) => void
   onNew: () => void
   onPick: () => void
   onOpenRecent: (item: RecentItem) => void
@@ -11,7 +13,7 @@ interface Props {
 }
 
 /** Shown when no program is open: actions on the left, recent files (example pinned first) on the right. */
-export function StartScreen({ recent, onOpenExample, onNew, onPick, onOpenRecent, onRemoveRecent }: Props) {
+export function StartScreen({ recent, examples, onOpenExample, onNew, onPick, onOpenRecent, onRemoveRecent }: Props) {
   const { t, lang } = useI18n()
   const when = (ms: number) => new Date(ms).toLocaleString(lang, { dateStyle: 'short', timeStyle: 'short' })
 
@@ -26,14 +28,16 @@ export function StartScreen({ recent, onOpenExample, onNew, onPick, onOpenRecent
       <section className="start-recent">
         <h2>{t('start.recent')}</h2>
         <ul>
-          <li>
-            <button className="recent-item" onClick={onOpenExample}>
-              <span className="recent-name">
-                O1500_COROA_ANSI40.nc <span className="tag">{t('start.example')}</span>
-              </span>
-              <span className="muted">{t('start.exampleDetail')}</span>
-            </button>
-          </li>
+          {examples.map((ex) => (
+            <li key={ex.id}>
+              <button className="recent-item" onClick={() => onOpenExample(ex.id)}>
+                <span className="recent-name">
+                  {ex.name} <span className="tag">{t('start.example')}</span>
+                </span>
+                <span className="muted">{ex.detail}</span>
+              </button>
+            </li>
+          ))}
           {recent.map((item) => (
             <li key={item.path} className={item.missing ? 'missing' : ''}>
               <button className="recent-item" disabled={item.missing} onClick={() => onOpenRecent(item)}>
