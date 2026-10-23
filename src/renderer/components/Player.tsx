@@ -20,7 +20,7 @@ export function Player({ time, total, playing, speed, disabled, onSeek, onToggle
   const { t } = useI18n()
   return (
     <div className="player">
-      <button className="btn icon" disabled={disabled} title={t('player.start')} aria-label={t('player.start')} onClick={() => onSeek(0)}>⏮</button>
+      <button className="btn reset" disabled={disabled} title={t('player.start')} onClick={() => onSeek(0)}>RESET</button>
       <button className="btn icon" disabled={disabled} title={t('player.back')} aria-label={t('player.back')} onClick={() => onStep(-1)}>◀</button>
       <button className="btn primary play" disabled={disabled} onClick={onTogglePlay}>
         {playing ? `⏸ ${t('player.pause')}` : `▶ ${t('player.play')}`}

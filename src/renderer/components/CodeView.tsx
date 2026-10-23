@@ -97,7 +97,7 @@ export const CodeView = memo(function CodeView({ lines, currentLine, alarmLine, 
         <span>{oNumber}</span>
         <span>{sequenceAt(lines, currentLine)}</span>
       </div>
-      <div className="code" ref={box} role="listbox">
+      <div className="code" ref={box} role="listbox" title={t('code.clickHint')}>
         {lines.map((text, i) => {
           const mark = marks.get(i)
           const cls = [

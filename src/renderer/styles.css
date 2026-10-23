@@ -91,6 +91,7 @@ button, select, input { font: inherit; color: inherit; }
 .player .time { font: 12px var(--f-mono); color: var(--muted); font-variant-numeric: tabular-nums; }
 .btn.icon { padding: 6px 9px; }
 .btn.play { min-width: 104px; }
+.btn.reset { font: 600 12px 'Share Tech Mono', var(--f-mono); letter-spacing: .06em; padding: 6px 10px; }
 
 /* position */
 .dro { display: grid; grid-template-columns: auto 1fr auto; align-items: baseline; gap: 1px 10px; font-family: 'Share Tech Mono', var(--f-mono); font-variant-numeric: tabular-nums; }

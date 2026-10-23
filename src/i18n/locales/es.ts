@@ -2,15 +2,11 @@ import type { MessageKey } from './en'
 
 export const es: Record<MessageKey, string> = {
   'app.name': 'CNC Simulator',
-  'app.tagline': '{version} · {mode}',
-  'mode.desktop': 'escritorio {platform}',
-  'mode.browser': 'navegador',
 
   'header.machine': 'Máquina',
   'header.control': 'Control',
   'header.language': 'Idioma',
   'action.openProgram': 'Abrir programa',
-  'action.simulate': 'Simular',
 
   'action.home': 'Inicio',
   'start.begin': 'Comenzar',
@@ -35,6 +31,7 @@ export const es: Record<MessageKey, string> = {
   'project.programMissing': 'No se encontró el programa "{program}" junto al proyecto.',
   'program.lines': '{count} líneas',
   'cnc.program': 'PROGRAMA',
+  'code.clickHint': 'Haga clic en un bloque para empezar desde él',
   'code.smaller': 'Texto más pequeño (Ctrl + rueda)',
   'code.larger': 'Texto más grande (Ctrl + rueda)',
   'layout.resize': 'Arrastre para ensanchar el panel del programa',
@@ -49,7 +46,7 @@ export const es: Record<MessageKey, string> = {
   'layers.rapids': 'Rápidos',
   'layers.stock': 'Material',
 
-  'player.start': 'Ir al inicio',
+  'player.start': 'RESET: vuelve al inicio del programa',
   'player.back': 'Movimiento anterior',
   'player.play': 'Ejecutar',
   'player.pause': 'Pausar',

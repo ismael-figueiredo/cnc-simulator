@@ -2,15 +2,11 @@ import type { MessageKey } from './en'
 
 export const ptBR: Record<MessageKey, string> = {
   'app.name': 'CNC Simulator',
-  'app.tagline': '{version} · {mode}',
-  'mode.desktop': 'desktop {platform}',
-  'mode.browser': 'navegador',
 
   'header.machine': 'Máquina',
   'header.control': 'Comando',
   'header.language': 'Idioma',
   'action.openProgram': 'Abrir programa',
-  'action.simulate': 'Simular',
 
   'action.home': 'Início',
   'start.begin': 'Começar',
@@ -35,6 +31,7 @@ export const ptBR: Record<MessageKey, string> = {
   'project.programMissing': 'O programa "{program}" não foi encontrado junto do projeto.',
   'program.lines': '{count} linhas',
   'cnc.program': 'PROGRAMA',
+  'code.clickHint': 'Clique num bloco para começar dele',
   'code.smaller': 'Diminuir texto (Ctrl + roda)',
   'code.larger': 'Aumentar texto (Ctrl + roda)',
   'layout.resize': 'Arraste para alargar o painel do programa',
@@ -49,7 +46,7 @@ export const ptBR: Record<MessageKey, string> = {
   'layers.rapids': 'Rápidos',
   'layers.stock': 'Blank',
 
-  'player.start': 'Ir para o início',
+  'player.start': 'RESET: volta ao início do programa',
   'player.back': 'Movimento anterior',
   'player.play': 'Executar',
   'player.pause': 'Pausar',

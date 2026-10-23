@@ -41,7 +41,6 @@ void app.whenReady().then(async () => {
     const s = document.getElementById('player-speed')
     Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set.call(s, '100')
     s.dispatchEvent(new Event('change', { bubbles: true }))
-    document.querySelector('.player .btn.icon').click()
   }`)
   await sleep(300)
   await js(`document.querySelector('.player .play').click()`)

@@ -1,15 +1,11 @@
 // Source catalog. Every other language must provide exactly these keys (checked by the compiler).
 export const en = {
   'app.name': 'CNC Simulator',
-  'app.tagline': '{version} · {mode}',
-  'mode.desktop': 'desktop {platform}',
-  'mode.browser': 'browser',
 
   'header.machine': 'Machine',
   'header.control': 'Control',
   'header.language': 'Language',
   'action.openProgram': 'Open program',
-  'action.simulate': 'Simulate',
 
   'action.home': 'Home',
   'start.begin': 'Start',
@@ -34,6 +30,7 @@ export const en = {
   'project.programMissing': 'The program "{program}" was not found next to the project.',
   'program.lines': '{count} lines',
   'cnc.program': 'PROGRAM',
+  'code.clickHint': 'Click a block to start from it',
   'code.smaller': 'Smaller text (Ctrl + wheel)',
   'code.larger': 'Larger text (Ctrl + wheel)',
   'layout.resize': 'Drag to resize the program panel',
@@ -48,12 +45,12 @@ export const en = {
   'layers.rapids': 'Rapids',
   'layers.stock': 'Stock',
 
-  'player.start': 'Go to start',
+  'player.start': 'RESET: back to the start of the program',
   'player.back': 'Previous move',
   'player.play': 'Play',
   'player.pause': 'Pause',
   'player.forward': 'Next move',
-  'player.end': 'Go to end',
+  'player.end': 'Go to the end',
   'player.speed': 'Speed',
   'player.position': 'Simulation position',
 

@@ -55,7 +55,6 @@ const fileName = (path: string) => path.slice(path.lastIndexOf('/') + 1)
 const FIRST_MACHINE = 'romi-gl250-m'
 const EXAMPLE = { name: 'O1500_COROA_ANSI40.nc', path: 'example:O1500', text: sampleO1500 }
 
-const VERSION = __APP_VERSION__
 
 interface Program {
   name: string
@@ -105,7 +104,8 @@ function run(program: Program | null, machine: Machine | undefined, control: Con
   if (!program || !machine || !control) return { timeline: null, time: 0, playing: false }
   const alarms = cfg.alarmCatalogs.find((a) => a.id === control.alarms) ?? null
   const timeline = buildTimeline(simulate({ text: program.text, machine, control, tools: setup.tools, alarms, workOffsets: setup.workOffsets }))
-  return { timeline, time: timeline.total, playing: false }
+  // Like the control after loading a program: RESET, cursor at the top, nothing run yet
+  return { timeline, time: 0, playing: false }
 }
 
 const FONT_KEY = 'cncsim.codeFontSize'
@@ -171,9 +171,13 @@ export function App() {
   const [editingOffsets, setEditingOffsets] = useState(false)
 
   const lines = useMemo(() => (program?.text ?? '').replace(/\r/g, '').split('\n'), [program])
+  /** First block of the program (skips the % leader and blank lines): where RESET puts the cursor. */
+  const startLine = useMemo(() => Math.max(0, lines.findIndex((l) => l.trim() !== '' && l.trim() !== '%')), [lines])
   const tl = sim.timeline
   const result = tl?.result ?? null
-  const index = tl ? moveAt(tl, sim.time) : -1
+  /** RESET: at the start and not running, nothing has been executed yet. */
+  const atReset = sim.time <= 0 && !sim.playing
+  const index = tl && !atReset ? moveAt(tl, sim.time) : -1
   const fraction = tl && index >= 0 ? fractionOf(tl, index, sim.time) : 1
   const moves = result?.moves ?? []
   const move = moves[index]
@@ -388,6 +392,11 @@ export function App() {
   const seekMove = useCallback((k: number) => {
     setSim((s) => ({ ...s, playing: false, time: s.timeline?.cumulative[k + 1] ?? 0 }))
   }, [])
+  /** Puts the tool at the start of move k, so Play runs that block first (start from the middle). */
+  const startAt = useCallback((k: number) => {
+    // A hair past the start, so the block counts as the current one and not as RESET
+    setSim((s) => ({ ...s, playing: false, time: (s.timeline?.cumulative[k] ?? 0) + 1e-6 }))
+  }, [])
   function step(dir: -1 | 1) {
     if (!tl?.result.moves.length) return
     const atEnd = fraction >= 1
@@ -401,15 +410,15 @@ export function App() {
     setSim((s) => (s.playing ? { ...s, playing: false } : { ...s, playing: true, time: s.time >= (s.timeline?.total ?? 0) ? 0 : s.time }))
   }
 
-  // Clicking a line jumps to its next execution (loops run the same line many times).
+  // Clicking a line starts from its next execution (loops run the same line many times).
   const jumpToLine = useCallback(
     (line: number) => {
       const hits = tl?.movesByLine.get(line)
       if (!hits?.length) return
       const next = hits.find((h) => h > index) ?? hits[0] ?? 0
-      seekMove(next)
+      startAt(next)
     },
-    [tl, index, seekMove]
+    [tl, index, startAt]
   )
 
   // ---- playback loop ----
@@ -499,12 +508,6 @@ export function App() {
       <header className="top">
         <div className="brand">
           <h1>{t('app.name')}</h1>
-          <span>
-            {t('app.tagline', {
-              version: VERSION,
-              mode: window.api ? t('mode.desktop', { platform: window.api.platform }) : t('mode.browser')
-            })}
-          </span>
         </div>
         <div className="controls">
           <label>
@@ -543,7 +546,6 @@ export function App() {
           <input ref={fileInput} type="file" hidden onChange={readInput} />
           {program && <button className="btn" onClick={showStart}>{t('action.home')}</button>}
           <button className="btn" onClick={() => void pickProgram()}>{t('action.openProgram')}</button>
-          <button className="btn primary" disabled={!program} onClick={runMem}>{t('action.simulate')}</button>
         </div>
       </header>
 
@@ -583,7 +585,7 @@ export function App() {
             ) : (
               <CodeView
                 lines={lines}
-                currentLine={move?.line ?? -1}
+                currentLine={move?.line ?? (atReset ? startLine : -1)}
                 alarmLine={stoppedBy?.line ?? -1}
                 marks={marks}
                 hits={hits}
