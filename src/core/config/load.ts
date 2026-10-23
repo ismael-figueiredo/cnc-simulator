@@ -34,7 +34,7 @@ export function setValidationLanguage(lang: string): void {
   z.config(make())
 }
 
-function validate<T>(schema: z.ZodType<T>, data: unknown, source: string): LoadResult<T> {
+export function validate<T>(schema: z.ZodType<T>, data: unknown, source: string): LoadResult<T> {
   const r = schema.safeParse(data)
   if (r.success) return { ok: true, value: r.data }
   return {
@@ -44,7 +44,7 @@ function validate<T>(schema: z.ZodType<T>, data: unknown, source: string): LoadR
 }
 
 /** Accepts an already parsed object or the JSON file text. */
-function parse(data: unknown, source: string): { ok: true; value: unknown } | { ok: false; issues: ConfigIssue[] } {
+export function parse(data: unknown, source: string): { ok: true; value: unknown } | { ok: false; issues: ConfigIssue[] } {
   if (typeof data !== 'string') return { ok: true, value: data }
   try {
     return { ok: true, value: JSON.parse(data) }

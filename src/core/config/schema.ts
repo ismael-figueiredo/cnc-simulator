@@ -6,10 +6,10 @@ import { z } from 'zod'
 /** A plain string, or one string per language: { "en": "...", "pt-BR": "...", "es": "..." }. */
 export const LocalizedTextSchema = z.union([z.string(), z.record(z.string(), z.string())])
 
-const axisName = z.enum(['X', 'Y', 'Z', 'A', 'B', 'C', 'U', 'V', 'W'])
+export const AxisNameSchema = z.enum(['X', 'Y', 'Z', 'A', 'B', 'C', 'U', 'V', 'W'])
 
 export const AxisSchema = z.object({
-  name: axisName,
+  name: AxisNameSchema,
   type: z.enum(['linear', 'rotary']),
   min: z.number(),
   max: z.number(),
@@ -26,6 +26,16 @@ export const SpindleSchema = z.object({
   name: LocalizedTextSchema,
   type: z.enum(['main', 'sub', 'live', 'spindle']),
   maxRpm: z.number().positive()
+})
+
+/** Raw material. Cylinder: face at Z0, body toward -Z. Block: corner at X0 Y0, top at Z0. */
+export const StockShapeSchema = z.object({
+  shape: z.enum(['cylinder', 'block']),
+  diameter: z.number().positive().optional(),
+  length: z.number().positive().optional(),
+  x: z.number().optional(),
+  y: z.number().optional(),
+  z: z.number().optional()
 })
 
 export const MachineSchema = z.object({
@@ -47,16 +57,7 @@ export const MachineSchema = z.object({
   defaultControl: z.string(),
   /** Remarks for whoever maintains the file, e.g. data still to be checked on the machine plate. */
   notes: LocalizedTextSchema.optional(),
-  defaultStock: z
-    .object({
-      shape: z.enum(['cylinder', 'block']),
-      diameter: z.number().positive().optional(),
-      length: z.number().positive().optional(),
-      x: z.number().optional(),
-      y: z.number().optional(),
-      z: z.number().optional()
-    })
-    .optional()
+  defaultStock: StockShapeSchema.optional()
 })
 
 /** Functions the interpreter understands. Each control maps its own codes to them. */
@@ -209,6 +210,8 @@ export const ToolLibrarySchema = z.object({
 export type LocalizedTextValue = z.infer<typeof LocalizedTextSchema>
 export type Axis = z.infer<typeof AxisSchema>
 export type Spindle = z.infer<typeof SpindleSchema>
+export type AxisName = z.infer<typeof AxisNameSchema>
+export type StockShape = z.infer<typeof StockShapeSchema>
 export type Machine = z.infer<typeof MachineSchema>
 export type Control = z.infer<typeof ControlSchema>
 export type Holder = z.infer<typeof HolderSchema>
