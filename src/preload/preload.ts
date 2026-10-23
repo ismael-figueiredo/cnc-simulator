@@ -1,19 +1,23 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import { CHANNELS, type CncApi, type OpenedFile } from './api'
+import { CHANNELS, type CncApi } from './api'
+
+/** Listens to a main-process event and returns the unsubscribe function. */
+function subscribe(channel: string, listener: (...args: never[]) => void): () => void {
+  const handler = (_e: Electron.IpcRendererEvent, ...args: unknown[]) => listener(...(args as never[]))
+  ipcRenderer.on(channel, handler)
+  return () => ipcRenderer.removeListener(channel, handler)
+}
 
 const api: CncApi = {
   openFile: () => ipcRenderer.invoke(CHANNELS.openFile),
+  listRecent: () => ipcRenderer.invoke(CHANNELS.listRecent),
+  openRecent: (path) => ipcRenderer.invoke(CHANNELS.openRecent, path),
+  removeRecent: (path) => ipcRenderer.invoke(CHANNELS.removeRecent, path),
+  onRecentChanged: (listener) => subscribe(CHANNELS.recentChanged, listener),
+  onShowStart: (listener) => subscribe(CHANNELS.showStart, listener),
   setLanguage: (lang) => ipcRenderer.invoke(CHANNELS.setLanguage, lang),
-  onLanguageChanged: (listener) => {
-    const handler = (_e: Electron.IpcRendererEvent, lang: string) => listener(lang)
-    ipcRenderer.on(CHANNELS.languageChanged, handler)
-    return () => ipcRenderer.removeListener(CHANNELS.languageChanged, handler)
-  },
-  onFileOpened: (listener) => {
-    const handler = (_e: Electron.IpcRendererEvent, file: OpenedFile) => listener(file)
-    ipcRenderer.on(CHANNELS.fileOpened, handler)
-    return () => ipcRenderer.removeListener(CHANNELS.fileOpened, handler)
-  },
+  onLanguageChanged: (listener) => subscribe(CHANNELS.languageChanged, listener),
+  onFileOpened: (listener) => subscribe(CHANNELS.fileOpened, listener),
   platform: process.platform
 }
 

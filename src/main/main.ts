@@ -1,9 +1,11 @@
+import { existsSync } from 'node:fs'
 import { readFile } from 'node:fs/promises'
 import { basename, join } from 'node:path'
 import { app, BrowserWindow, dialog, ipcMain, Menu, shell, type MenuItemConstructorOptions } from 'electron'
 import { DEFAULT_LANGUAGE, LANGUAGES, isLanguage, translate, type Language, type MessageKey, type Params } from '../i18n'
 import { CHANNELS, type OpenedFile } from '../preload/api'
 import appIcon from '../../build/icon.png?asset'
+import { addRecent, listRecent, loadRecent, removeRecent } from './recent'
 import { ISSUES_URL, reportProblem } from './report'
 import { checkForUpdates, setupUpdates } from './updater'
 
@@ -26,6 +28,17 @@ function buildMenu(): void {
           label: t('menu.openProgram'),
           accelerator: 'CmdOrCtrl+O',
           click: (_item, win) => void openProgramFromMenu(win instanceof BrowserWindow ? win : undefined)
+        },
+        {
+          label: t('menu.openRecent'),
+          submenu: recentMenu()
+        },
+        {
+          label: t('menu.home'),
+          accelerator: 'CmdOrCtrl+Shift+H',
+          click: (_item, win) => {
+            if (win instanceof BrowserWindow) win.webContents.send(CHANNELS.showStart)
+          }
         },
         { type: 'separator' },
         isMac ? { role: 'close', label: t('menu.closeWindow') } : { role: 'quit', label: t('menu.quit') }
@@ -85,6 +98,51 @@ function buildMenu(): void {
   Menu.setApplicationMenu(Menu.buildFromTemplate(template))
 }
 
+function recentMenu(): MenuItemConstructorOptions[] {
+  const items = listRecent()
+  if (!items.length) return [{ label: t('menu.noRecent'), enabled: false }]
+  return [
+    ...items.map((i) => ({
+      label: i.name,
+      sublabel: i.path,
+      enabled: !i.missing,
+      click: (_item: Electron.MenuItem, win: Electron.BaseWindow | undefined) => {
+        void readProgram(i.path).then((file) => {
+          if (file && win instanceof BrowserWindow) win.webContents.send(CHANNELS.fileOpened, file)
+        })
+      }
+    })),
+    { type: 'separator' },
+    { label: t('menu.clearRecent'), click: () => clearRecent() }
+  ]
+}
+
+/** Recent list changed: rebuild the menu and refresh the start screen. */
+function recentChanged(): void {
+  buildMenu()
+  const items = listRecent()
+  for (const w of BrowserWindow.getAllWindows()) w.webContents.send(CHANNELS.recentChanged, items)
+}
+
+function clearRecent(): void {
+  for (const i of listRecent()) removeRecent(i.path)
+  app.clearRecentDocuments()
+  recentChanged()
+}
+
+/** Reads a program from disk and records it as recent; null if it is gone. */
+async function readProgram(path: string): Promise<OpenedFile | null> {
+  if (!existsSync(path)) {
+    recentChanged()
+    return null
+  }
+  // CNC programs are usually ASCII; latin1 keeps accents in old comments.
+  const text = await readFile(path, 'latin1')
+  addRecent(path)
+  recentChanged()
+  return { name: basename(path), path, text }
+}
+
 /** Language picked in the native menu: rebuild the menu and tell every window. */
 function applyLanguage(lang: Language): void {
   if (lang === language) return
@@ -105,9 +163,7 @@ async function chooseProgram(win: BrowserWindow | undefined): Promise<OpenedFile
   const r = win ? await dialog.showOpenDialog(win, opts) : await dialog.showOpenDialog(opts)
   const path = r.filePaths[0]
   if (r.canceled || !path) return null
-  // CNC programs are usually ASCII; latin1 keeps accents in old comments.
-  const text = await readFile(path, 'latin1')
-  return { name: basename(path), path, text }
+  return readProgram(path)
 }
 
 async function openProgramFromMenu(win: BrowserWindow | undefined): Promise<void> {
@@ -149,8 +205,16 @@ ipcMain.handle(CHANNELS.setLanguage, (_e, lang: unknown) => {
 })
 
 ipcMain.handle(CHANNELS.openFile, (e) => chooseProgram(BrowserWindow.fromWebContents(e.sender) ?? undefined))
+ipcMain.handle(CHANNELS.listRecent, () => listRecent())
+ipcMain.handle(CHANNELS.openRecent, (_e, path: unknown) => (typeof path === 'string' ? readProgram(path) : null))
+ipcMain.handle(CHANNELS.removeRecent, (_e, path: unknown) => {
+  if (typeof path === 'string') removeRecent(path)
+  recentChanged()
+  return listRecent()
+})
 
-void app.whenReady().then(() => {
+void app.whenReady().then(async () => {
+  await loadRecent()
   buildMenu()
   if (isMac) app.dock?.setIcon(appIcon)
   createWindow()
