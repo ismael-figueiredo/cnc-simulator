@@ -26,7 +26,6 @@ nsis:
 #   - ext: [nc, tap, ngc, cnc, min]
 #     name: CNC Program
 #     role: Viewer
-# No icon yet: electron-builder uses the default Electron icon until build/icon.png (1024x1024) exists
 linux:
   target: [AppImage, deb]
   category: Development

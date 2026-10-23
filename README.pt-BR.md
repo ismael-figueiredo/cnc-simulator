@@ -1,3 +1,5 @@
+<img src="build/icon.png" alt="" width="96" align="right">
+
 # CNC Simulator
 
 Português (Brasil) · [English](README.md)
@@ -21,6 +23,7 @@ npm run dist         # instalador do sistema atual em dist/
 npm run dist:win     # instalador do Windows (NSIS)
 npm run dist:mac     # dmg do macOS, arm64 e x64 (rode num Mac; sem assinatura)
 npm run dist:linux   # AppImage e .deb do Linux
+npm run icons        # gera de novo build/icon.png e o favicon depois de editar build/icon.svg
 ```
 
 **`npm run dev` falha com `Cannot read properties of undefined (reading 'handle')`:** a variável `ELECTRON_RUN_AS_NODE=1` está ligada. Algumas extensões do VS Code a ligam. Desligue antes de rodar:

@@ -3,6 +3,7 @@ import { basename, join } from 'node:path'
 import { app, BrowserWindow, dialog, ipcMain, Menu, type MenuItemConstructorOptions } from 'electron'
 import { DEFAULT_LANGUAGE, LANGUAGES, isLanguage, translate, type Language, type MessageKey } from '../i18n'
 import { CHANNELS, type OpenedFile } from '../preload/api'
+import appIcon from '../../build/icon.png?asset'
 
 const PROGRAM_EXTENSIONS = ['nc', 'tap', 'ngc', 'cnc', 'min', 'txt', 'iso', 'mpf', 'eia', 'ptp']
 const isMac = process.platform === 'darwin'
@@ -108,6 +109,8 @@ function createWindow(): BrowserWindow {
     minHeight: 600,
     title: t('app.name'),
     backgroundColor: '#101417',
+    // Packaged builds take the icon from the installer; this covers dev mode and the Linux window
+    icon: appIcon,
     show: false,
     webPreferences: {
       preload: join(__dirname, '../preload/preload.js'),
@@ -134,6 +137,7 @@ ipcMain.handle(CHANNELS.openFile, (e) => chooseProgram(BrowserWindow.fromWebCont
 
 void app.whenReady().then(() => {
   buildMenu()
+  if (isMac) app.dock?.setIcon(appIcon)
   createWindow()
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()

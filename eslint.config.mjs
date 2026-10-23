@@ -33,7 +33,7 @@ export default defineConfig(
     languageOptions: { globals: globals.browser }
   },
   {
-    files: ['src/main/**', 'src/preload/**', 'src/server/**', 'tests/**', '*.config.*'],
+    files: ['src/main/**', 'src/preload/**', 'src/server/**', 'tests/**', 'scripts/**', '*.config.*'],
     languageOptions: { globals: globals.node }
   },
   {

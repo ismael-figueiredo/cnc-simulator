@@ -1,3 +1,5 @@
+<img src="build/icon.png" alt="" width="96" align="right">
+
 # CNC Simulator
 
 [Português (Brasil)](README.pt-BR.md) · English
@@ -32,6 +34,7 @@ npm run dist         # installer for the current OS in dist/
 npm run dist:win     # Windows installer (NSIS)
 npm run dist:mac     # macOS dmg, arm64 and x64 (run on a Mac; unsigned)
 npm run dist:linux   # Linux AppImage and .deb
+npm run icons        # redraw build/icon.png and the favicon after editing build/icon.svg
 ```
 
 ### Troubleshooting
