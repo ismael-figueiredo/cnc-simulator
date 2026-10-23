@@ -27,8 +27,10 @@ import { LANGUAGES, isLanguage } from '@i18n/index'
 import { CodeView } from './components/CodeView'
 import { Player } from './components/Player'
 import { PositionPanel } from './components/PositionPanel'
+import { StartScreen } from './components/StartScreen'
 import { PATH_COLORS, Viewport3D } from './components/Viewport3D'
 import { useI18n } from './i18n'
+import { useRecent } from './recent'
 import { buildTimeline, formatTime, fractionOf, moveAt, pointAlong, positionAlong, type Timeline } from './playback'
 
 import sampleO1500 from '../../examples/O1500_COROA_ANSI40.nc?raw'
@@ -41,11 +43,14 @@ const alarmFiles = import.meta.glob<unknown>('../../configs/alarms/*.json', { ea
 const fileName = (path: string) => path.slice(path.lastIndexOf('/') + 1)
 /** The Romi GL 250 M opens first: it is the machine of the bundled O1500 example. */
 const FIRST_MACHINE = 'romi-gl250-m'
+const EXAMPLE = { name: 'O1500_COROA_ANSI40.nc', path: 'example:O1500', text: sampleO1500 }
 
 const VERSION = '0.3'
 
 interface Program {
   name: string
+  /** File path on the desktop; the file name (or "example:…") in the browser. */
+  path: string
   text: string
 }
 
@@ -85,8 +90,8 @@ interface Simulation {
   playing: boolean
 }
 
-function run(program: Program, machine: Machine | undefined, control: Control | undefined, cfg: BundledConfigs): Simulation {
-  if (!machine || !control) return { timeline: null, time: 0, playing: false }
+function run(program: Program | null, machine: Machine | undefined, control: Control | undefined, cfg: BundledConfigs): Simulation {
+  if (!program || !machine || !control) return { timeline: null, time: 0, playing: false }
   const alarms = cfg.alarmCatalogs.find((a) => a.id === control.alarms) ?? null
   const timeline = buildTimeline(simulate({ text: program.text, machine, control, tools: cfg.library, alarms }))
   return { timeline, time: timeline.total, playing: false }
@@ -120,7 +125,9 @@ export function App() {
   const machine = cfg.machines.find((m) => m.id === machineId) ?? cfg.machines[0]
   const [controlId, setControlId] = useState(machine?.defaultControl ?? cfg.controls[0]?.id ?? '')
   const control = cfg.controls.find((c) => c.id === controlId)
-  const [program, setProgram] = useState<Program>({ name: 'O1500_COROA_ANSI40.nc', text: sampleO1500 })
+  // No program on start: the start screen lists the recent files and the example
+  const [program, setProgram] = useState<Program | null>(null)
+  const recent = useRecent()
   const [sim, setSim] = useState<Simulation>(() => run(program, machine, control, cfg))
   const [fontSize, setFontSize] = useState(() => readNumber(FONT_KEY, 11.5))
   const [codeWidth, setCodeWidth] = useState(() => readNumber(WIDTH_KEY, 300))
@@ -129,7 +136,7 @@ export function App() {
   const [showStock, setShowStock] = useState(true)
   const fileInput = useRef<HTMLInputElement>(null)
 
-  const lines = useMemo(() => program.text.replace(/\r/g, '').split('\n'), [program])
+  const lines = useMemo(() => (program?.text ?? '').replace(/\r/g, '').split('\n'), [program])
   const tl = sim.timeline
   const result = tl?.result ?? null
   const index = tl ? moveAt(tl, sim.time) : -1
@@ -139,7 +146,7 @@ export function App() {
   const position = move ? positionAlong(moves[index - 1], move, fraction) : undefined
 
   // ---- actions (simulation is recomputed in event handlers, not in effects) ----
-  function simulateWith(p: Program, m: Machine | undefined, c: Control | undefined) {
+  function simulateWith(p: Program | null, m: Machine | undefined, c: Control | undefined) {
     setSim(run(p, m, c, cfg))
   }
   const changeFont = useCallback((delta: number) => {
@@ -170,7 +177,21 @@ export function App() {
   }
   function openProgram(p: Program) {
     setProgram(p)
+    recent.record(p)
     simulateWith(p, machine, control)
+  }
+  function openExample() {
+    // The example is a Romi GL 250 M program: select that machine and its control with it
+    const m = cfg.machines.find((x) => x.id === FIRST_MACHINE) ?? machine
+    const c = cfg.controls.find((x) => x.id === m?.defaultControl) ?? control
+    if (m) setMachineId(m.id)
+    if (c) setControlId(c.id)
+    setProgram(EXAMPLE)
+    simulateWith(EXAMPLE, m, c)
+  }
+  function showStart() {
+    setProgram(null)
+    setSim(run(null, machine, control, cfg))
   }
   function changeMachine(id: string) {
     const m = cfg.machines.find((x) => x.id === id)
@@ -187,13 +208,13 @@ export function App() {
     // Electron uses the native dialog; the browser (server mode) falls back to <input type=file>.
     if (window.api) {
       const r = await window.api.openFile()
-      if (r) openProgram({ name: r.name, text: r.text })
+      if (r) openProgram(r)
     } else fileInput.current?.click()
   }
   function readInput(e: ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0]
     if (!f) return
-    void f.text().then((text) => openProgram({ name: f.name, text }))
+    void f.text().then((text) => openProgram({ name: f.name, path: f.name, text }))
     e.target.value = ''
   }
 
@@ -248,7 +269,9 @@ export function App() {
 
   // Desktop: File > Open program… in the native menu.
   const onMenuOpen = useEffectEvent((f: Program) => openProgram(f))
-  useEffect(() => window.api?.onFileOpened((f) => onMenuOpen({ name: f.name, text: f.text })), [])
+  useEffect(() => window.api?.onFileOpened(onMenuOpen), [])
+  const onMenuHome = useEffectEvent(showStart)
+  useEffect(() => window.api?.onShowStart(onMenuHome), [])
 
   // ---- derived lists ----
   const diagnostics = useMemo(
@@ -330,190 +353,206 @@ export function App() {
             </label>
           )}
           <input ref={fileInput} type="file" hidden onChange={readInput} />
+          {program && <button className="btn" onClick={showStart}>{t('action.home')}</button>}
           <button className="btn" onClick={() => void pickProgram()}>{t('action.openProgram')}</button>
-          <button className="btn primary" onClick={() => simulateWith(program, machine, control)}>{t('action.simulate')}</button>
+          <button className="btn primary" disabled={!program} onClick={() => simulateWith(program, machine, control)}>{t('action.simulate')}</button>
         </div>
       </header>
 
-      <main className="layout" style={{ '--code-w': `${codeWidth}px` } as CSSProperties}>
-        <section className="panel">
-          <div className="panel-title">
-            <span className="file">{program.name}</span>
-            <span className="muted">{t('program.lines', { count: lines.length })}</span>
-            <span className="zoom">
-              <button className="btn tiny" title={t('code.smaller')} aria-label={t('code.smaller')} onClick={() => changeFont(-0.5)}>A−</button>
-              <button className="btn tiny" title={t('code.larger')} aria-label={t('code.larger')} onClick={() => changeFont(0.5)}>A+</button>
-            </span>
-          </div>
-          <CodeView
-            lines={lines}
-            currentLine={move?.line ?? -1}
-            alarmLine={stoppedBy?.line ?? -1}
-            marks={marks}
-            hits={hits}
-            fontSize={fontSize}
-            state={playing ? 'start' : sim.time > 0 && sim.time < (tl?.total ?? 0) ? 'hold' : 'reset'}
-            onZoom={changeFont}
-            onLineClick={jumpToLine}
-          />
-        </section>
-
-        <div className="splitter" role="separator" aria-orientation="vertical" aria-label={t('layout.resize')} title={t('layout.resize')} onPointerDown={startResize} />
-
-        <section className="panel view">
-          <div className="panel-title">
-            <span>{t('view.title')}</span>
-            <span className="layers">
-              <label>
-                <input id="layer-rapids" type="checkbox" checked={showRapids} onChange={(e) => setShowRapids(e.target.checked)} />
-                {t('layers.rapids')}
-              </label>
-              <label>
-                <input id="layer-stock" type="checkbox" checked={showStock} onChange={(e) => setShowStock(e.target.checked)} />
-                {t('layers.stock')}
-              </label>
-            </span>
-          </div>
-          <div className="stage">
-            {machine && (
-              <Viewport3D
-                machine={machine}
-                result={result}
-                index={index}
-                toolTip={move ? pointAlong(move, fraction) : null}
-                toolRadius={move?.toolRadius ?? 0}
-                showRapids={showRapids}
-                showStock={showStock}
-              />
-            )}
-            <div className="legend">
-              <span><i style={{ borderColor: PATH_COLORS.feed }} />{t('legend.programmed')}</span>
-              <span><i style={{ borderColor: PATH_COLORS.center }} />{t('legend.center')}</span>
-              <span><i style={{ borderColor: PATH_COLORS.rapid }} />{t('legend.rapid')}</span>
+      {!program ? (
+        <StartScreen
+          recent={recent.items}
+          onOpenExample={openExample}
+          onPick={() => void pickProgram()}
+          onOpenRecent={(item) => {
+            void recent.open(item).then((f) => {
+              if (f) openProgram(f)
+            })
+          }}
+          onRemoveRecent={(item) => void recent.remove(item)}
+        />
+      ) : (
+        <main className="layout" style={{ '--code-w': `${codeWidth}px` } as CSSProperties}>
+          <section className="panel">
+            <div className="panel-title">
+              <span className="file">{program.name}</span>
+              {program === EXAMPLE && <span className="tag">{t('start.example')}</span>}
+              <span className="muted">{t('program.lines', { count: lines.length })}</span>
+              <span className="zoom">
+                <button className="btn tiny" title={t('code.smaller')} aria-label={t('code.smaller')} onClick={() => changeFont(-0.5)}>A−</button>
+                <button className="btn tiny" title={t('code.larger')} aria-label={t('code.larger')} onClick={() => changeFont(0.5)}>A+</button>
+              </span>
             </div>
-            <div className="hint">{t('view.hint')}</div>
-            {stoppedBy && (
-              <button className="alarm-banner" onClick={() => jumpToDiagnostic(stoppedBy)}>
-                <b>
-                  {t('alarm.title')} {stoppedBy.alarm?.code}
-                </b>
-                {stoppedBy.alarm?.message && <span className="machine-msg">{stoppedBy.alarm.message}</span>}
-                <span>
-                  {t('alarm.line', { line: stoppedBy.line + 1 })} · {diagText(stoppedBy)}
-                </span>
-              </button>
-            )}
-          </div>
-          <Player
-            time={sim.time}
-            total={tl?.total ?? 0}
-            playing={playing}
-            speed={speed}
-            disabled={!result?.moves.length}
-            onSeek={seek}
-            onTogglePlay={togglePlay}
-            onStep={step}
-            onSpeed={setSpeed}
-          />
-        </section>
+            <CodeView
+              lines={lines}
+              currentLine={move?.line ?? -1}
+              alarmLine={stoppedBy?.line ?? -1}
+              marks={marks}
+              hits={hits}
+              fontSize={fontSize}
+              state={playing ? 'start' : sim.time > 0 && sim.time < (tl?.total ?? 0) ? 'hold' : 'reset'}
+              onZoom={changeFont}
+              onLineClick={jumpToLine}
+            />
+          </section>
 
-        <aside className="panel sidebar">
-          <div className="block">
-            <h2>{t('position.title')}</h2>
-            <PositionPanel move={move} position={position} index={index} total={result?.moves.length ?? 0} axes={shownAxes} />
-            {result && (
-              <p className="muted">
-                {t('sim.summary', { moves: result.moves.length, time: formatTime(result.totalTimeS) })} ·{' '}
-                {result.finished ? t('sim.finished') : t('sim.stopped')}
-              </p>
-            )}
-          </div>
-          <div className="block">
-            <h2>
-              {t('messages.title')}
-              {diagnostics.length + cfg.issues.length > 0 && <span className="count">{diagnostics.length + cfg.issues.length}</span>}
-            </h2>
-            {cfg.issues.map((i, k) => (
-              <p key={`cfg${k}`} className="msg alarm">
-                <b>{t('severity.alarm')}</b>
-                <span>{issueText(i)}</span>
-              </p>
-            ))}
-            {diagnostics.map((d, k) => (
-              <button key={k} className={`msg ${d.severity}`} onClick={() => jumpToDiagnostic(d)}>
-                <b>{d.alarm?.code ?? t(`severity.${d.severity}`)}</b>
-                <span>
-                  L{d.line + 1} · {d.alarm?.message && <strong>{d.alarm.message} · </strong>}
-                  {diagText(d)}
-                </span>
-              </button>
-            ))}
-            {!diagnostics.length && !cfg.issues.length && <p className="muted">{t('messages.none')}</p>}
-          </div>
-          {machine && (
-            <div className="block">
-              <h2>{t('machine.title')}</h2>
-              <p className="muted">
-                {machine.manufacturer ? `${machine.manufacturer} · ` : ''}
-                {t(`machineType.${machine.type}`)} · {machine.kinematics}
-              </p>
-              <table className="table">
-                <thead>
-                  <tr><th>{t('machine.axis')}</th><th>{t('machine.travel')}</th><th>{t('machine.rapid')}</th></tr>
-                </thead>
-                <tbody>
-                  {machine.axes.map((a) => (
-                    <tr key={a.name}>
-                      <td>{a.name}{a.diameter ? ' (Ø)' : ''}</td>
-                      <td>{a.type === 'rotary' ? t('machine.continuous') : `${a.min} … ${a.max}`}</td>
-                      <td>{a.rapid}{a.type === 'rotary' ? ' °/min' : ''}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              <p className="muted">
-                {t('machine.spindles')}: {machine.spindles.map((s) => `${l(s.name)} ${s.maxRpm} rpm`).join(' · ')}
-              </p>
-              {machine.notes && <p className="note">{l(machine.notes)}</p>}
+          <div className="splitter" role="separator" aria-orientation="vertical" aria-label={t('layout.resize')} title={t('layout.resize')} onPointerDown={startResize} />
+
+          <section className="panel view">
+            <div className="panel-title">
+              <span>{t('view.title')}</span>
+              <span className="layers">
+                <label>
+                  <input id="layer-rapids" type="checkbox" checked={showRapids} onChange={(e) => setShowRapids(e.target.checked)} />
+                  {t('layers.rapids')}
+                </label>
+                <label>
+                  <input id="layer-stock" type="checkbox" checked={showStock} onChange={(e) => setShowStock(e.target.checked)} />
+                  {t('layers.stock')}
+                </label>
+              </span>
             </div>
-          )}
-          {control && (
+            <div className="stage">
+              {machine && (
+                <Viewport3D
+                  machine={machine}
+                  result={result}
+                  index={index}
+                  toolTip={move ? pointAlong(move, fraction) : null}
+                  toolRadius={move?.toolRadius ?? 0}
+                  showRapids={showRapids}
+                  showStock={showStock}
+                />
+              )}
+              <div className="legend">
+                <span><i style={{ borderColor: PATH_COLORS.feed }} />{t('legend.programmed')}</span>
+                <span><i style={{ borderColor: PATH_COLORS.center }} />{t('legend.center')}</span>
+                <span><i style={{ borderColor: PATH_COLORS.rapid }} />{t('legend.rapid')}</span>
+              </div>
+              <div className="hint">{t('view.hint')}</div>
+              {stoppedBy && (
+                <button className="alarm-banner" onClick={() => jumpToDiagnostic(stoppedBy)}>
+                  <b>
+                    {t('alarm.title')} {stoppedBy.alarm?.code}
+                  </b>
+                  {stoppedBy.alarm?.message && <span className="machine-msg">{stoppedBy.alarm.message}</span>}
+                  <span>
+                    {t('alarm.line', { line: stoppedBy.line + 1 })} · {diagText(stoppedBy)}
+                  </span>
+                </button>
+              )}
+            </div>
+            <Player
+              time={sim.time}
+              total={tl?.total ?? 0}
+              playing={playing}
+              speed={speed}
+              disabled={!result?.moves.length}
+              onSeek={seek}
+              onTogglePlay={togglePlay}
+              onStep={step}
+              onSpeed={setSpeed}
+            />
+          </section>
+
+          <aside className="panel sidebar">
             <div className="block">
-              <h2>{t('control.title')}</h2>
-              <p className="muted">
-                {t('control.summary', {
-                  family: control.family,
-                  system: control.dialect.gCodeSystem,
-                  macro: control.dialect.macro,
-                  g: Object.keys(control.gCodes).length,
-                  m: Object.keys(control.mCodes).length
-                })}
-              </p>
-              {machine && machineKind !== control.machineType && (
-                <p className="warning">
-                  {t('control.mismatch', {
-                    controlType: t(`machineType.${control.machineType}`),
-                    machineType: t(`machineType.${machine.type}`)
-                  })}
+              <h2>{t('position.title')}</h2>
+              <PositionPanel move={move} position={position} index={index} total={result?.moves.length ?? 0} axes={shownAxes} />
+              {result && (
+                <p className="muted">
+                  {t('sim.summary', { moves: result.moves.length, time: formatTime(result.totalTimeS) })} ·{' '}
+                  {result.finished ? t('sim.finished') : t('sim.stopped')}
                 </p>
               )}
             </div>
-          )}
-          {cfg.library && (
             <div className="block">
-              <h2>{t('tools.title')}</h2>
-              <ul className="list">
-                {cfg.library.tools.map((tool) => (
-                  <li key={tool.number}>
-                    <b>T{String(tool.number).padStart(2, '0')}</b> {l(tool.name)}
-                    <span className="muted"> · {t('tools.radius', { radius: tool.diameter / 2 })} · {tool.holder ?? t('tools.noHolder')}</span>
-                  </li>
-                ))}
-              </ul>
+              <h2>
+                {t('messages.title')}
+                {diagnostics.length + cfg.issues.length > 0 && <span className="count">{diagnostics.length + cfg.issues.length}</span>}
+              </h2>
+              {cfg.issues.map((i, k) => (
+                <p key={`cfg${k}`} className="msg alarm">
+                  <b>{t('severity.alarm')}</b>
+                  <span>{issueText(i)}</span>
+                </p>
+              ))}
+              {diagnostics.map((d, k) => (
+                <button key={k} className={`msg ${d.severity}`} onClick={() => jumpToDiagnostic(d)}>
+                  <b>{d.alarm?.code ?? t(`severity.${d.severity}`)}</b>
+                  <span>
+                    L{d.line + 1} · {d.alarm?.message && <strong>{d.alarm.message} · </strong>}
+                    {diagText(d)}
+                  </span>
+                </button>
+              ))}
+              {!diagnostics.length && !cfg.issues.length && <p className="muted">{t('messages.none')}</p>}
             </div>
-          )}
-        </aside>
-      </main>
+            {machine && (
+              <div className="block">
+                <h2>{t('machine.title')}</h2>
+                <p className="muted">
+                  {machine.manufacturer ? `${machine.manufacturer} · ` : ''}
+                  {t(`machineType.${machine.type}`)} · {machine.kinematics}
+                </p>
+                <table className="table">
+                  <thead>
+                    <tr><th>{t('machine.axis')}</th><th>{t('machine.travel')}</th><th>{t('machine.rapid')}</th></tr>
+                  </thead>
+                  <tbody>
+                    {machine.axes.map((a) => (
+                      <tr key={a.name}>
+                        <td>{a.name}{a.diameter ? ' (Ø)' : ''}</td>
+                        <td>{a.type === 'rotary' ? t('machine.continuous') : `${a.min} … ${a.max}`}</td>
+                        <td>{a.rapid}{a.type === 'rotary' ? ' °/min' : ''}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                <p className="muted">
+                  {t('machine.spindles')}: {machine.spindles.map((s) => `${l(s.name)} ${s.maxRpm} rpm`).join(' · ')}
+                </p>
+                {machine.notes && <p className="note">{l(machine.notes)}</p>}
+              </div>
+            )}
+            {control && (
+              <div className="block">
+                <h2>{t('control.title')}</h2>
+                <p className="muted">
+                  {t('control.summary', {
+                    family: control.family,
+                    system: control.dialect.gCodeSystem,
+                    macro: control.dialect.macro,
+                    g: Object.keys(control.gCodes).length,
+                    m: Object.keys(control.mCodes).length
+                  })}
+                </p>
+                {machine && machineKind !== control.machineType && (
+                  <p className="warning">
+                    {t('control.mismatch', {
+                      controlType: t(`machineType.${control.machineType}`),
+                      machineType: t(`machineType.${machine.type}`)
+                    })}
+                  </p>
+                )}
+              </div>
+            )}
+            {cfg.library && (
+              <div className="block">
+                <h2>{t('tools.title')}</h2>
+                <ul className="list">
+                  {cfg.library.tools.map((tool) => (
+                    <li key={tool.number}>
+                      <b>T{String(tool.number).padStart(2, '0')}</b> {l(tool.name)}
+                      <span className="muted"> · {t('tools.radius', { radius: tool.diameter / 2 })} · {tool.holder ?? t('tools.noHolder')}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </aside>
+        </main>
+      )}
     </div>
   )
 }

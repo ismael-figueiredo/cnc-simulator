@@ -130,3 +130,20 @@ button, select, input { font: inherit; color: inherit; }
 .alarm-banner .machine-msg { font: 600 13px var(--f-mono); color: #fff; }
 .msg strong { font-family: var(--f-mono); font-weight: 600; }
 .block .note { font-size: 12px; line-height: 1.4; color: var(--warn); border-left: 2px solid var(--warn); padding-left: 8px; }
+
+/* start screen */
+.start { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(200px, 260px) minmax(0, 720px); justify-content: center; align-content: start; gap: 32px; padding: 48px 24px; overflow: auto; }
+.start h2 { margin: 0 0 12px; font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+.start-actions { display: flex; flex-direction: column; gap: 8px; }
+.start-actions .btn { text-align: left; padding: 10px 14px; }
+.start-recent ul { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 4px; }
+.start-recent li { display: flex; align-items: center; gap: 6px; }
+.recent-item { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; text-align: left; padding: 9px 12px; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; cursor: pointer; }
+.recent-item:hover:not(:disabled) { border-color: var(--accent); }
+.recent-item:disabled { cursor: default; opacity: .55; }
+.recent-item .muted { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.recent-name { font-weight: 600; font-family: var(--f-mono); }
+.start-recent .remove { visibility: hidden; }
+.start-recent li:hover .remove, .start-recent li.missing .remove { visibility: visible; }
+.tag { display: inline-block; margin-left: 6px; padding: 0 6px; border-radius: 3px; background: color-mix(in srgb, var(--accent) 20%, transparent); color: var(--accent); font: 600 10.5px var(--f-ui); text-transform: uppercase; letter-spacing: .06em; vertical-align: middle; }
+@media (max-width: 700px) { .start { grid-template-columns: 1fr; padding: 24px 16px; } }
