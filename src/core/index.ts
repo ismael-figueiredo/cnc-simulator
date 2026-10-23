@@ -1,0 +1,7 @@
+export * from './types'
+export * from './config/schema'
+export * from './config/load'
+export { parseProgram, type Block, type ParsedProgram } from './program/parse'
+export { Expr, MacroError, type MacroErrorKind, type Value, type VariableReader } from './macro/expr'
+export { DIAGNOSTIC_CODES, type DiagnosticCode } from './interp/diagnostics'
+export { simulate, toolRadiusFromComment, type SimulationInput, type SimulationOptions } from './interp/simulate'
