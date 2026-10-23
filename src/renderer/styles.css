@@ -62,6 +62,7 @@ button, select, input { font: inherit; color: inherit; }
 }
 .cnc-head, .cnc-status { display: flex; gap: 1.2em; padding: 2px 8px; background: var(--cnc-bar); color: var(--cnc-bar-ink); white-space: nowrap; }
 .cnc-head span:first-child { margin-right: auto; }
+.cnc-head .dim { color: #7f9bb5; }
 .cnc-status { background: #111619; color: var(--cnc-dim); }
 .cnc-status span:last-child { margin-left: auto; }
 .cnc-status .on { color: var(--cnc-on); }
@@ -155,3 +156,39 @@ button, select, input { font: inherit; color: inherit; }
 .panel-title .modes { display: flex; gap: 2px; }
 .btn.tiny.on { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
 .panel-title .dirty { color: var(--accent); }
+
+/* modal dialogs (tools, stock, work offsets) */
+.modal-backdrop { position: fixed; inset: 0; z-index: 20; display: grid; place-items: center; padding: 16px; background: rgba(5, 8, 10, .6); }
+.modal { width: min(1080px, 100%); max-height: calc(100vh - 32px); display: flex; flex-direction: column; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 20px 60px rgba(0, 0, 0, .45); overflow: hidden; }
+.modal > header, .modal > footer { display: flex; align-items: center; gap: 8px; padding: 10px 14px; border-bottom: 1px solid var(--line); }
+.modal > footer { border-top: 1px solid var(--line); border-bottom: 0; justify-content: flex-end; }
+.modal h2 { margin: 0; font-size: 15px; }
+.modal h3 { margin: 10px 0 6px; font-size: 11.5px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+.modal .spacer { flex: 1; }
+.modal label { display: flex; flex-direction: column; gap: 3px; font-size: 12px; color: var(--muted); }
+.modal input, .modal select { background: var(--raised); border: 1px solid var(--line); border-radius: 4px; padding: 5px 7px; color: var(--ink); min-width: 0; }
+.modal label.invalid input, .modal label.invalid select { border-color: var(--alarm); }
+.modal label small { color: var(--alarm); }
+.link { background: none; border: 0; padding: 2px 0; color: var(--ink); text-align: left; cursor: pointer; }
+.link:hover { color: var(--accent); }
+.block h2 { display: flex; align-items: center; gap: 6px; }
+.head-action { margin-left: auto; }
+
+.tool-body { flex: 1; min-height: 0; display: grid; grid-template-columns: 200px 260px minmax(0, 1fr); }
+.tool-body > section { min-height: 0; overflow: auto; padding: 10px 12px; border-right: 1px solid var(--line); }
+.tool-body > section:last-child { border-right: 0; }
+.lib-row { display: flex; align-items: center; gap: 4px; justify-content: space-between; font-size: 13px; }
+.tool-list ul { margin: 0 0 10px; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 3px; }
+.tool-list li button { width: 100%; display: flex; flex-direction: column; gap: 1px; padding: 6px 8px; text-align: left; background: var(--raised); border: 1px solid var(--line); border-radius: 5px; cursor: pointer; font-size: 13px; }
+.tool-list li button.on { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, var(--raised)); }
+.tool-list .muted { font-size: 11.5px; }
+.row { display: flex; gap: 6px; flex-wrap: wrap; }
+.tool-form { display: flex; gap: 16px; align-items: flex-start; }
+.tool-form .fields { flex: 1; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 12px; }
+.tool-form .preview { flex: none; display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 8px; background: #05080a; border-radius: 6px; }
+.tool-preview .shank { fill: #56616e; }
+.tool-preview .cutter { fill: #cfd8e0; stroke: #f2c418; stroke-width: 1; }
+.tool-preview .flute { stroke: #56616e; stroke-width: 1.5; }
+.tool-preview .dim { stroke: #6fd3ff; stroke-width: 1; }
+.tool-preview .dim-text { fill: #6fd3ff; font: 11px 'Share Tech Mono', monospace; }
+@media (max-width: 860px) { .tool-body { grid-template-columns: 1fr; } .tool-form { flex-direction: column; } }

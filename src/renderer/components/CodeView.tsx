@@ -93,6 +93,7 @@ export const CodeView = memo(function CodeView({ lines, currentLine, alarmLine, 
     <div className="cnc-screen" style={{ fontSize }}>
       <div className="cnc-head">
         <span>{t('cnc.program')}</span>
+        <span className="dim">{t('program.lines', { count: lines.length })}</span>
         <span>{oNumber}</span>
         <span>{sequenceAt(lines, currentLine)}</span>
       </div>

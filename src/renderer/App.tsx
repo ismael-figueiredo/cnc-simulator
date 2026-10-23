@@ -31,8 +31,10 @@ import { ProgramEditor, type EditorHandle } from './components/ProgramEditor'
 import { Player } from './components/Player'
 import { PositionPanel } from './components/PositionPanel'
 import { StartScreen } from './components/StartScreen'
+import { ToolEditor } from './components/ToolEditor'
 import { PATH_COLORS, Viewport3D } from './components/Viewport3D'
 import { useI18n } from './i18n'
+import { useLibraries } from './libraries'
 import { defaultSetup, projectData, setupFromProject, type Setup } from './project'
 import { useRecent } from './recent'
 import { buildTimeline, formatTime, fractionOf, moveAt, pointAlong, positionAlong, type Timeline } from './playback'
@@ -62,6 +64,7 @@ interface BundledConfigs {
   machines: Machine[]
   controls: Control[]
   library: ToolLibrary | null
+  libraries: ToolLibrary[]
   alarmCatalogs: AlarmCatalog[]
   issues: ConfigIssue[]
 }
@@ -85,7 +88,7 @@ function loadBundled(_lang: string): BundledConfigs {
   const controls = loadAll(controlFiles, loadControl).sort((a, b) => a.name.localeCompare(b.name))
   const libraries = loadAll(toolFiles, loadToolLibrary)
   const alarmCatalogs = loadAll(alarmFiles, loadAlarmCatalog)
-  return { machines, controls, library: libraries[0] ?? null, alarmCatalogs, issues }
+  return { machines, controls, library: libraries[0] ?? null, libraries, alarmCatalogs, issues }
 }
 
 interface Simulation {
@@ -158,6 +161,8 @@ export function App() {
   const [showRapids, setShowRapids] = useState(true)
   const [showStock, setShowStock] = useState(true)
   const fileInput = useRef<HTMLInputElement>(null)
+  const libraries = useLibraries()
+  const [editingTools, setEditingTools] = useState(false)
 
   const lines = useMemo(() => (program?.text ?? '').replace(/\r/g, '').split('\n'), [program])
   const tl = sim.timeline
@@ -336,6 +341,12 @@ export function App() {
   function changeControl(id: string) {
     setControlId(id)
     simulateWith(currentProgram(), machine, cfg.controls.find((x) => x.id === id))
+  }
+  function applyTools(lib: ToolLibrary) {
+    const s = { ...setup, tools: lib }
+    setSetup(s)
+    setEditingTools(false)
+    simulateWith(currentProgram(), machine, control, s)
   }
   async function pickProgram() {
     // Electron uses the native dialog; the browser (server mode) falls back to <input type=file>.
@@ -535,12 +546,11 @@ export function App() {
         <main className="layout" style={{ '--code-w': `${codeWidth}px` } as CSSProperties}>
           <section className="panel">
             <div className="panel-title">
-              <span className="file">
+              <span className="file" title={`${program.name} · ${t('program.lines', { count: lines.length })}`}>
                 {dirty && <span className="dirty" title={t('program.unsaved')}>● </span>}
                 {program.name}
+                {program === EXAMPLE && <span className="tag">{t('start.example')}</span>}
               </span>
-              {program === EXAMPLE && <span className="tag">{t('start.example')}</span>}
-              <span className="muted">{t('program.lines', { count: lines.length })}</span>
               <span className="modes" role="group">
                 <button className={`btn tiny ${mode === 'edit' ? 'on' : ''}`} title={t('mode.editHint')} onClick={() => setMode('edit')}>EDIT</button>
                 <button className={`btn tiny ${mode === 'mem' ? 'on' : ''}`} title={t('mode.memHint')} onClick={runMem}>MEM</button>
@@ -714,21 +724,34 @@ export function App() {
                 )}
               </div>
             )}
-            {setup.tools && (
-              <div className="block">
-                <h2>{t('tools.title')}</h2>
-                <ul className="list">
-                  {setup.tools.tools.map((tool) => (
-                    <li key={tool.number}>
-                      <b>T{String(tool.number).padStart(2, '0')}</b> {l(tool.name)}
-                      <span className="muted"> · {t('tools.radius', { radius: tool.diameter / 2 })} · {tool.holder ?? t('tools.noHolder')}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
+            <div className="block">
+              <h2>
+                {t('tools.title')}
+                <button className="btn tiny head-action" onClick={() => setEditingTools(true)}>{t('tools.edit')}</button>
+              </h2>
+              {!setup.tools?.tools.length && <p className="muted">{t('tools.none')}</p>}
+              <ul className="list">
+                {setup.tools?.tools.map((tool) => (
+                  <li key={tool.number}>
+                    <b>T{String(tool.number).padStart(2, '0')}</b> {l(tool.name)}
+                    <span className="muted"> · {t('tools.radius', { radius: tool.diameter / 2 })} · {tool.holder ?? t('tools.noHolder')}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
           </aside>
         </main>
+      )}
+      {editingTools && (
+        <ToolEditor
+          tools={setup.tools}
+          bundled={cfg.libraries}
+          user={libraries.user}
+          onSaveLibrary={libraries.save}
+          onDeleteLibrary={libraries.remove}
+          onApply={applyTools}
+          onClose={() => setEditingTools(false)}
+        />
       )}
     </div>
   )
