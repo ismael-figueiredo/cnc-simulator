@@ -336,7 +336,8 @@ export function App() {
       finalDiameter: t('template.finalDiameter')
     })
     const p = { name: `O${String(number).padStart(4, '0')}.nc`, path: '', text }
-    const s = { ...setup, workOffsets: {} }
+    // A new program starts from the machine's own setup: its stock and its default tools
+    const s = defaultSetup(machine, cfg.libraries)
     load(p, 'edit')
     setSetup(s)
     setProjectPath(null)
@@ -396,8 +397,11 @@ export function App() {
     const c = cfg.controls.find((x) => x.id === m?.defaultControl) ?? control
     setMachineId(id)
     if (c) setControlId(c.id)
-    // Another machine brings its own stock; tools and work offsets stay
-    const s = { ...setup, stock: defaultSetup(m, cfg.libraries).stock }
+    // Another machine brings its own stock; tools stay unless the machine kind changes
+    // (lathe tools on a machining center make no sense, and the other way round)
+    const kindOf = (x: Machine | undefined) => x?.kinematics.startsWith('lathe')
+    const own = defaultSetup(m, cfg.libraries)
+    const s = { ...setup, stock: own.stock, tools: kindOf(m) === kindOf(machine) ? setup.tools : own.tools }
     setSetup(s)
     simulateWith(currentProgram(), m, c, s)
   }
@@ -670,6 +674,12 @@ export function App() {
                 <button className={`btn tiny ${mode === 'edit' ? 'on' : ''}`} title={t('mode.editHint')} onClick={startEdit}>EDIT</button>
                 <button className={`btn tiny ${mode === 'mem' ? 'on' : ''}`} title={t('mode.memHint')} onClick={runMem}>MEM</button>
               </span>
+              <button className="btn tiny icon-btn" title={t('program.saveHint')} aria-label={t('program.saveHint')} onClick={() => void save(false)}>
+                <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden>
+                  <path d="M2 1.5h9.5L14.5 4.5V14a.5.5 0 0 1-.5.5H2a.5.5 0 0 1-.5-.5V2a.5.5 0 0 1 .5-.5Z" fill="none" stroke="currentColor" strokeWidth="1.3" />
+                  <path d="M4.5 1.5v4h6v-4M4 14.5V9.5h8v5" fill="none" stroke="currentColor" strokeWidth="1.3" />
+                </svg>
+              </button>
               <span className="zoom">
                 <button className="btn tiny" title={t('code.smaller')} aria-label={t('code.smaller')} onClick={() => changeFont(-0.5)}>A−</button>
                 <button className="btn tiny" title={t('code.larger')} aria-label={t('code.larger')} onClick={() => changeFont(0.5)}>A+</button>
@@ -774,7 +784,8 @@ export function App() {
               <p className="muted">
                 {projectPath ? projectPath.slice(Math.max(projectPath.lastIndexOf('/'), projectPath.lastIndexOf('\\'), projectPath.indexOf(':')) + 1) : t('project.none')}
               </p>
-              <button className="btn" onClick={() => void saveProject(false)}>{t(projectPath ? 'project.save' : 'project.create')}</button>
+              <button className="btn" title={t('project.explain')} onClick={() => void saveProject(false)}>{t(projectPath ? 'project.save' : 'project.create')}</button>
+              <p className="muted small">{t('project.explain')}</p>
             </div>
             <div className="block">
               <h2>{t('position.title')}</h2>
