@@ -1,0 +1,16 @@
+{
+  "typescript.tsdk": "node_modules/typescript/lib",
+  "typescript.enablePromptUseWorkspaceTsdk": true,
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": "explicit"
+  },
+  "eslint.validate": ["javascript", "typescript", "typescriptreact"],
+  "files.associations": {
+    "*.nc": "plaintext",
+    "*.tap": "plaintext"
+  },
+  "files.exclude": {
+    "out": true,
+    "dist": true
+  }
+}

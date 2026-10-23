@@ -1,0 +1,13 @@
+node_modules/
+out/
+dist/
+*.log
+.DS_Store
+*.tsbuildinfo
+
+# Material de terceiros e programas de clientes (ficam só no disco)
+docs/manuals/
+Pós processadores/
+/*.NC
+/*.nc
+/*.txt
