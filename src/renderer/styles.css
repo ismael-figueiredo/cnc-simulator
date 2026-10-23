@@ -231,3 +231,5 @@ button, select, input { font: inherit; color: inherit; }
 .new-program-body label { max-width: 220px; }
 @media (max-width: 560px) { .kinds { grid-template-columns: 1fr; } }
 .edit-note { position: absolute; left: 50%; bottom: 30px; transform: translateX(-50%); max-width: calc(100% - 20px); padding: 5px 12px; border-radius: 4px; background: rgba(19, 50, 79, .92); color: #d6e6f5; font-size: 12px; pointer-events: none; }
+.btn.icon-btn { display: inline-flex; align-items: center; padding: 2px 6px; }
+.muted.small { font-size: 11.5px; }
