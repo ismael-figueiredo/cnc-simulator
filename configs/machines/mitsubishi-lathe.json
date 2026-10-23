@@ -1,0 +1,55 @@
+{
+  "id": "mitsubishi-lathe",
+  "name": "Mitsubishi M80 lathe (generic)",
+  "manufacturer": "Mitsubishi",
+  "type": "lathe",
+  "kinematics": "lathe-xz",
+  "axes": [
+    {
+      "name": "X",
+      "type": "linear",
+      "min": -2,
+      "max": 400,
+      "rapid": 20000,
+      "diameter": true
+    },
+    {
+      "name": "Z",
+      "type": "linear",
+      "min": -600,
+      "max": 10,
+      "rapid": 24000
+    }
+  ],
+  "spindles": [
+    {
+      "id": "S1",
+      "name": {
+        "en": "Main spindle",
+        "pt-BR": "Placa",
+        "es": "Husillo principal"
+      },
+      "type": "main",
+      "maxRpm": 4000
+    }
+  ],
+  "turret": {
+    "positions": 12,
+    "type": "disc"
+  },
+  "toolChangePosition": {
+    "X": 300,
+    "Z": 200
+  },
+  "defaultControl": "mitsubishi-m80-lathe-list3",
+  "notes": {
+    "en": "Generic machine for the Mitsubishi M800/M80 control: replace axes, travels and speeds with the real machine data. The control files assume decimal point type I (#1078 Decpt2 = 0: X1 = 0.001 mm).",
+    "pt-BR": "Máquina genérica para o comando Mitsubishi M800/M80: troque eixos, cursos e rotações pelos dados da máquina real. Os comandos assumem ponto decimal tipo I (#1078 Decpt2 = 0: X1 = 0,001 mm).",
+    "es": "Máquina genérica para el control Mitsubishi M800/M80: reemplace ejes, recorridos y velocidades por los datos de la máquina real. Los controles asumen punto decimal tipo I (#1078 Decpt2 = 0: X1 = 0,001 mm)."
+  },
+  "defaultStock": {
+    "shape": "cylinder",
+    "diameter": 80,
+    "length": 80
+  }
+}

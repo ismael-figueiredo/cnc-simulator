@@ -1,0 +1,45 @@
+{
+  "id": "sample-library",
+  "name": { "en": "O1500 tools (ANSI 40 sprocket)", "pt-BR": "Ferramentas do O1500 (coroa ANSI 40)", "es": "Herramientas del O1500 (piñón ANSI 40)" },
+  "units": "mm",
+  "holders": [
+    {
+      "id": "bmt-axial-er20",
+      "name": { "en": "BMT axial driven holder ER20", "pt-BR": "Suporte acionado axial BMT ER20", "es": "Portaherramientas motorizado axial BMT ER20" },
+      "standard": "BMT55",
+      "driven": true,
+      "orientation": "axial",
+      "profile": [[27, 0], [27, 40], [17, 40], [17, 70], [11, 70], [11, 90]]
+    },
+    {
+      "id": "bt40-er32",
+      "name": { "en": "BT40 taper with ER32 collet", "pt-BR": "Cone BT40 com pinça ER32", "es": "Cono BT40 con pinza ER32" },
+      "standard": "BT40",
+      "profile": [[31.75, 0], [31.75, 27], [25, 27], [25, 60], [20, 60], [20, 75]]
+    }
+  ],
+  "tools": [
+    {
+      "number": 1,
+      "offset": 1,
+      "name": { "en": "Ø8 flat endmill (relief)", "pt-BR": "Fresa de topo Ø8 (alívio)", "es": "Fresa plana Ø8 (alivio)" },
+      "type": "flat-endmill",
+      "diameter": 8,
+      "length": 40,
+      "fluteLength": 19,
+      "flutes": 3,
+      "holder": "bmt-axial-er20"
+    },
+    {
+      "number": 2,
+      "offset": 2,
+      "name": { "en": "Ø6 flat endmill (profile)", "pt-BR": "Fresa de topo Ø6 (perfil)", "es": "Fresa plana Ø6 (perfil)" },
+      "type": "flat-endmill",
+      "diameter": 6,
+      "length": 35,
+      "fluteLength": 13,
+      "flutes": 4,
+      "holder": "bmt-axial-er20"
+    }
+  ]
+}

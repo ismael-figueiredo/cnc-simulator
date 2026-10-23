@@ -1,0 +1,63 @@
+{
+  "id": "romi-d1000",
+  "name": "Romi D1000",
+  "manufacturer": "Romi",
+  "type": "machining-center",
+  "kinematics": "mill-xyz",
+  "axes": [
+    {
+      "name": "X",
+      "type": "linear",
+      "min": 0,
+      "max": 1000,
+      "rapid": 30000
+    },
+    {
+      "name": "Y",
+      "type": "linear",
+      "min": 0,
+      "max": 600,
+      "rapid": 30000
+    },
+    {
+      "name": "Z",
+      "type": "linear",
+      "min": -600,
+      "max": 0,
+      "rapid": 30000
+    }
+  ],
+  "spindles": [
+    {
+      "id": "S1",
+      "name": {
+        "en": "Spindle",
+        "pt-BR": "Eixo-árvore",
+        "es": "Husillo"
+      },
+      "type": "spindle",
+      "maxRpm": 10000
+    }
+  ],
+  "turret": {
+    "positions": 24,
+    "type": "changer"
+  },
+  "toolChangePosition": {
+    "X": 0,
+    "Y": 0,
+    "Z": 250
+  },
+  "defaultControl": "fanuc-0i-mf-romi-d",
+  "notes": {
+    "en": "Manual U57998C — linha D800/D1000/D1250, Fanuc 0i-MF. The manual does not state the rapid rate. Travels, maximum spindle speed and magazine size are reference values not given in the programming manual: check them on the machine plate. The optional 4th axis (A) is not included.",
+    "pt-BR": "Manual U57998C — linha D800/D1000/D1250, Fanuc 0i-MF. O manual não informa o avanço rápido. Cursos, rotação máxima e tamanho do magazine são valores de referência que o manual de programação não traz: conferir na placa da máquina. O 4º eixo (A), opcional, não está incluído.",
+    "es": "Manual U57998C — linha D800/D1000/D1250, Fanuc 0i-MF. El manual no indica el avance rápido. Recorridos, velocidad máxima y tamaño del almacén son valores de referencia que el manual de programación no trae: verificar en la placa de la máquina. El 4º eje (A), opcional, no está incluido."
+  },
+  "defaultStock": {
+    "shape": "block",
+    "x": 200,
+    "y": 150,
+    "z": 50
+  }
+}

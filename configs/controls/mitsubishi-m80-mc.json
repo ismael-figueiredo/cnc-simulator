@@ -1,0 +1,367 @@
+{
+  "id": "mitsubishi-m80-mc",
+  "name": "Mitsubishi M800/M80 machining center",
+  "family": "mitsubishi",
+  "machineType": "mill",
+  "dialect": {
+    "gCodeSystem": "M",
+    "decimalPoint": "standard",
+    "xDiameter": false,
+    "macro": "fanuc-b",
+    "comment": "parentheses",
+    "integerAddressDecimal": "ignore"
+  },
+  "gCodes": {
+    "G00": {
+      "function": "rapid"
+    },
+    "G01": {
+      "function": "linear"
+    },
+    "G02": {
+      "function": "arc-cw"
+    },
+    "G03": {
+      "function": "arc-ccw"
+    },
+    "G04": {
+      "function": "dwell"
+    },
+    "G07.1": {
+      "function": "cylindrical"
+    },
+    "G09": {
+      "function": "other"
+    },
+    "G10": {
+      "function": "not-simulated"
+    },
+    "G11": {
+      "function": "other"
+    },
+    "G12": {
+      "function": "circle-cutting",
+      "description": {
+        "en": "Circle cutting clockwise",
+        "pt-BR": "Corte circular horário",
+        "es": "Corte circular horario"
+      }
+    },
+    "G12.1": {
+      "function": "polar-on"
+    },
+    "G13": {
+      "function": "circle-cutting",
+      "description": {
+        "en": "Circle cutting counter-clockwise",
+        "pt-BR": "Corte circular anti-horário",
+        "es": "Corte circular antihorario"
+      }
+    },
+    "G13.1": {
+      "function": "polar-off"
+    },
+    "G15": {
+      "function": "polar-coords-off"
+    },
+    "G16": {
+      "function": "polar-coords-on"
+    },
+    "G17": {
+      "function": "plane-xy"
+    },
+    "G18": {
+      "function": "plane-zx"
+    },
+    "G19": {
+      "function": "plane-yz"
+    },
+    "G20": {
+      "function": "inch"
+    },
+    "G21": {
+      "function": "metric"
+    },
+    "G27": {
+      "function": "other"
+    },
+    "G28": {
+      "function": "reference-return"
+    },
+    "G29": {
+      "function": "not-simulated"
+    },
+    "G30": {
+      "function": "reference-return"
+    },
+    "G30.1": {
+      "function": "not-simulated"
+    },
+    "G31": {
+      "function": "not-simulated"
+    },
+    "G33": {
+      "function": "not-simulated",
+      "description": {
+        "en": "Thread cutting",
+        "pt-BR": "Corte de rosca",
+        "es": "Roscado"
+      }
+    },
+    "G34": {
+      "function": "not-simulated",
+      "description": {
+        "en": "Bolt hole circle",
+        "pt-BR": "Círculo de furos",
+        "es": "Círculo de agujeros"
+      }
+    },
+    "G35": {
+      "function": "not-simulated"
+    },
+    "G36": {
+      "function": "not-simulated"
+    },
+    "G37": {
+      "function": "not-simulated"
+    },
+    "G38": {
+      "function": "other"
+    },
+    "G39": {
+      "function": "other"
+    },
+    "G40": {
+      "function": "cutter-comp-cancel"
+    },
+    "G41": {
+      "function": "cutter-comp-left"
+    },
+    "G42": {
+      "function": "cutter-comp-right"
+    },
+    "G43": {
+      "function": "tool-length-comp"
+    },
+    "G44": {
+      "function": "tool-length-comp"
+    },
+    "G49": {
+      "function": "tool-length-comp-cancel"
+    },
+    "G50": {
+      "function": "other"
+    },
+    "G50.1": {
+      "function": "mirror-off"
+    },
+    "G51": {
+      "function": "not-simulated",
+      "description": {
+        "en": "Scaling",
+        "pt-BR": "Escala",
+        "es": "Escala"
+      }
+    },
+    "G51.1": {
+      "function": "mirror-on"
+    },
+    "G52": {
+      "function": "local-coords"
+    },
+    "G53": {
+      "function": "machine-coords"
+    },
+    "G54": {
+      "function": "work-offset"
+    },
+    "G54.1": {
+      "function": "work-offset"
+    },
+    "G55": {
+      "function": "work-offset"
+    },
+    "G56": {
+      "function": "work-offset"
+    },
+    "G57": {
+      "function": "work-offset"
+    },
+    "G58": {
+      "function": "work-offset"
+    },
+    "G59": {
+      "function": "work-offset"
+    },
+    "G60": {
+      "function": "not-simulated"
+    },
+    "G61": {
+      "function": "other"
+    },
+    "G62": {
+      "function": "other"
+    },
+    "G63": {
+      "function": "other"
+    },
+    "G64": {
+      "function": "other"
+    },
+    "G65": {
+      "function": "macro-call"
+    },
+    "G66": {
+      "function": "macro-modal"
+    },
+    "G66.1": {
+      "function": "macro-modal"
+    },
+    "G67": {
+      "function": "macro-modal-cancel"
+    },
+    "G68": {
+      "function": "rotation-on"
+    },
+    "G69": {
+      "function": "rotation-off"
+    },
+    "G73": {
+      "function": "peck-drill"
+    },
+    "G74": {
+      "function": "tap"
+    },
+    "G76": {
+      "function": "bore"
+    },
+    "G80": {
+      "function": "canned-cycle-cancel"
+    },
+    "G81": {
+      "function": "drill"
+    },
+    "G82": {
+      "function": "drill"
+    },
+    "G83": {
+      "function": "peck-drill"
+    },
+    "G84": {
+      "function": "tap"
+    },
+    "G85": {
+      "function": "bore"
+    },
+    "G86": {
+      "function": "bore"
+    },
+    "G87": {
+      "function": "bore"
+    },
+    "G88": {
+      "function": "bore"
+    },
+    "G89": {
+      "function": "bore"
+    },
+    "G90": {
+      "function": "absolute"
+    },
+    "G91": {
+      "function": "incremental"
+    },
+    "G92": {
+      "function": "set-origin"
+    },
+    "G94": {
+      "function": "feed-per-minute"
+    },
+    "G95": {
+      "function": "feed-per-rev"
+    },
+    "G96": {
+      "function": "constant-surface-speed"
+    },
+    "G97": {
+      "function": "constant-rpm"
+    },
+    "G98": {
+      "function": "return-initial"
+    },
+    "G99": {
+      "function": "return-r"
+    }
+  },
+  "mCodes": {
+    "M00": {
+      "function": "stop"
+    },
+    "M01": {
+      "function": "optional-stop"
+    },
+    "M02": {
+      "function": "end"
+    },
+    "M30": {
+      "function": "end-rewind"
+    },
+    "M03": {
+      "function": "spindle-cw"
+    },
+    "M04": {
+      "function": "spindle-ccw"
+    },
+    "M05": {
+      "function": "spindle-stop"
+    },
+    "M08": {
+      "function": "coolant-on"
+    },
+    "M09": {
+      "function": "coolant-off"
+    },
+    "M19": {
+      "function": "other",
+      "description": {
+        "en": "Spindle orientation (machine maker)",
+        "pt-BR": "Orientação do fuso (fabricante da máquina)",
+        "es": "Orientación del husillo (fabricante)"
+      }
+    },
+    "M98": {
+      "function": "subprogram-call"
+    },
+    "M99": {
+      "function": "subprogram-return"
+    },
+    "M198": {
+      "function": "subprogram-call"
+    },
+    "M06": {
+      "function": "tool-change"
+    }
+  },
+  "alarms": "mitsubishi-m800",
+  "fileFormat": {
+    "startPercent": true,
+    "endPercent": true,
+    "eob": "newline",
+    "missingEob": "off",
+    "programNumber": "required",
+    "requireDecimalPoint": false
+  },
+  "limits": {
+    "maxDigits": 8,
+    "maxValue": 99999.999,
+    "subprogramNesting": 10,
+    "macroNesting": 4,
+    "bracketNesting": 5,
+    "loopIds": 27,
+    "maxSequenceNumber": 99999,
+    "maxProgramNumber": 99999999,
+    "compNoMoveBlocks": 4,
+    "arcTolerance": 0.02,
+    "toolOffsets": 400
+  }
+}

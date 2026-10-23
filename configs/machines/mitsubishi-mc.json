@@ -1,0 +1,63 @@
+{
+  "id": "mitsubishi-mc",
+  "name": "Mitsubishi M80 machining center (generic)",
+  "manufacturer": "Mitsubishi",
+  "type": "machining-center",
+  "kinematics": "mill-xyz",
+  "axes": [
+    {
+      "name": "X",
+      "type": "linear",
+      "min": 0,
+      "max": 800,
+      "rapid": 30000
+    },
+    {
+      "name": "Y",
+      "type": "linear",
+      "min": 0,
+      "max": 500,
+      "rapid": 30000
+    },
+    {
+      "name": "Z",
+      "type": "linear",
+      "min": -500,
+      "max": 0,
+      "rapid": 24000
+    }
+  ],
+  "spindles": [
+    {
+      "id": "S1",
+      "name": {
+        "en": "Spindle",
+        "pt-BR": "Eixo-árvore",
+        "es": "Husillo"
+      },
+      "type": "spindle",
+      "maxRpm": 10000
+    }
+  ],
+  "turret": {
+    "positions": 24,
+    "type": "changer"
+  },
+  "toolChangePosition": {
+    "X": 0,
+    "Y": 0,
+    "Z": 250
+  },
+  "defaultControl": "mitsubishi-m80-mc",
+  "notes": {
+    "en": "Generic machine for the Mitsubishi M800/M80 control: replace axes, travels and speeds with the real machine data. The control files assume decimal point type I (#1078 Decpt2 = 0: X1 = 0.001 mm).",
+    "pt-BR": "Máquina genérica para o comando Mitsubishi M800/M80: troque eixos, cursos e rotações pelos dados da máquina real. Os comandos assumem ponto decimal tipo I (#1078 Decpt2 = 0: X1 = 0,001 mm).",
+    "es": "Máquina genérica para el control Mitsubishi M800/M80: reemplace ejes, recorridos y velocidades por los datos de la máquina real. Los controles asumen punto decimal tipo I (#1078 Decpt2 = 0: X1 = 0,001 mm)."
+  },
+  "defaultStock": {
+    "shape": "block",
+    "x": 150,
+    "y": 100,
+    "z": 40
+  }
+}

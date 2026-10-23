@@ -1,0 +1,16 @@
+{
+  "id": "mill-3axis",
+  "name": "Generic 3-axis machining center",
+  "type": "machining-center",
+  "kinematics": "mill-xyz",
+  "axes": [
+    { "name": "X", "type": "linear", "min": 0, "max": 800, "rapid": 36000 },
+    { "name": "Y", "type": "linear", "min": 0, "max": 500, "rapid": 36000 },
+    { "name": "Z", "type": "linear", "min": -500, "max": 0, "rapid": 30000 }
+  ],
+  "spindles": [{ "id": "S1", "name": { "en": "Spindle", "pt-BR": "Árvore", "es": "Husillo" }, "type": "spindle", "maxRpm": 10000 }],
+  "turret": { "positions": 24, "type": "changer" },
+  "toolChangePosition": { "X": 0, "Y": 0, "Z": 0 },
+  "defaultControl": "fanuc-0i-mf",
+  "defaultStock": { "shape": "block", "x": 100, "y": 80, "z": 30 }
+}

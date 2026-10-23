@@ -1,0 +1,20 @@
+{
+  "id": "romi-gl250-m",
+  "name": "Romi GL 250 M",
+  "manufacturer": "Romi",
+  "type": "mill-turn",
+  "kinematics": "lathe-xzc",
+  "axes": [
+    { "name": "X", "type": "linear", "min": -2, "max": 400, "rapid": 30000, "diameter": true },
+    { "name": "Z", "type": "linear", "min": -600, "max": 10, "rapid": 30000 },
+    { "name": "C", "type": "rotary", "min": -99999, "max": 99999, "rapid": 18000, "direction": 1 }
+  ],
+  "spindles": [
+    { "id": "S1", "name": { "en": "Main spindle", "pt-BR": "Placa", "es": "Husillo principal" }, "type": "main", "maxRpm": 4000 },
+    { "id": "S2", "name": { "en": "Live tool", "pt-BR": "Ferramenta acionada", "es": "Herramienta motorizada" }, "type": "live", "maxRpm": 4500 }
+  ],
+  "turret": { "positions": 12, "type": "BMT" },
+  "toolChangePosition": { "X": 300, "Z": 200 },
+  "defaultControl": "fanuc-0i-tf-system-b",
+  "defaultStock": { "shape": "cylinder", "diameter": 67.37, "length": 30 }
+}
