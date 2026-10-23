@@ -22,6 +22,7 @@ import {
   type Diagnostic,
   type Machine,
   type Severity,
+  type Stock,
   type ToolLibrary
 } from '@core/index'
 import { LANGUAGES, isLanguage } from '@i18n/index'
@@ -31,11 +32,12 @@ import { ProgramEditor, type EditorHandle } from './components/ProgramEditor'
 import { Player } from './components/Player'
 import { PositionPanel } from './components/PositionPanel'
 import { StartScreen } from './components/StartScreen'
+import { StockEditor } from './components/StockEditor'
 import { ToolEditor } from './components/ToolEditor'
 import { PATH_COLORS, Viewport3D } from './components/Viewport3D'
 import { useI18n } from './i18n'
 import { useLibraries } from './libraries'
-import { defaultSetup, projectData, setupFromProject, type Setup } from './project'
+import { defaultSetup, projectData, setupFromProject, STOCK_COLOR, type Setup } from './project'
 import { useRecent } from './recent'
 import { buildTimeline, formatTime, fractionOf, moveAt, pointAlong, positionAlong, type Timeline } from './playback'
 
@@ -163,6 +165,7 @@ export function App() {
   const fileInput = useRef<HTMLInputElement>(null)
   const libraries = useLibraries()
   const [editingTools, setEditingTools] = useState(false)
+  const [editingStock, setEditingStock] = useState(false)
 
   const lines = useMemo(() => (program?.text ?? '').replace(/\r/g, '').split('\n'), [program])
   const tl = sim.timeline
@@ -341,6 +344,11 @@ export function App() {
   function changeControl(id: string) {
     setControlId(id)
     simulateWith(currentProgram(), machine, cfg.controls.find((x) => x.id === id))
+  }
+  function applyStock(stock: Stock) {
+    // The stock is only drawn for now (no material removal), so the simulation stays as is
+    setSetup({ ...setup, stock })
+    setEditingStock(false)
   }
   function applyTools(lib: ToolLibrary) {
     const s = { ...setup, tools: lib }
@@ -726,6 +734,23 @@ export function App() {
             )}
             <div className="block">
               <h2>
+                {t('stock.title')}
+                <button className="btn tiny head-action" onClick={() => setEditingStock(true)}>{t('tools.edit')}</button>
+              </h2>
+              {setup.stock ? (
+                <p className="stock-summary">
+                  <i style={{ background: setup.stock.color ?? STOCK_COLOR }} />
+                  {setup.stock.shape === 'cylinder'
+                    ? t('stock.summaryCylinder', { diameter: setup.stock.diameter ?? 0, length: setup.stock.length ?? 0 })
+                    : t('stock.summaryBlock', { x: setup.stock.x ?? 0, y: setup.stock.y ?? 0, z: setup.stock.z ?? 0 })}
+                  <span className="muted"> · {setup.stock.workOffset ?? 'G54'}</span>
+                </p>
+              ) : (
+                <p className="muted">{t('stock.none')}</p>
+              )}
+            </div>
+            <div className="block">
+              <h2>
                 {t('tools.title')}
                 <button className="btn tiny head-action" onClick={() => setEditingTools(true)}>{t('tools.edit')}</button>
               </h2>
@@ -741,6 +766,16 @@ export function App() {
             </div>
           </aside>
         </main>
+      )}
+      {editingStock && machine && (
+        <StockEditor
+          stock={setup.stock}
+          machineDefault={defaultSetup(machine, null).stock}
+          lathe={machineKind === 'lathe'}
+          workOffsets={Object.keys(setup.workOffsets)}
+          onApply={applyStock}
+          onClose={() => setEditingStock(false)}
+        />
       )}
       {editingTools && (
         <ToolEditor

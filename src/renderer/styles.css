@@ -192,3 +192,16 @@ button, select, input { font: inherit; color: inherit; }
 .tool-preview .dim { stroke: #6fd3ff; stroke-width: 1; }
 .tool-preview .dim-text { fill: #6fd3ff; font: 11px 'Share Tech Mono', monospace; }
 @media (max-width: 860px) { .tool-body { grid-template-columns: 1fr; } .tool-form { flex-direction: column; } }
+
+/* stock */
+.stock-editor { width: min(560px, 100%); }
+.stock-body { padding: 12px 14px; overflow: auto; display: flex; flex-direction: column; gap: 10px; }
+.stock-body .fields { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px 12px; }
+.stock-body h3 { margin: 6px 0 0; }
+.swatches { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.swatch { width: 30px; height: 30px; border-radius: 50%; border: 2px solid var(--line); cursor: pointer; }
+.swatch.on { border-color: var(--accent); box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 40%, transparent); }
+.custom-color { flex-direction: row !important; align-items: center; gap: 6px !important; cursor: pointer; }
+.custom-color input { width: 34px; height: 30px; padding: 0 2px; }
+.stock-summary { display: flex; align-items: center; gap: 6px; font-size: 13px; }
+.stock-summary i { width: 14px; height: 14px; border-radius: 50%; border: 1px solid var(--line); flex: none; }
