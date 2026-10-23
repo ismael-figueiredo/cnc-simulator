@@ -24,7 +24,8 @@ Os instaladores de cada versão estão na **[página de Releases](https://github
 - **Roda o G-code como o comando:** dialetos Fanuc e Mitsubishi em JSON, Macro B (variáveis, IF/WHILE/GOTO, G65), subprogramas, ciclos fixos, interpolação polar G12.1 e compensação de raio G41/G42 desenhada no centro da ferramenta.
 - **Programas parametrizados (Macro B):** variáveis, contas e IF/GOTO/WHILE rodam como no comando, em todas as máquinas incluídas (todos os comandos delas têm a opção de macro). G-code comum e os ciclos fixos do próprio comando também; os exemplos têm os dois.
 - **Para nos alarmes da máquina:** erros de programa param no bloco com o número e a mensagem do próprio comando (por exemplo `PS0010 IMPROPER G-CODE`).
-- **Tela de programa como a do comando:** tela MEM estilo Fanuc com o bloco em execução, números O e N e estado de execução. **EDIT** vira um editor (cores, desfazer, buscar e substituir).
+- **Tela de programa como a do comando:** tela MEM estilo Fanuc com o bloco em execução, números O e N e estado de execução. **EDIT** vira um editor (cores, desfazer, buscar e substituir); ele para o programa que estiver rodando, e o percurso, as mensagens e os alarmes acompanham o texto enquanto você digita.
+- **Chanfro e raio de canto automáticos:** `,C` e `,R` em qualquer ângulo, com o arco tangente seguido pela compensação de raio, e os alarmes do comando quando não dá para fazer. No torno também aceita `C`/`R` sem vírgula (opção `cornerWithoutComma` do comando).
 - **Projetos (`.cncsim`):** guardam o programa com máquina, comando, ferramentas, blank e zeros, para reabrir ou enviar o trabalho inteiro.
 - **Ferramentas em 3D:** cada ferramenta é desenhada pelo tipo e pelas medidas, com o suporte (cones BT40, pinças ER, suportes acionados) e o nariz do fuso em transparência no centro de usinagem. As de tornear mostram o inserto ISO, externas ou internas, direita ou esquerda.
 - **Possíveis colisões:** quando o suporte entra no blank (a ferramenta está pouco para fora para a profundidade), o bloco aparece nas mensagens e o suporte fica vermelho.
@@ -40,7 +41,7 @@ Os instaladores de cada versão estão na **[página de Releases](https://github
 1. **Tela inicial:** abra um programa (`.nc`, `.tap`, `.txt`…) ou um projeto, crie um programa novo ou abra um dos **Exemplos**: coroa ANSI 40 num Romi GL 250 M com ferramenta acionada, uma placa de alumínio e um trabalho em duas morsas num centro de usinagem Romi D600. Os arquivos recentes ficam aqui e em **Arquivo → Abrir recente**.
 2. **Escolha a máquina e o comando** no topo. Um programa aberto sozinho usa o blank da máquina e as ferramentas padrão.
 3. **Execute:** o programa abre em RESET, com o cursor no primeiro bloco, como no comando. **▶ Executar** roda; ◀ e ▶| andam bloco a bloco; **RESET** volta ao início e ⏭ vai ao fim. **Clique num bloco para começar dele.** Mensagens e alarmes ficam à direita; clique numa para ir ao bloco.
-4. **EDIT / MEM:** EDIT altera o programa; MEM roda como está. **Arquivo → Salvar** (Ctrl/⌘+S) grava.
+4. **EDIT / MEM:** EDIT altera o programa e para a execução se estiver rodando; enquanto você digita, o percurso e as mensagens são recalculados (o programa volta para RESET). MEM roda como está. **Arquivo → Salvar** (Ctrl/⌘+S) grava.
 5. **Preparação:** no painel da direita, edite o **Blank**, os **Zeros de peça** e as **Ferramentas** e use **Salvar como projeto** para guardar tudo num `.cncsim` ao lado do programa.
 
 ### Programação parametrizada (Macro B)
@@ -129,6 +130,7 @@ Depois de uma mudança visível na interface, rode `npm run demo` e faça o comm
 Cada família de comando tem o seu catálogo de alarmes em `configs/alarms/`, e o JSON do comando aponta para ele com `"alarms"`. O catálogo da Fanuc 0i traz os alarmes de programa (P/S) do manual de manutenção, com o número e a mensagem da tela.
 - **Verificação mapeada:** vira o alarme da máquina, como `PS0010 IMPROPER G-CODE`, e **para o programa naquele bloco**.
 - **Na tela:** o programa mostra a linha do alarme em vermelho e uma faixa sobre a vista 3D.
+- **Chanfro e raio de canto (`,C` `,R`):** `PS0051` sem movimento depois, `PS0052` bloco seguinte não é G01/G02/G03, `PS0053` os dois no mesmo bloco, `PS0054` cone depois de canto sem vírgula, `PS0055` canto maior que um dos movimentos. Esses cinco números vêm da lista de alarmes da série 0i e ainda precisam ser confirmados no manual de manutenção.
 - **Arquivo e limites:** o formato (`%` no início e no fim, `;` de fim de bloco, número do programa, ponto decimal obrigatório) e os limites (dígitos, aninhamento, número de corretores…) ficam no JSON do comando, como parâmetros.
 
 ## Idiomas
