@@ -1,6 +1,7 @@
 // Tool and holder geometry for the 3D view, and a holder-versus-stock check.
 // Pure functions: the renderer draws what they return and the tests check it.
 import type { Stock } from './config/project'
+import { stockOrigin } from './removal'
 import type { Holder, Tool, ToolLibrary } from './config/schema'
 import type { Move, Vec3 } from './types'
 
@@ -193,4 +194,61 @@ function intrusion(p: Vec3, mount: ToolMount, length: number, hr: number, s: Sto
     return inBar ? R - (r + length) : 0
   }
   return r < R + hr ? o[2] - (z + length) : 0
+}
+
+/** Three-jaw chuck around the bar: jaws grip the last part of the stock, the body sits behind them. */
+export interface ChuckGeometry {
+  /** Z of the chuck face (jaws start here and reach `grip` mm toward the part face). */
+  face: number
+  grip: number
+  barRadius: number
+  /** Outer radius of the jaws and of the chuck body. */
+  jawOuter: number
+  bodyRadius: number
+}
+
+export function chuckGeometry(s: Stock, zero: Vec3): ChuckGeometry {
+  const o = stockOrigin(s, zero)
+  const R = (s.diameter ?? 50) / 2
+  const L = s.length ?? 30
+  const grip = Math.min(L * 0.4, 25)
+  const jaw = Math.min(30, Math.max(12, R * 0.6))
+  // The bar ends at the chuck face; the jaws hold its last `grip` mm
+  return { face: o[2] - L, grip, barRadius: R, jawOuter: R + jaw, bodyRadius: R + jaw + 18 }
+}
+
+export interface ChuckCollision {
+  moveIndex: number
+  line: number
+  tool: number
+  /** Z where the tool reaches the jaws or the chuck body. */
+  z: number
+}
+
+/**
+ * Tool tip against the chuck: inside the jaws' reach over the gripped length, or past the chuck face.
+ * Jaw angles are not followed, so these are possible collisions, one per tool and block.
+ */
+export function findChuckCollisions(moves: readonly Move[], s: Stock | null, zero: Vec3): ChuckCollision[] {
+  if (s?.shape !== 'cylinder') return []
+  const c = chuckGeometry(s, zero)
+  const out: ChuckCollision[] = []
+  const seen = new Set<string>()
+  moves.forEach((m, k) => {
+    if (m.kind === 'dwell') return
+    for (const [x, y, z] of m.points.slice(1)) {
+      const r = Math.hypot(x, y)
+      // Near the axis (drills, bores) the tool works inside the bar, clear of the jaws
+      const jaws = z < c.face + c.grip && r < c.jawOuter + m.toolRadius && r + m.toolRadius > c.barRadius * 0.5
+      const body = z < c.face && r < c.bodyRadius + m.toolRadius
+      if (!jaws && !body) continue
+      const key = `${m.state.tool}|${m.line}`
+      if (!seen.has(key)) {
+        seen.add(key)
+        out.push({ moveIndex: k, line: m.line, tool: m.state.tool, z: Math.round(z * 1000) / 1000 })
+      }
+      return
+    }
+  })
+  return out
 }
