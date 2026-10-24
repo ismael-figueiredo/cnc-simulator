@@ -114,20 +114,32 @@ export function takeDirty(h: Heightfield): [number, number, number, number] | nu
   return d
 }
 
+/** A cut this close to the axis has faced the bar: the material in front of it is gone. */
+const FACED_TO_CENTER = 0.5
+
 /** Turning: the programmed radius becomes the bar radius where the tip passes (spindle turning, no live tool). */
 export function cutProfile(p: TurnProfile, m: Move): boolean {
   if (m.kind !== 'feed' || m.state.liveToolOn || !m.state.spindleOn) return false
   let changed = false
+  /** Deepest slice the move faces down to the center: nothing can be left in front of it. */
+  let faced = -1
   // The programmed point is the turned surface (nose radius compensation is not drawn on lathes)
   for (const [x, y, z] of samples(m.points, p.cell)) {
     const i = Math.round((p.face - z) / p.cell)
-    if (i < 0 || i >= p.radii.length) continue
+    if (i >= p.radii.length) continue
     const r = Math.hypot(x, y)
-    if (r < (p.radii[i] ?? p.radius)) {
+    if (i >= 0 && r < (p.radii[i] ?? p.radius)) {
       p.radii[i] = r
       changed = true
     }
+    if (r <= FACED_TO_CENTER) faced = Math.max(faced, Math.min(i, p.radii.length - 1))
   }
+  // Facing to the center at Z0 on a bar whose face is at Z1 takes the whole 1 mm off, not one slice
+  for (let i = 0; i < faced; i++)
+    if ((p.radii[i] ?? 0) > 0) {
+      p.radii[i] = 0
+      changed = true
+    }
   return changed
 }
 

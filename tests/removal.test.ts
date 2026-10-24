@@ -59,6 +59,14 @@ describe('material removal', () => {
     expect(p.radii[Math.round(10 / p.cell)]).toBeCloseTo(20, 5)
     expect(p.radii[Math.round(40 / p.cell)]).toBe(25)
   })
+  it('facing to the center takes off everything in front of the cut', () => {
+    // Bar face at Z1, faced at Z0: the 1 mm layer is gone, not just the slice at Z0
+    const p = createProfile({ shape: 'cylinder', diameter: 50, length: 60, offset: { Z: 1 } }, [0, 0, 0])
+    for (const m of latheRun(['G0 X54 Z0', 'G1 X-1 F0.15', 'G0 Z2'])) cutProfile(p, m)
+    expect(p.radii[0]).toBe(0)
+    expect(p.radii[Math.round(0.5 / p.cell)]).toBe(0)
+    expect(p.radii[Math.round(5 / p.cell)]).toBe(25)
+  })
 })
 
 describe('stock from the program', () => {
