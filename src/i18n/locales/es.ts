@@ -375,7 +375,6 @@ export const es: Record<MessageKey, string> = {
   'diag.css-not-simulated': 'Velocidad de corte constante: no se calcula la velocidad del husillo.',
   'diag.cycle-simplified': 'Ciclo dibujado de forma simplificada (sin picoteo).',
   'diag.main-ended-without-m30': 'Se llegó al siguiente programa sin M30.',
-  'diag.turning-comp-not-drawn': 'La compensación de punta en torneado no se dibuja; se muestra la trayectoria programada.',
   'diag.tool-radius-from-comment': 'T{tool}: radio {r} tomado del comentario.',
   'diag.macro-message': 'Parada con mensaje #3006={value}.',
   'diag.file-start-percent-missing': 'El archivo no empieza con "%": el control no lee el programa.',

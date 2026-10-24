@@ -375,7 +375,6 @@ export const en = {
   'diag.css-not-simulated': 'Constant surface speed: spindle speed is not calculated.',
   'diag.cycle-simplified': 'Cycle drawn simplified (no pecks).',
   'diag.main-ended-without-m30': 'Reached the next program without M30.',
-  'diag.turning-comp-not-drawn': 'Tool nose compensation in turning is not drawn; the programmed path is shown.',
   'diag.tool-radius-from-comment': 'T{tool}: radius {r} taken from the comment.',
   'diag.macro-message': 'Message stop #3006={value}.',
   'diag.file-start-percent-missing': 'The file does not start with "%": the control does not read the program.',

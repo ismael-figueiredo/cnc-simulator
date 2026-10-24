@@ -86,8 +86,10 @@ export interface Move {
   position: ProgramPosition
   /** Machine coordinates (G53), as the MACHINE screen shows them. */
   machinePosition: ProgramPosition
-  /** Made in the compensation plane (polar mode, or XY on a mill). */
+  /** Made in the compensation plane (polar mode, XY on a mill, ZX when turning). */
   inCompPlane?: boolean
+  /** Plane of `element`: absent for XY (u = x, v = y); 'zx' when turning (u = z, v = radius). */
+  compPlane?: 'zx'
   /** Geometry in the compensation plane; absent for Z-only moves. */
   element?: PlaneElement
   compStart?: 41 | 42

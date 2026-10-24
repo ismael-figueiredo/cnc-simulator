@@ -433,7 +433,9 @@ export function simulate(input: SimulationInput): SimulationResult {
     }
     return radiusByTool.get(st.tool) ?? 0
   }
-  const inCompPlaneNow = () => st.polar || (!lathe && st.plane === 17)
+  /** Turning on a lathe: G18 without polar interpolation, compensated with the nose radius. */
+  const turningPlane = () => lathe && !st.polar && st.plane === 18
+  const inCompPlaneNow = () => st.polar || (!lathe && st.plane === 17) || turningPlane()
 
   const snapshot = (): { state: ModalState; position: ProgramPosition; machinePosition: ProgramPosition } => ({
     state: {
@@ -539,10 +541,13 @@ export function simulate(input: SimulationInput): SimulationResult {
     const extra: Partial<Move> = {}
     if (moved && inCompPlaneNow()) {
       extra.inCompPlane = true
-      const u0 = st.polar ? apx : a.X
-      const v0 = st.polar ? apy : a.Y
-      const u1 = st.polar ? t.px : t.pos.X
-      const v1 = st.polar ? t.py : t.pos.Y
+      // Turning: the plane is Z (u) and the radius (v)
+      const turning = turningPlane()
+      if (turning) extra.compPlane = 'zx'
+      const u0 = st.polar ? apx : turning ? a.Z : a.X
+      const v0 = st.polar ? apy : turning ? a.X / xDia : a.Y
+      const u1 = st.polar ? t.px : turning ? t.pos.Z : t.pos.X
+      const v1 = st.polar ? t.py : turning ? t.pos.X / xDia : t.pos.Y
       if (Math.hypot(u1 - u0, v1 - v0) > 1e-9) extra.element = { type: 'line', p0: [u0, v0], p1: [u1, v1] }
     }
     // The move records the state at its end point
@@ -636,6 +641,8 @@ export function simulate(input: SimulationInput): SimulationResult {
     const extra: Partial<Move> = {}
     if (inCompPlaneNow()) {
       extra.inCompPlane = true
+      // G18 on a lathe: u = Z, v = X as a radius, the same plane the turning lines use
+      if (turningPlane()) extra.compPlane = 'zx'
       extra.element = { type: 'arc', center: [cu, cv], radius: r0, cw, p0: [u0, v0], p1: [u1, v1], sweep } satisfies PlaneElement
     }
     Object.assign(pos, t.pos)
@@ -1283,7 +1290,6 @@ export function simulate(input: SimulationInput): SimulationResult {
         const cc = st.compCancelPending
         if ((cs || cc) && (st.motion === 2 || st.motion === 3)) fatal('comp-start-on-arc')
         const inPlane = inCompPlaneNow()
-        if (cs && !inPlane) diag('info', 'turning-comp-not-drawn', undefined, 'turncomp')
         let m: Move | null
         if (st.motion === 0) m = linear('rapid', t)
         else if (st.motion === 1) m = st.threading ? asThread(() => linear('feed', t)) : linear('feed', t)

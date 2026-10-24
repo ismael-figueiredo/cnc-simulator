@@ -98,3 +98,25 @@ describe('lathe offsets', () => {
     expect(end(r.moves[r.moves.length - 1])[0]).toBeCloseTo(19.98, 6)
   })
 })
+
+describe('nose radius compensation (lathe G41/G42)', () => {
+  // T01: CNMG with 0.8 mm nose radius (offset 1 by default)
+  const profile = ['T0101', 'G97 S1000 M03', 'G00 X20. Z2.', 'G42 G01 Z0 F0.2', 'X40.', 'Z-20.', 'G40 G01 X50.']
+
+  it('keeps the nose center one radius outside the part, along Z and up the face', () => {
+    const r = lathe(profile)
+    expect(r.diagnostics.filter((d) => d.severity === 'alarm')).toEqual([])
+    const along = r.moves.find((m) => m.compPlane === 'zx' && end(m)[2] === -20 && end(m)[0] === 20)
+    // On the Ø40 the center runs at radius 20.8
+    for (const p of along?.toolCenter ?? []) expect(p[0]).toBeCloseTo(20.8, 6)
+    const face = r.moves.find((m) => m.compPlane === 'zx' && end(m)[0] === 20 && end(m)[2] === 0)
+    // Up the face at Z0 the center is 0.8 in front of it
+    expect(face?.toolCenter?.[0]?.[2]).toBeCloseTo(0.8, 6)
+  })
+
+  it('takes the radius from the nose radius offset, wear included', () => {
+    const offsets: ToolOffsets = { ...defaultToolOffsets(turning, true), '1': { x: 0, z: 0, nose: 0.4, noseWear: 0.1, tip: 3 } }
+    const along = lathe(profile, offsets).moves.find((m) => m.compPlane === 'zx' && end(m)[2] === -20 && end(m)[0] === 20)
+    expect(along?.toolCenter?.[1]?.[0]).toBeCloseTo(20.5, 6)
+  })
+})

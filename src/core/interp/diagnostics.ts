@@ -117,7 +117,6 @@ export const DIAGNOSTIC_CODES = [
   'css-not-simulated',
   'cycle-simplified',
   'main-ended-without-m30',
-  'turning-comp-not-drawn',
   'tool-radius-from-comment',
   'macro-message',
   'work-offset-set',

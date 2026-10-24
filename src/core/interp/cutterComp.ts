@@ -81,13 +81,10 @@ function intersect(a: Offset, b: Offset): Vec2[] {
 }
 
 /** Samples an offset element; reports a gouge when trimming reversed the element. */
-function sample(o: Offset, z0: number, z1: number, onGouge: () => void): Vec3[] {
+function sample(o: Offset, z0: number, z1: number, onGouge: () => void, lift: Lift = XY): Vec3[] {
   if (o.type === 'line') {
     if ((o.p1[0] - o.p0[0]) * o.dir[0] + (o.p1[1] - o.p0[1]) * o.dir[1] < -1e-6) onGouge()
-    return [
-      [o.p0[0], o.p0[1], z0],
-      [o.p1[0], o.p1[1], z1]
-    ]
+    return [lift.to3(o.p0, z0), lift.to3(o.p1, z1)]
   }
   const a0 = Math.atan2(o.p0[1] - o.center[1], o.p0[0] - o.center[0])
   const a1 = Math.atan2(o.p1[1] - o.center[1], o.p1[0] - o.center[0])
@@ -102,10 +99,18 @@ function sample(o: Offset, z0: number, z1: number, onGouge: () => void): Vec3[] 
   for (let k = 0; k <= n; k++) {
     const f = k / n
     const a = a0 + (o.cw ? -1 : 1) * sw * f
-    pts.push([o.center[0] + o.radius * Math.cos(a), o.center[1] + o.radius * Math.sin(a), z0 + (z1 - z0) * f])
+    pts.push(lift.to3([o.center[0] + o.radius * Math.cos(a), o.center[1] + o.radius * Math.sin(a)], z0 + (z1 - z0) * f))
   }
   return pts
 }
+
+/** From the compensation plane back to 3D: XY keeps z as the third axis; turning (ZX) puts u on z and v on the radius. */
+interface Lift {
+  to3: (p: Vec2, h: number) => Vec3
+  height: (p: Vec3) => number
+}
+const XY: Lift = { to3: (p, h) => [p[0], p[1], h], height: (p) => p[2] }
+const ZX: Lift = { to3: (p, h) => [p[1], h, p[0]], height: (p) => p[1] }
 
 const first = (m: Move): Vec3 => m.points[0] ?? [0, 0, 0]
 const last = (m: Move): Vec3 => m.points[m.points.length - 1] ?? [0, 0, 0]
@@ -131,6 +136,7 @@ export function applyCutterComp(moves: Move[], report: (d: Diagnostic) => void):
     i = j
 
     const side = start.compStart === 41 ? 1 : -1
+    const lift = chain.some((q) => q.compPlane === 'zx') ? ZX : XY
     const r = start.toolRadius
     if (!(r > 0)) {
       report({ severity: 'warning', line: start.line, code: 'comp-zero-radius', params: { g: start.compStart }, moveIndex: at(start) })
@@ -161,7 +167,7 @@ export function applyCutterComp(moves: Move[], report: (d: Diagnostic) => void):
       const f = body[k + 1]?.element
       const oe = offs[k]
       const of = offs[k + 1]
-      const zEnd = last(qe)[2]
+      const zEnd = lift.height(last(qe))
       if (!e || !f || !oe || !of) continue
       if (len(sub(oe.p1, of.p0)) < 1e-6) {
         of.p0 = oe.p1
@@ -172,7 +178,7 @@ export function applyCutterComp(moves: Move[], report: (d: Diagnostic) => void):
       if (turn * side < -1e-9) {
         // convex corner: arc of tool radius around it
         const arc: Offset = { type: 'arc', p0: oe.p1, p1: of.p0, center: corner, radius: r, cw: side > 0, collapsed: false }
-        cornerExtra[k] = sample(arc, zEnd, zEnd, () => undefined).slice(1)
+        cornerExtra[k] = sample(arc, zEnd, zEnd, () => undefined, lift).slice(1)
       } else {
         // concave corner: trim both to the intersection closest to the corner
         let best: Vec2 | null = null
@@ -189,22 +195,28 @@ export function applyCutterComp(moves: Move[], report: (d: Diagnostic) => void):
           of.p0 = best
         } else {
           report({ severity: 'alarm', line: body[k + 1]?.line ?? qe.line, code: 'comp-no-solution', moveIndex: at(body[k + 1] ?? qe) })
-          cornerExtra[k] = [[of.p0[0], of.p0[1], zEnd]]
+          cornerExtra[k] = [lift.to3(of.p0, zEnd)]
         }
       }
     }
 
     const o0 = offs[0]
-    if (o0) start.toolCenter = [first(start), [o0.p0[0], o0.p0[1], last(start)[2]]]
+    if (o0) start.toolCenter = [first(start), lift.to3(o0.p0, lift.height(last(start)))]
     body.forEach((q, k) => {
       const o = offs[k]
       if (!o) return
-      q.toolCenter = sample(o, first(q)[2], last(q)[2], () => {
-        report({ severity: 'alarm', line: q.line, code: o.type === 'line' ? 'comp-gouge-line' : 'comp-gouge-arc', moveIndex: at(q) })
-      }).concat(cornerExtra[k] ?? [])
+      q.toolCenter = sample(
+        o,
+        lift.height(first(q)),
+        lift.height(last(q)),
+        () => {
+          report({ severity: 'alarm', line: q.line, code: o.type === 'line' ? 'comp-gouge-line' : 'comp-gouge-arc', moveIndex: at(q) })
+        },
+        lift
+      ).concat(cornerExtra[k] ?? [])
     })
     const oLast = offs[offs.length - 1]
-    if (cancel && oLast) cancel.toolCenter = [[oLast.p1[0], oLast.p1[1], first(cancel)[2]], last(cancel)]
+    if (cancel && oLast) cancel.toolCenter = [lift.to3(oLast.p1, lift.height(first(cancel))), last(cancel)]
     // Z-only moves inside the chain keep the compensated point
     for (const q of chain) if (!q.toolCenter && !q.element) q.toolCenter = q.points
   }

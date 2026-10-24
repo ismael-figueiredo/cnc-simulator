@@ -375,7 +375,6 @@ export const ptBR: Record<MessageKey, string> = {
   'diag.css-not-simulated': 'Velocidade de corte constante: a rotação não é calculada.',
   'diag.cycle-simplified': 'Ciclo desenhado de forma simplificada (sem pica-pica).',
   'diag.main-ended-without-m30': 'Chegou ao próximo programa sem M30.',
-  'diag.turning-comp-not-drawn': 'Compensação de ponta no torneamento não é desenhada; aparece o caminho programado.',
   'diag.tool-radius-from-comment': 'T{tool}: raio {r} tirado do comentário.',
   'diag.macro-message': 'Parada com mensagem #3006={value}.',
   'diag.file-start-percent-missing': 'O arquivo não começa com "%": o comando não lê o programa.',
