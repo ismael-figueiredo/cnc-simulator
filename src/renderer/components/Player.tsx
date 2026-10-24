@@ -16,6 +16,13 @@ interface Props {
   /** Operator panel keys and override knobs. */
   panel: PanelState
   onPanel: (change: Partial<PanelState>) => void
+  /** Timeline under the slider: one colored stretch per tool, and marks where the run stops or warns. */
+  strip?: Strip
+}
+
+export interface Strip {
+  segments: { start: number; end: number; color: string; title: string }[]
+  marks: { at: number; kind: 'alarm' | 'stop' | 'collision'; title: string }[]
 }
 
 /** The keys and knobs of the machine's operator panel that change how the program runs. */
@@ -38,7 +45,8 @@ const RAPIDS = [10, 25, 50, 100]
 const SPEEDS = [1, 5, 20, 100, 1000]
 const STEPS = 10000
 
-export function Player({ time, total, playing, speed, disabled, runDisabled, onSeek, onTogglePlay, onStep, onSpeed, panel, onPanel }: Props) {
+export function Player({ time, total, playing, speed, disabled, runDisabled, onSeek, onTogglePlay, onStep, onSpeed, panel, onPanel, strip }: Props) {
+  const pct = (s: number) => `${total > 0 ? (Math.max(0, Math.min(total, s)) / total) * 100 : 0}%`
   const { t } = useI18n()
   return (
     <div className="player">
@@ -49,16 +57,35 @@ export function Player({ time, total, playing, speed, disabled, runDisabled, onS
       </button>
       <button className="btn icon" disabled={disabled} title={t('player.forward')} aria-label={t('player.forward')} onClick={() => onStep(1)}>▶|</button>
       <button className="btn icon" disabled={disabled} title={t('player.end')} aria-label={t('player.end')} onClick={() => onSeek(total)}>⏭</button>
-      <input
-        id="player-slider"
-        type="range"
-        min={0}
-        max={STEPS}
-        value={total > 0 ? Math.round((time / total) * STEPS) : STEPS}
-        disabled={disabled}
-        aria-label={t('player.position')}
-        onChange={(e) => onSeek((total * Number(e.target.value)) / STEPS)}
-      />
+      <div className="track">
+        <input
+          id="player-slider"
+          type="range"
+          min={0}
+          max={STEPS}
+          value={total > 0 ? Math.round((time / total) * STEPS) : STEPS}
+          disabled={disabled}
+          aria-label={t('player.position')}
+          onChange={(e) => onSeek((total * Number(e.target.value)) / STEPS)}
+        />
+        {strip && total > 0 && (
+          <div className="strip">
+            {strip.segments.map((s) => (
+              <button
+                key={s.start}
+                className="seg"
+                style={{ left: pct(s.start), width: pct(s.end - s.start), background: s.color }}
+                title={s.title}
+                aria-label={s.title}
+                onClick={() => onSeek(s.start + 1e-6)}
+              />
+            ))}
+            {strip.marks.map((m, k) => (
+              <span key={k} className={`mark ${m.kind}`} style={{ left: pct(m.at) }} title={m.title} />
+            ))}
+          </div>
+        )}
+      </div>
       <select id="player-speed" value={speed} aria-label={t('player.speed')} title={t('player.speed')} onChange={(e) => onSpeed(Number(e.target.value))}>
         {SPEEDS.map((s) => (
           <option key={s} value={s}>{s}×</option>
