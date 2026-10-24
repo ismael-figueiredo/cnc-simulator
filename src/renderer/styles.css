@@ -377,3 +377,34 @@ button, select, input { font: inherit; color: inherit; }
 .tour .row { align-items: center; margin-top: 4px; }
 .tour .spacer { flex: 1; }
 .tour-target { outline: 3px solid var(--accent) !important; outline-offset: 2px; box-shadow: inset 0 0 0 3px var(--accent); border-radius: 4px; position: relative; z-index: 5; }
+
+/* learning mode: help over the program and the running block explained */
+.line .w { text-decoration: underline dotted rgba(111, 211, 255, .6); text-underline-offset: 3px; cursor: help; }
+.help-bar { flex: none; max-height: 30%; overflow: auto; padding: 6px 10px; background: #0b1013; border-top: 2px solid #13324f; color: #dfe6ea; font-size: 12.5px; line-height: 1.4; }
+.help-bar p { margin: 0 0 4px; }
+.help-bar b { color: #6fd3ff; font: 600 12.5px 'Share Tech Mono', var(--f-mono); margin-right: 4px; }
+.help-bar .muted { color: #7f8c96; }
+
+/* guided exercises */
+.start-learn { margin-top: 18px !important; }
+.start-exercises { margin: 6px 0 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 4px; }
+.exercise { position: absolute; left: 10px; top: 8px; z-index: 2; width: min(340px, calc(100% - 20px)); max-height: calc(100% - 50px); display: flex; flex-direction: column; background: rgba(14, 18, 21, .94); color: #e2e7eb; border: 1px solid #3a4550; border-left: 3px solid #f0a51e; border-radius: 6px; font-size: 12.5px; overflow: hidden; }
+.exercise header { display: flex; align-items: center; gap: 6px; padding: 6px 8px; border-bottom: 1px solid #2b343b; }
+.exercise header .link { flex: 1; min-width: 0; color: #fff; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.exercise.closed header { border-bottom: 0; }
+.ex-body { overflow: auto; padding: 8px 10px; display: flex; flex-direction: column; gap: 8px; }
+.ex-body .statement { margin: 0; white-space: pre-line; line-height: 1.45; }
+.ex-drawing { width: 100%; background: #05080a; border: 1px solid #2b343b; border-radius: 4px; image-rendering: pixelated; }
+svg.ex-drawing .stock { fill: none; stroke: #7f8c96; stroke-dasharray: 4 3; }
+svg.ex-drawing .part { fill: rgba(111, 211, 255, .25); stroke: #6fd3ff; stroke-width: 1.2; }
+svg.ex-drawing .axis { stroke: #f0a51e; stroke-dasharray: 8 3 2 3; stroke-width: .8; }
+svg.ex-drawing text { fill: #e2e7eb; font: 9px 'Share Tech Mono', monospace; }
+.ex-result { margin: 0; padding: 6px 8px 6px 22px; border-radius: 4px; }
+.ex-result.ok { background: rgba(47, 158, 90, .25); border: 1px solid #4fe08a; }
+.ex-result.bad { background: rgba(179, 38, 30, .22); border: 1px solid #ff7a70; }
+.ex-solution { margin: 0; max-height: 220px; overflow: auto; padding: 6px 8px; background: #05080a; border-radius: 4px; font: 11.5px 'Share Tech Mono', var(--f-mono); color: #cfd8e0; }
+.exercise .btn { background: #1e2429; border-color: #3a4550; color: #e2e7eb; }
+.exercise .btn.primary { background: #f0a51e; border-color: #f0a51e; color: #1a1205; }
+.start-exercises li { display: flex; }
+.start-exercises .recent-item { width: 100%; }
+.start-exercises .recent-name { font-family: var(--f-ui); }

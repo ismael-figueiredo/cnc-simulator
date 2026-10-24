@@ -14,9 +14,11 @@ import {
   loadAlarmCatalog,
   loadControl,
   loadMachine,
+  compareParts,
   findChuckCollisions,
   findHolderCollisions,
   holderOf,
+  loadExercise,
   loadProject,
   loadToolLibrary,
   programTemplate,
@@ -30,6 +32,9 @@ import {
   type ProgramKind,
   type Control,
   type Diagnostic,
+  type Exercise,
+  type Move,
+  type Vec3,
   type Machine,
   type Severity,
   type SimulationInput,
@@ -58,6 +63,8 @@ import { ToolOffsetsEditor } from './components/ToolOffsetsEditor'
 import { WorkOffsetsEditor } from './components/WorkOffsetsEditor'
 import { PATH_COLORS, Viewport3D, type ViewKind } from './components/Viewport3D'
 import { useI18n } from './i18n'
+import { ExerciseCard, type ExerciseCheck } from './components/ExerciseCard'
+import { explainLine, helpForWord } from './help'
 import { useLibraries } from './libraries'
 import { defaultSetup, offsetsFor, projectData, setupFromProject, STOCK_COLOR, type Setup } from './project'
 import { useRecent } from './recent'
@@ -101,6 +108,15 @@ const EXAMPLES = Object.entries(exampleProjects)
   .filter((e) => e !== null)
   .sort((a, b) => a.id.localeCompare(b.id))
 const isExample = (path: string) => path.startsWith('example:')
+// Guided exercises (examples/learn): statement, starting program and solution in one file
+const exerciseFiles = import.meta.glob<string>('../../examples/learn/*.json', { eager: true, query: '?raw', import: 'default' })
+const EXERCISES = Object.entries(exerciseFiles)
+  .map(([path, text]) => {
+    const r = loadExercise(text, fileName(path))
+    return r.ok ? { id: fileName(path).replace(/\.json$/, ''), exercise: r.value } : null
+  })
+  .filter((e) => e !== null)
+  .sort((a, b) => a.id.localeCompare(b.id))
 
 
 interface Program {
@@ -185,6 +201,7 @@ const FONT_KEY = 'cncsim.codeFontSize'
 const WIDTH_KEY = 'cncsim.codeWidth'
 const LAYOUT_KEY = 'cncsim.layout'
 const TOUR_KEY = 'cncsim.tourDone'
+const LEARN_KEY = 'cncsim.learn'
 const tourDone = () => {
   try {
     return localStorage.getItem(TOUR_KEY) === '1'
@@ -336,6 +353,11 @@ export function App() {
   const [measuring, setMeasuring] = useState(0)
   /** Step of the first-use tour, -1 when not shown. */
   const [tour, setTour] = useState(-1)
+  /** Learning mode: help over the program's codes and the running block explained under it. */
+  const [learn, setLearn] = useState(() => readNumber(LEARN_KEY, 0) === 1)
+  /** Guided exercise open, and the result of its last check. */
+  const [exercise, setExercise] = useState<{ id: string; exercise: Exercise } | null>(null)
+  const [exerciseCheck, setExerciseCheck] = useState<ExerciseCheck | null>(null)
   const [speed, setSpeed] = useState(20)
   const [showRapids, setShowRapids] = useState(true)
   const [showStock, setShowStock] = useState(true)
@@ -429,6 +451,9 @@ export function App() {
     return !dirty || !program || window.confirm(t('dialog.unsavedDiscard', { name: program.name }))
   }
   function load(p: Program | null, nextMode: 'mem' | 'edit' = 'mem') {
+    // Any other program leaves the exercise (openExercise sets it again right after)
+    setExercise(null)
+    setExerciseCheck(null)
     // The first program opened shows the tour once
     if (p && tour < 0 && !tourDone()) setTour(0)
     setProgram(p)
@@ -568,8 +593,28 @@ export function App() {
     const path = `example:${ex.project.program}`
     openProject({ name: ex.project.program, path, text: ex.programText }, { path: `example:${ex.id}`, text: ex.projectText, programMissing: false })
   }
+  /** Opens a guided exercise: its machine, control, stock and offsets, and the starting program in EDIT. */
+  function openExercise(id: string) {
+    const e = EXERCISES.find((x) => x.id === id)
+    if (!e || !canDiscard()) return
+    const ex = e.exercise
+    const m = cfg.machines.find((x) => x.id === ex.machine) ?? machine
+    const c = cfg.controls.find((x) => x.id === ex.control) ?? control
+    const base = defaultSetup(m, cfg.libraries)
+    const s: Setup = { ...base, stock: { ...ex.stock }, workOffsets: ex.workOffsets ?? {} }
+    const p = { name: `${e.id}.nc`, path: `example:learn/${e.id}.nc`, text: ex.start }
+    if (m) setMachineId(m.id)
+    if (c) setControlId(c.id)
+    load(p, 'edit')
+    setSetup(s)
+    setProjectPath(null)
+    setExercise(e)
+    setExerciseCheck(null)
+    simulateWith(p, m, c, s)
+  }
   function showStart() {
     if (!canDiscard()) return
+    setExercise(null)
     load(null)
     setProjectPath(null)
     simulateWith(null, machine, control)
@@ -827,6 +872,30 @@ export function App() {
   // C angle: from the tip in polar interpolation (C is not tracked as an angle there), else the C position
   const spindleAngle = move ? (move.state.polar && toolTip ? Math.atan2(toolTip[1], toolTip[0]) : ((position?.C ?? 0) * Math.PI) / 180) : 0
   const spinning = playing && !!move?.state.spindleOn && !move.state.liveToolOn
+  // Learning mode: help for a word on this control, and the words of the block at the cursor
+  const help = useCallback((word: string) => helpForWord(word, control, l), [control, l])
+  const helpLine = move?.line ?? (atReset ? startLine : -1)
+  const blockHelp = useMemo(() => (learn && helpLine >= 0 ? explainLine(lines[helpLine] ?? '', control, l) : []), [learn, helpLine, lines, control, l])
+  // Guided exercise: the solution machined on the same setup, and the check of the student's program
+  const stockZero = useMemo<Vec3>(() => {
+    const sh = workShift(setup.workOffsets, setup.stock?.workOffset ?? 'G54')
+    return lathe ? [0, 0, sh.Z] : [sh.X, sh.Y, sh.Z]
+  }, [setup, lathe])
+  const reference = useMemo<readonly Move[]>(() => {
+    if (!exercise) return []
+    const input = simInput({ name: 'solution', path: '', text: exercise.exercise.solution }, machine, control, cfg, setup)
+    return input ? simulate(input).moves : []
+  }, [exercise, machine, control, cfg, setup])
+  function checkExercise() {
+    const p = currentProgram()
+    const input = simInput(p, machine, control, cfg, setup)
+    if (!exercise || !input || !setup.stock) return
+    const r = simulate(input)
+    const d = compareParts(reference, r.moves, setup.stock, stockZero, lathe, ballTools)
+    const alarms = r.diagnostics.filter((x) => x.severity === 'alarm').length
+    const tol = exercise.exercise.tolerance
+    setExerciseCheck({ ...d, finished: r.finished, alarms, ok: r.finished && !alarms && d.left <= tol && d.gouge <= tol })
+  }
   const messageCount = diagnostics.length + cfg.issues.length + collisions.length + chuckCollisions.length
   const ops = useMemo(() => (tl ? operations(tl) : []), [tl])
   const currentOp = index < 0 ? -1 : ops.findIndex((o) => o.first <= index && index <= o.last)
@@ -886,6 +955,17 @@ export function App() {
             </svg>
           </button>
           <span className="zoom">
+            <button
+              className={`btn tiny ${learn ? 'on' : ''}`}
+              aria-pressed={learn}
+              title={t('learn.hint')}
+              onClick={() => {
+                setLearn(!learn)
+                writeNumber(LEARN_KEY, learn ? 0 : 1)
+              }}
+            >
+              ?
+            </button>
             <button className="btn tiny" title={t('code.smaller')} aria-label={t('code.smaller')} onClick={() => changeFont(-0.5)}>A−</button>
             <button className="btn tiny" title={t('code.larger')} aria-label={t('code.larger')} onClick={() => changeFont(0.5)}>A+</button>
           </span>
@@ -893,7 +973,7 @@ export function App() {
         {/* Like the control: the modal state (F, S, T, active codes and cycle) above the running program */}
         {mode === 'mem' && modalArea && <CncModal move={move} />}
         {mode === 'edit' ? (
-          <ProgramEditor key={programKey} ref={editor} text={program.text} fontSize={fontSize} onEdit={edited} />
+          <ProgramEditor key={programKey} ref={editor} text={program.text} fontSize={fontSize} onEdit={edited} help={learn ? help : undefined} />
         ) : (
           <CodeView
             lines={lines}
@@ -907,7 +987,21 @@ export function App() {
             onLineClick={jumpToLine}
             breakpoints={breakpoints}
             onToggleBreakpoint={toggleBreakpoint}
+            help={learn ? help : undefined}
           />
+        )}
+        {learn && mode === 'mem' && (
+          <div className="help-bar" aria-live="polite">
+            {blockHelp.length ? (
+              blockHelp.map((w) => (
+                <p key={w.word}>
+                  <b>{w.word}</b> {w.text}
+                </p>
+              ))
+            ) : (
+              <p className="muted">{t('learn.empty')}</p>
+            )}
+          </div>
         )}
       </section>
     )
@@ -989,6 +1083,17 @@ export function App() {
       <div className="hint">{t('view.hint')}</div>
       {mode === 'edit' && <div className="edit-note">{t('view.editNote')}</div>}
       {busy && <div className="busy-note">{t('sim.running')}</div>}
+      {exercise && (
+        <ExerciseCard
+          exercise={exercise.exercise}
+          reference={reference}
+          lathe={lathe}
+          zero={stockZero}
+          check={exerciseCheck}
+          onCheck={checkExercise}
+          onClose={() => setExercise(null)}
+        />
+      )}
       {stoppedBy && (
         <button className="alarm-banner" onClick={() => jumpToDiagnostic(stoppedBy)}>
           <b>
@@ -1251,6 +1356,8 @@ export function App() {
           recent={recent.items}
           examples={EXAMPLES.map((e) => ({ id: e.id, name: e.project.program, detail: l(e.project.description ?? '') }))}
           onOpenExample={openExample}
+          exercises={EXERCISES.map((e) => ({ id: e.id, name: l(e.exercise.title), level: e.exercise.level, detail: l(e.exercise.statement).split('\n')[0] ?? '' }))}
+          onOpenExercise={openExercise}
           onNew={newProgram}
           onPick={() => void pickProgram()}
           onOpenRecent={(item) => {
