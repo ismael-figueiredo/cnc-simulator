@@ -4,9 +4,22 @@
 
 Português (Brasil) · [English](README.md)
 
-Simulador de programas CNC, leve e multiplataforma. Lê G-code, usa a **máquina** e o **comando** descritos em JSON (um pós-processador às avessas) e mostra o percurso em 3D, com os alarmes do próprio comando.
+[![Release](https://img.shields.io/github/v/release/ismael-figueiredo/cnc-simulator)](https://github.com/ismael-figueiredo/cnc-simulator/releases/latest) [![Downloads](https://img.shields.io/github/downloads/ismael-figueiredo/cnc-simulator/total)](https://github.com/ismael-figueiredo/cnc-simulator/releases) [![CI](https://github.com/ismael-figueiredo/cnc-simulator/actions/workflows/ci.yml/badge.svg)](https://github.com/ismael-figueiredo/cnc-simulator/actions/workflows/ci.yml) [![License: GPL v3](https://img.shields.io/badge/license-GPL--3.0-blue)](LICENSE)
+
+**Simulador CNC gratuito e de código aberto para aprender e testar G-code** sem precisar de uma máquina: tornos e centros de usinagem, comandos Fanuc, Mitsubishi e Haas, programas parametrizados em Macro B, os alarmes do próprio comando e a verificação de colisões. Para Windows, macOS e Linux.
+
+Site: **[ismael-figueiredo.github.io/cnc-simulator](https://ismael-figueiredo.github.io/cnc-simulator/)**
+
+Lê G-code, usa a **máquina** e o **comando** descritos em JSON (um pós-processador às avessas) e mostra o percurso e a peça usinada em 3D.
 
 ![O exemplo O2001 sendo usinado: tela de programa estilo Fanuc, percurso 3D, ferramenta no cone BT40, o blank mudando onde é cortado](docs/demo.gif)
+
+## Para quem é
+
+- **Quem está aprendendo CNC:** escreva o programa, rode bloco a bloco, veja o que cada código faz e qual alarme o comando daria, sem arriscar a máquina.
+- **Programadores:** confira o que o pós-processador do CAM gerou antes de chegar na máquina: alarmes, fim de curso, colisão de suporte e de placa, corretores.
+- **Professores e escolas técnicas:** uma ferramenta gratuita que cada aluno instala em casa, com exemplos prontos de torno e centro de usinagem.
+- **Programação parametrizada:** aprenda e teste Macro B (variáveis, IF/WHILE, G65) no simulador antes de levar para o comando.
 
 ## Baixar
 
@@ -49,6 +62,29 @@ Os instaladores de cada versão estão na **[página de Releases](https://github
 4. **EDIT / MEM:** EDIT altera o programa e para a execução se estiver rodando; enquanto você digita, o percurso e as mensagens são recalculados (o programa volta para RESET). MEM roda como está. **Arquivo → Salvar** (Ctrl/⌘+S) grava.
 5. **Preparação:** no painel da direita, edite o **Blank** (ou gere pelo programa e escolha onde fica o zero peça nele), os **Zeros de peça** e as **Ferramentas** e use **Salvar como projeto (.cncsim)** para guardar tudo ao lado do programa. O disquete acima do programa salva só o programa (`.nc`).
 
+### Aprenda com os exemplos
+
+Abra pela tela inicial, nesta ordem:
+
+| Exemplo | Máquina | O que ensina |
+|---|---|---|
+| **O1001** eixo escalonado | Torno Romi GL 300 | Faceamento, passes de desbaste à mão, acabamento com chanfro `,C` e raio `,R` automáticos, canal |
+| **O1002** eixo roscado | Torno Romi GL 300 | A mesma peça com ciclos: desbaste G71, acabamento G70, rosca G76 |
+| **O2001** placa | Centro de usinagem Romi D600 | Faceamento, contorno com G41, bolsão, ciclos de furação e roscamento G81/G83/G84, gravação; o T7 mostra uma colisão de suporte |
+| **O2002** duas morsas | Centro de usinagem Romi D600 | Zeros G54 e G55, subprogramas M98/M99, coordenadas de máquina |
+| **O3001** duas fixações | Haas VF-2 | O mesmo trabalho na Haas: zeros G154 e subprogramas locais M97 |
+| **O1500** coroa | Torno Romi GL 250 M | Programa parametrizado completo em Macro B, com ferramenta acionada e G12.1 |
+
+### Antes de mandar o programa para a máquina
+
+| O que conferir | Onde aparece |
+|---|---|
+| Erros de programa (código errado, palavra faltando, arco inválido) | Alarme vermelho com o número do comando, no bloco |
+| Fim de curso | Aviso com o eixo e o bloco, pelos cursos da máquina |
+| Suporte entrando no blank, ferramenta batendo na placa | Lista de colisões; o suporte ou as castanhas ficam vermelhos no 3D |
+| H ou D errado, corretor faltando | Tabela OFFSET e avisos; um H errado desloca a ponta como na máquina |
+| Tempo de ciclo | Abaixo da posição, acompanhando os overrides de avanço e rápido |
+
 ### Programação parametrizada (Macro B)
 
 Todos os comandos incluídos (Fanuc 0i-TF, 0i-MF, linha Romi D, Mitsubishi M80 torno e centro de usinagem, Haas NGC fresadora) têm a opção de macro, então isto roda no simulador como na máquina:
@@ -82,6 +118,12 @@ O exemplo **O1500** é um programa parametrizado completo (coroa ANSI 40 calcula
 
 **Ajuda → Relatar um problema** explica como postar, salva um print da janela em Downloads (e copia) e abre uma [issue no GitHub](https://github.com/ismael-figueiredo/cnc-simulator/issues) com a versão e o sistema já preenchidos. **Ajuda → Problemas conhecidos** abre a lista de issues.
 
+### Comunidade
+
+- **Dúvidas e programas:** [Discussions](https://github.com/ismael-figueiredo/cnc-simulator/discussions), para dúvidas de programação e para mostrar o que você fez.
+- **Uma máquina ou um comando que você precisa:** abra um [pedido de máquina ou comando](https://github.com/ismael-figueiredo/cnc-simulator/issues/new?template=machine.yml).
+- **Contribuir:** máquinas, comandos e alarmes são arquivos JSON; o [CONTRIBUTING.md](CONTRIBUTING.md) explica como adicionar.
+
 # Para desenvolvedores
 
 A documentação completa (estrutura, formato dos JSON, roadmap) está no [README em inglês](README.md). Este arquivo resume o essencial.
@@ -99,7 +141,7 @@ npm run dist         # instalador do sistema atual em dist/
 npm run dist:win     # instalador do Windows (NSIS)
 npm run dist:mac     # dmg do macOS, arm64 e x64 (rode num Mac; sem assinatura)
 npm run dist:linux   # AppImage e .deb do Linux
-npm run icons        # gera de novo build/icon.png, o favicon e as imagens do instalador depois de editar build/icon.svg
+npm run icons        # gera de novo build/icon.png, o favicon, as imagens do instalador e docs/social.png depois de editar build/icon.svg
 npm run demo         # grava o docs/demo.gif (tela inicial + exemplo rodando) para o README
 ```
 

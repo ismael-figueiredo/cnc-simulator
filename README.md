@@ -4,9 +4,22 @@
 
 [Português (Brasil)](README.pt-BR.md) · English
 
-Lightweight, cross-platform CNC program simulator. It reads G-code, takes the **machine** and the **control** from JSON files (a post-processor in reverse) and shows the toolpath in 3D, with the control's own alarms.
+[![Release](https://img.shields.io/github/v/release/ismael-figueiredo/cnc-simulator)](https://github.com/ismael-figueiredo/cnc-simulator/releases/latest) [![Downloads](https://img.shields.io/github/downloads/ismael-figueiredo/cnc-simulator/total)](https://github.com/ismael-figueiredo/cnc-simulator/releases) [![CI](https://github.com/ismael-figueiredo/cnc-simulator/actions/workflows/ci.yml/badge.svg)](https://github.com/ismael-figueiredo/cnc-simulator/actions/workflows/ci.yml) [![License: GPL v3](https://img.shields.io/badge/license-GPL--3.0-blue)](LICENSE)
+
+**Free, open-source CNC simulator to learn and test G-code**, with no machine needed: lathes and machining centers, Fanuc, Mitsubishi and Haas controls, Macro B parametric programs, the control's own alarms and collision checks. For Windows, macOS and Linux.
+
+Website: **[ismael-figueiredo.github.io/cnc-simulator](https://ismael-figueiredo.github.io/cnc-simulator/)**
+
+It reads G-code, takes the **machine** and the **control** from JSON files (a post-processor in reverse) and shows the toolpath and the machined part in 3D.
 
 ![The O2001 plate example being machined: Fanuc-style program screen, 3D toolpath, tool in its BT40 holder, the stock changing where it is cut](docs/demo.gif)
+
+## Who it is for
+
+- **CNC students:** write a program, run it block by block, see what each code does and which alarm the control would give, without risking a machine.
+- **Programmers:** check what the CAM post-processor generated before it reaches the machine: alarms, travel limits, holder and chuck collisions, tool offsets.
+- **Teachers and technical schools:** a free tool that every student can install at home, with ready examples for lathe and machining center.
+- **Parametric programming:** learn and test Macro B (variables, IF/WHILE, G65) on the simulator before trying it on the control.
 
 ## Download
 
@@ -49,6 +62,29 @@ Installers for every version are on the **[Releases page](https://github.com/ism
 4. **EDIT / MEM:** EDIT changes the program and stops it if it was running; while you type, the path and messages are recomputed (the program goes back to RESET). MEM runs it as edited. **File → Save** (Ctrl/⌘+S) writes it back.
 5. **Setup:** in the right panel, edit the **Stock** (or fit it to the program, and choose where the work zero sits on it), the **Work offsets** and the **Tools**, then **Save as project (.cncsim)** to keep it all next to the program. The disk icon above the program saves only the program (`.nc`).
 
+### Learn with the examples
+
+Open them from the start screen, in this order:
+
+| Example | Machine | What it teaches |
+|---|---|---|
+| **O1001** stepped shaft | Romi GL 300 lathe | Facing, roughing passes by hand, finishing with automatic `,C` chamfers and `,R` radii, grooving |
+| **O1002** threaded shaft | Romi GL 300 lathe | The same part with canned cycles: G71 roughing, G70 finishing, G76 thread |
+| **O2001** plate | Romi D600 machining center | Face milling, contour with G41, pocket, drilling and tapping cycles G81/G83/G84, engraving; T7 shows a holder collision |
+| **O2002** two vises | Romi D600 machining center | G54 and G55 work offsets, M98/M99 subprograms, machine coordinates |
+| **O3001** two fixtures | Haas VF-2 | The same job on Haas: G154 work offsets and M97 local subprograms |
+| **O1500** sprocket | Romi GL 250 M lathe | A full Macro B parametric program with live tooling and G12.1 |
+
+### Before sending a program to the machine
+
+| Check | Where it shows |
+|---|---|
+| Program errors (wrong code, missing word, bad arc) | Red alarm with the control's number, at the block |
+| Travel limits | Warning with the axis and the block, from the machine's travels |
+| Holder into the stock, tool into the chuck jaws | Collision list; the holder or jaws turn red in 3D |
+| Wrong H or D, missing tool offset | OFFSET table and warnings; a wrong H moves the tip as on the machine |
+| Cycle time | Shown under the position, following the feed and rapid overrides |
+
 ### Parametric programming (Macro B)
 
 Every bundled control (Fanuc 0i-TF, 0i-MF, Romi D line, Mitsubishi M80 lathe and machining center, Haas NGC mill) has the macro option, so these run in the simulator as on the machine:
@@ -82,6 +118,12 @@ The **O1500** example is a full parametric program (an ANSI 40 sprocket computed
 
 **Help → Report a problem** explains how to post, saves a screenshot of the window to Downloads (and copies it), and opens a [GitHub issue](https://github.com/ismael-figueiredo/cnc-simulator/issues) with the version and system already filled in. **Help → Known problems** opens the issue list.
 
+### Community
+
+- **Questions and programs:** [Discussions](https://github.com/ismael-figueiredo/cnc-simulator/discussions), for programming questions and to show what you made.
+- **A machine or control you need:** open a [machine or control request](https://github.com/ismael-figueiredo/cnc-simulator/issues/new?template=machine.yml).
+- **Contributing:** machines, controls and alarms are JSON files; [CONTRIBUTING.md](CONTRIBUTING.md) explains how to add one.
+
 # For developers
 
 It grew out of `Simulador_Fanuc.html` ([docs/legacy](docs/legacy/Simulador_Fanuc.html)), a single-file simulator that already handled Fanuc Macro B, G12.1 and G41/G42 cutter compensation on a Romi GL lathe with live tooling. This project rewrites it in TypeScript, split into core, UI and desktop app, and is no longer tied to one control.
@@ -107,7 +149,7 @@ npm run dist         # installer for the current OS in dist/
 npm run dist:win     # Windows installer (NSIS)
 npm run dist:mac     # macOS dmg, arm64 and x64 (run on a Mac; unsigned)
 npm run dist:linux   # Linux AppImage and .deb
-npm run icons        # redraw build/icon.png, the favicon and installer artwork after editing build/icon.svg
+npm run icons        # redraw build/icon.png, the favicon, installer artwork and docs/social.png after editing build/icon.svg
 npm run demo         # record docs/demo.gif (start screen + the example running) for the README
 ```
 
@@ -125,6 +167,7 @@ After a visible UI change, run `npm run demo` and commit the new `docs/demo.gif`
 - **Release notes:** each version is described in [CHANGELOG.md](CHANGELOG.md) (Portuguese and English). Tag a release with that text as an annotated tag message (`git tag -a vX.Y.Z --cleanup=verbatim -F notes.md`, so the `###` headings are kept); the Release workflow puts it on the release page.
 - **Release:** pushing a `v*` tag (`git tag v0.1.0 && git push origin v0.1.0`) builds the Windows, macOS and Linux installers and publishes them on the GitHub Releases page. Running the workflow by hand from the Actions tab only keeps them as run artifacts.
 - **Installer screens:** the Windows installer shows the license and the artwork in `build/` (sidebar and header BMPs); the macOS disk image shows a background with the drag-to-Applications arrow. `npm run icons` renders all of them from `build/icon.svg`.
+- **Website and social preview:** `docs/index.html` is the GitHub Pages site (branch `main`, folder `/docs`); it links the installers of the latest release. `docs/social.png` is the image for **Settings → Social preview**.
 
 ### Updates
 
@@ -316,6 +359,10 @@ Three separate files you can mix: the same machine with another control, or one 
 6. ◐ **Desktop:** done: start screen with recent files, EDIT/MEM editor, open and save, `.cncsim` projects, installers, updates, bug reports. Next: auto-reload when the `.nc` changes, file associations.
 7. **Server:** `/api/simulate` API and use from a browser on the shop network.
 8. **Importers and collision:** read FreeCAD posts and Fusion `.cps`; tool and holder collision with part, chuck and turret.
+9. **Screen and learning:**
+   - **Machine mode:** one panel shaped like a control (position, feed and spindle, graphics and program together, softkeys), next to the current **CAM mode**.
+   - **CAM mode:** sidebar tabs, operation list per tool, timeline colored by tool, quick 3D views, measuring.
+   - **Learn mode:** help on each G/M code and macro word, guided exercises checked against the expected part.
 
 ## License
 
