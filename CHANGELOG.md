@@ -4,6 +4,30 @@ Cada versão em português e inglês. · Each version in Portuguese and English.
 
 Downloads: https://github.com/ismael-figueiredo/cnc-simulator/releases
 
+## 0.12.0 · 2026-10-24
+
+### Português
+**Tela como a da máquina.**
+- **Layout Máquina** (novo padrão): uma única tela de comando, sem marcas de fabricante, com:
+  - posição em dígitos grandes, coordenadas de máquina e **distância a ir** do bloco;
+  - rotação e avanço com barras, overrides, ferramenta e códigos modais ativos;
+  - vista 3D ao lado do programa em execução;
+  - **softkeys** POS, PROG, OFFSET, GRÁFICO, MENSAGEM e AJUSTES. A página **POS** é a tela POSITION (ALL), com absoluta, máquina e distância a ir em quadrantes, e o **MENSAGEM** acende quando há alarme.
+- **Painel de operação** embaixo, com botões no estilo da máquina.
+- **Teclado:** Espaço = cycle start / feed hold, Esc = reset, S = bloco a bloco.
+- **Layout CAM:** a tela anterior (programa, 3D e painel lateral) continua a um clique, no topo.
+
+### English
+**A screen like the machine's.**
+- **Machine layout** (new default): one control screen, with no maker's branding, with:
+  - position in large digits, machine coordinates and the block's **distance to go**;
+  - spindle and feed with load bars, overrides, tool and active modal codes;
+  - the 3D view beside the running program;
+  - **soft keys** POS, PROG, OFFSET, GRAPH, MESSAGE and SETTING. The **POS** page is the POSITION (ALL) screen, with absolute, machine and distance to go in quadrants, and **MESSAGE** lights up on an alarm.
+- **Operator panel** underneath, with machine-style keys.
+- **Keyboard:** Space = cycle start / feed hold, Esc = reset, S = single block.
+- **CAM layout:** the previous screen (program, 3D view, side panel) is one click away at the top.
+
 ## 0.11.0 · 2026-10-24
 
 ### Português
