@@ -4,6 +4,26 @@ Cada versão em português e inglês. · Each version in Portuguese and English.
 
 Downloads: https://github.com/ismael-figueiredo/cnc-simulator/releases
 
+## 0.9.0 · 2026-10-24
+
+### Português
+**Painel de operação e tela como a da máquina.**
+- **BLOCO A BLOCO:** para no fim de cada bloco; Executar segue para o próximo.
+- **M01** (parada opcional) liga e desliga; o **M00** sempre para.
+- **SALTO DE BLOCO /** pula os blocos que começam com "/".
+- **Override de avanço** (10–150 %) e **de rápido** (F0, 25, 50, 100 %): o tempo de ciclo e a execução acompanham.
+- **Ponto de parada:** clique no número da linha para parar antes daquele bloco.
+- **Quadro de modais acima do programa:** códigos G ativos, F, S, T e o ciclo fixo, como na tela PROGRAM CHECK da Fanuc.
+
+### English
+**Operator panel and a machine-like screen.**
+- **SINGLE BLOCK:** stops at the end of each block; Run goes on to the next one.
+- **M01** (optional stop) on and off; **M00** always stops.
+- **BLOCK DELETE /** skips the blocks that start with "/".
+- **Feed override** (10–150 %) and **rapid override** (F0, 25, 50, 100 %): the cycle time and playback follow them.
+- **Breakpoints:** click a line number to stop before that block.
+- **Modal area above the program:** active G codes, F, S, T and the canned cycle, as on the Fanuc PROGRAM CHECK screen.
+
 ## 0.8.0 · 2026-10-24
 
 ### Português
