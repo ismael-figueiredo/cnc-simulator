@@ -19,6 +19,10 @@ interface Props {
   /** Ctrl + wheel over the code changes the font size by this step. */
   onZoom: (delta: number) => void
   onLineClick: (line: number) => void
+  /** Lines with a breakpoint (red dot on the line number). */
+  breakpoints: ReadonlySet<number>
+  /** Clicking a line number sets or clears its breakpoint. */
+  onToggleBreakpoint: (line: number) => void
 }
 
 /** Lines kept visible below the cursor before the screen scrolls, like the control's program screen. */
@@ -64,7 +68,7 @@ function Clock() {
 }
 
 // Re-renders only when the current line or the program changes, not on every playback frame.
-export const CodeView = memo(function CodeView({ lines, currentLine, alarmLine, marks, hits, fontSize, state, onZoom, onLineClick }: Props) {
+export const CodeView = memo(function CodeView({ lines, currentLine, alarmLine, marks, hits, fontSize, state, onZoom, onLineClick, breakpoints, onToggleBreakpoint }: Props) {
   const { t } = useI18n()
   const box = useRef<HTMLDivElement>(null)
   const oNumber = useMemo(() => programNumber(lines), [lines])
@@ -176,7 +180,16 @@ export const CodeView = memo(function CodeView({ lines, currentLine, alarmLine, 
                 style={{ top: i * rowHeight, height: rowHeight }}
                 onClick={() => onLineClick(i)}
               >
-                <span className="n">{i + 1}</span>
+                <span
+                className={breakpoints.has(i) ? 'n bp' : 'n'}
+                title={t('code.breakpointHint')}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onToggleBreakpoint(i)
+                }}
+              >
+                {i + 1}
+              </span>
                 <span className="t">{text || ' '}</span>
               </div>
             )

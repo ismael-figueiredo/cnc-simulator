@@ -1,0 +1,61 @@
+import { describe, expect, it } from 'vitest'
+import type { Diagnostic, Move, SimulationResult } from '../src/core'
+import { blockEnd, buildTimeline, nextStop, sameMoment, stopTimes } from '../src/renderer/playback'
+
+/** Moves as [line, kind, seconds]; only what the timeline reads. */
+const result = (moves: [number, Move['kind'], number][], diagnostics: Partial<Diagnostic>[] = []): SimulationResult =>
+  ({
+    moves: moves.map(([line, kind, durationS]) => ({ line, kind, durationS })) as Move[],
+    diagnostics: diagnostics as Diagnostic[],
+    finished: true,
+    totalTimeS: 0,
+    tools: [],
+    variables: []
+  }) as SimulationResult
+
+// Line 1: rapid 2 s · line 2: two feeds of 3 s · M01 at line 3 · line 4: feed 4 s
+const r = result(
+  [
+    [1, 'rapid', 2],
+    [2, 'feed', 3],
+    [2, 'feed', 3],
+    [4, 'feed', 4]
+  ],
+  [{ code: 'optional-stop', moveIndex: 3 }, { code: 'program-stop', moveIndex: 1 }]
+)
+
+describe('playback stops', () => {
+  const tl = buildTimeline(r)
+
+  it('stops at M00 always and at M01 only with OPTIONAL STOP', () => {
+    expect(stopTimes(tl, { optionalStop: false, breakpoints: new Set() })).toEqual([2])
+    expect(stopTimes(tl, { optionalStop: true, breakpoints: new Set() })).toEqual([2, 8])
+  })
+
+  it('stops before a block with a breakpoint, once per execution', () => {
+    expect(stopTimes(tl, { optionalStop: false, breakpoints: new Set([2, 4]) })).toEqual([2, 8])
+  })
+
+  it('single block ends where the next block starts', () => {
+    expect(blockEnd(tl, 0)).toBe(2)
+    // Line 2 is two moves: its block ends after both
+    expect(blockEnd(tl, 2)).toBe(8)
+    expect(blockEnd(tl, 3.5)).toBe(8)
+  })
+
+  it('finds the next stop strictly after now', () => {
+    expect(nextStop([2, 8], 2, 12)).toBe(8)
+    expect(nextStop([2, 8], 9, 12)).toBe(12)
+  })
+})
+
+describe('overrides', () => {
+  it('scale feed and rapid times, and keep the same point of the program', () => {
+    const plain = buildTimeline(r)
+    const slow = buildTimeline(r, { feed: 0.5, rapid: 0.25 })
+    // Rapid 2 s at 25 % → 8 s; feeds 3+3+4 s at 50 % → 20 s
+    expect(slow.total).toBe(28)
+    // Halfway through the first feed (2 + 1.5 s) → 8 + 3 s on the slower timeline
+    expect(sameMoment(plain, slow, 3.5)).toBe(11)
+  })
+})

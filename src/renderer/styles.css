@@ -237,3 +237,21 @@ button, select, input { font: inherit; color: inherit; }
 .stock-body .zero-at { max-width: 280px; }
 .busy-note { position: absolute; right: 10px; bottom: 30px; padding: 4px 10px; border-radius: 4px; background: rgba(14, 18, 21, .85); color: #f2c418; font: 12px 'Share Tech Mono', var(--f-mono); pointer-events: none; }
 .offsets-editor.tool-offsets { width: min(860px, 100%); }
+
+/* CNC modal area above the program (Fanuc PROGRAM CHECK) */
+.cnc-modal { display: flex; flex-direction: column; gap: 2px; padding: 4px 8px; background: #0b1013; color: #dfe6ea; border-bottom: 1px solid #13324f; font: 12px 'Share Tech Mono', var(--f-mono); }
+.cnc-modal .codes { display: flex; flex-wrap: wrap; gap: 4px 8px; }
+.cnc-modal .codes span { color: #7f8c96; }
+.cnc-modal .codes span.on { color: #f2c418; }
+.cnc-modal .act { display: flex; flex-wrap: wrap; gap: 4px 14px; }
+.cnc-modal .act b { color: #6fd3ff; font-weight: 400; }
+.cnc-modal.muted-row { color: #7f8c96; }
+/* breakpoints on the line numbers */
+.line .n { cursor: pointer; }
+.line .n.bp { color: #ff5a4e; position: relative; }
+.line .n.bp::before { content: '●'; position: absolute; left: 2px; color: #ff5a4e; }
+/* operator panel keys */
+.player .panel-keys { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; width: 100%; }
+.player .key { font: 600 11px 'Share Tech Mono', var(--f-mono); letter-spacing: .04em; padding: 4px 8px; border-radius: 4px; border: 1px solid var(--line); background: var(--raised); cursor: pointer; }
+.player .key.on { background: #2b5d2b; border-color: #4fe08a; color: #e8ffe8; }
+.player .panel-keys label { display: flex; align-items: center; gap: 4px; font: 11px 'Share Tech Mono', var(--f-mono); color: var(--muted); }

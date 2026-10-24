@@ -43,7 +43,8 @@ import { LANGUAGES, isLanguage } from '@i18n/index'
 import type { MenuCommand, OpenedFile } from '../preload/api'
 import { CodeView } from './components/CodeView'
 import { ProgramEditor, type EditorHandle } from './components/ProgramEditor'
-import { Player } from './components/Player'
+import { CncModal } from './components/CncModal'
+import { Player, type PanelState } from './components/Player'
 import { PositionPanel } from './components/PositionPanel'
 import { StartScreen } from './components/StartScreen'
 import { NewProgramDialog } from './components/NewProgramDialog'
@@ -57,7 +58,20 @@ import { useLibraries } from './libraries'
 import { defaultSetup, offsetsFor, projectData, setupFromProject, STOCK_COLOR, type Setup } from './project'
 import { useRecent } from './recent'
 import { createSimulator } from './simulation'
-import { buildTimeline, formatTime, fractionOf, moveAt, pointAlong, positionAlong, type Timeline } from './playback'
+import {
+  blockEnd,
+  buildTimeline,
+  formatTime,
+  fractionOf,
+  moveAt,
+  nextStop,
+  pointAlong,
+  positionAlong,
+  sameMoment,
+  stopTimes,
+  type Overrides,
+  type Timeline
+} from './playback'
 
 
 // Every JSON in configs/ ships with the app: dropping a file in the folder adds it.
@@ -129,10 +143,28 @@ interface Simulation {
 
 const NO_SIMULATION: Simulation = { timeline: null, time: 0, playing: false }
 
-function simInput(program: Program | null, machine: Machine | undefined, control: Control | undefined, cfg: BundledConfigs, setup: Setup): SimulationInput | null {
+const overridesOf = (p: PanelState): Overrides => ({ feed: p.feed / 100, rapid: p.rapid / 100 })
+
+function simInput(
+  program: Program | null,
+  machine: Machine | undefined,
+  control: Control | undefined,
+  cfg: BundledConfigs,
+  setup: Setup,
+  blockSkip = false
+): SimulationInput | null {
   if (!program || !machine || !control) return null
   const alarms = cfg.alarmCatalogs.find((a) => a.id === control.alarms) ?? null
-  return { text: program.text, machine, control, tools: setup.tools, alarms, workOffsets: setup.workOffsets, toolOffsets: setup.toolOffsets }
+  return {
+    text: program.text,
+    machine,
+    control,
+    tools: setup.tools,
+    alarms,
+    workOffsets: setup.workOffsets,
+    toolOffsets: setup.toolOffsets,
+    options: { blockDelete: blockSkip }
+  }
 }
 
 function run(program: Program | null, machine: Machine | undefined, control: Control | undefined, cfg: BundledConfigs, setup: Setup): Simulation {
@@ -263,6 +295,10 @@ export function App() {
   // One worker for the window's lifetime
   const [simulator] = useState(createSimulator)
   const [busy, setBusy] = useState(false)
+  // Operator panel: single block, M01, block delete and overrides, as on the machine
+  const [panel, setPanel] = useState<PanelState>({ singleBlock: false, optionalStop: false, blockSkip: false, feed: 100, rapid: 100 })
+  /** Lines where playback stops before running them. */
+  const [breakpoints, setBreakpoints] = useState<ReadonlySet<number>>(() => new Set())
   const [fontSize, setFontSize] = useState(() => readNumber(FONT_KEY, 11.5))
   const [codeWidth, setCodeWidth] = useState(() => readNumber(WIDTH_KEY, 300))
   const [speed, setSpeed] = useState(20)
@@ -299,8 +335,8 @@ export function App() {
    * Simulates in the worker: the window stays responsive on long programs. Until the answer comes
    * the previous result stays on screen, with "Simulating…" over the 3D view.
    */
-  function simulateWith(p: Program | null, m: Machine | undefined, c: Control | undefined, s: Setup = setup) {
-    const input = simInput(p, m, c, cfg, s)
+  function simulateWith(p: Program | null, m: Machine | undefined, c: Control | undefined, s: Setup = setup, pn: PanelState = panel) {
+    const input = simInput(p, m, c, cfg, s, pn.blockSkip)
     if (!input) {
       simulator.cancel()
       setBusy(false)
@@ -311,7 +347,7 @@ export function App() {
     void simulator.run(input).then((result) => {
       setBusy(false)
       // Like the control after loading a program: RESET, cursor at the top, nothing run yet
-      setSim({ timeline: buildTimeline(result), time: 0, playing: false })
+      setSim({ timeline: buildTimeline(result, overridesOf(pn)), time: 0, playing: false })
     })
   }
   const changeFont = useCallback((delta: number) => {
@@ -590,8 +626,34 @@ export function App() {
     })
   }, [])
 
+  // ---- operator panel ----
+  function changePanel(change: Partial<PanelState>) {
+    const next = { ...panel, ...change }
+    setPanel(next)
+    // Block delete changes which blocks run: simulate again
+    if (change.blockSkip !== undefined && change.blockSkip !== panel.blockSkip) simulateWith(currentProgram(), machine, control, setup, next)
+    // Overrides change the times: same point of the program on the new timeline
+    else if (change.feed !== undefined || change.rapid !== undefined)
+      setSim((s) => {
+        if (!s.timeline) return s
+        const timeline = buildTimeline(s.timeline.result, overridesOf(next))
+        return { ...s, timeline, time: sameMoment(s.timeline, timeline, s.time) }
+      })
+  }
+  const toggleBreakpoint = useCallback((line: number) => {
+    setBreakpoints((b) => {
+      const next = new Set(b)
+      if (!next.delete(line)) next.add(line)
+      return next
+    })
+  }, [])
+  const stops = useMemo(() => (tl ? stopTimes(tl, { optionalStop: panel.optionalStop, breakpoints }) : []), [tl, panel.optionalStop, breakpoints])
+
   // ---- playback loop ----
+  // Runs until the end, the next stop (M00, M01 with OPTIONAL STOP, a breakpoint) or, in single block,
+  // the end of the current block; Run again goes on from there, as cycle start does.
   const playing = sim.playing
+  const singleBlock = panel.singleBlock
   useEffect(() => {
     if (!playing) return
     let last = 0
@@ -599,15 +661,16 @@ export function App() {
       const dt = last ? (ts - last) / 1000 : 0
       last = ts
       setSim((s) => {
-        if (!s.playing) return s
-        const total = s.timeline?.total ?? 0
-        const time = Math.min(total, s.time + dt * speed)
-        return { ...s, time, playing: time < total }
+        if (!s.playing || !s.timeline) return s
+        const total = s.timeline.total
+        const limit = Math.min(nextStop(stops, s.time, total), singleBlock ? blockEnd(s.timeline, s.time) : total)
+        const time = Math.min(limit, s.time + dt * speed)
+        return { ...s, time, playing: time < limit - 1e-12 }
       })
       frame = requestAnimationFrame(tick)
     })
     return () => cancelAnimationFrame(frame)
-  }, [playing, speed])
+  }, [playing, speed, stops, singleBlock])
 
   // Desktop: File > Open program… in the native menu.
   const onMenuOpen = useEffectEvent((f: Program) => openProgram(f))
@@ -801,6 +864,8 @@ export function App() {
                 <button className="btn tiny" title={t('code.larger')} aria-label={t('code.larger')} onClick={() => changeFont(0.5)}>A+</button>
               </span>
             </div>
+            {/* Like the control: the modal state (F, S, T, active codes and cycle) above the running program */}
+            {mode === 'mem' && <CncModal move={move} />}
             {mode === 'edit' ? (
               <ProgramEditor key={programKey} ref={editor} text={program.text} fontSize={fontSize} onEdit={edited} />
             ) : (
@@ -814,6 +879,8 @@ export function App() {
                 state={playing ? 'start' : sim.time > 0 && sim.time < (tl?.total ?? 0) ? 'hold' : 'reset'}
                 onZoom={changeFont}
                 onLineClick={jumpToLine}
+                breakpoints={breakpoints}
+                onToggleBreakpoint={toggleBreakpoint}
               />
             )}
           </section>
@@ -899,6 +966,8 @@ export function App() {
               onTogglePlay={togglePlay}
               onStep={step}
               onSpeed={setSpeed}
+              panel={panel}
+              onPanel={changePanel}
             />
           </section>
 
@@ -916,7 +985,7 @@ export function App() {
               <PositionPanel move={move} position={position} machinePosition={machinePosition} index={index} total={result?.moves.length ?? 0} axes={shownAxes} />
               {result && (
                 <p className="muted">
-                  {t('sim.summary', { moves: result.moves.length, time: formatTime(result.totalTimeS) })} ·{' '}
+                  {t('sim.summary', { moves: result.moves.length, time: formatTime(tl?.total ?? result.totalTimeS) })} ·{' '}
                   {result.finished ? t('sim.finished') : t('sim.stopped')}
                 </p>
               )}

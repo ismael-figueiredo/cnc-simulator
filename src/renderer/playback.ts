@@ -10,12 +10,20 @@ export interface Timeline {
   movesByLine: Map<number, number[]>
 }
 
-export function buildTimeline(result: SimulationResult): Timeline {
+/** Panel overrides as fractions (1 = 100 %): cutting feed and rapid traverse. */
+export interface Overrides {
+  feed: number
+  rapid: number
+}
+export const NO_OVERRIDE: Overrides = { feed: 1, rapid: 1 }
+
+/** Times follow the overrides, as the machine's cycle time does (dwells are not affected). */
+export function buildTimeline(result: SimulationResult, overrides: Overrides = NO_OVERRIDE): Timeline {
   const cumulative = [0]
   const movesByLine = new Map<number, number[]>()
   let t = 0
   result.moves.forEach((m, i) => {
-    t += m.durationS
+    t += m.kind === 'rapid' ? m.durationS / overrides.rapid : m.kind === 'feed' ? m.durationS / overrides.feed : m.durationS
     cumulative.push(t)
     const list = movesByLine.get(m.line)
     if (list) list.push(i)
@@ -73,4 +81,55 @@ export function formatTime(s: number): string {
   const m = Math.floor(v / 60)
   const r = Math.floor(v % 60)
   return `${m}:${String(r).padStart(2, '0')}`
+}
+
+/** The same point of the program on another timeline (same move, same fraction of it). */
+export function sameMoment(from: Timeline, to: Timeline, time: number): number {
+  if (time <= 0) return 0
+  if (time >= from.total) return to.total
+  const k = moveAt(from, time)
+  const f = fractionOf(from, k, time)
+  const start = to.cumulative[k] ?? 0
+  return start + ((to.cumulative[k + 1] ?? start) - start) * f
+}
+
+export interface StopOptions {
+  /** M01 stops the run (OPTIONAL STOP on). */
+  optionalStop: boolean
+  /** Lines with a breakpoint: the run stops before each of them. */
+  breakpoints: ReadonlySet<number>
+}
+
+/**
+ * Times where playback stops by itself: M00 always, M01 with OPTIONAL STOP, and the start of every
+ * execution of a block with a breakpoint. Sorted.
+ */
+export function stopTimes(tl: Timeline, o: StopOptions): number[] {
+  const out = new Set<number>()
+  for (const d of tl.result.diagnostics) {
+    if (d.moveIndex === undefined) continue
+    if (d.code === 'program-stop' || (o.optionalStop && d.code === 'optional-stop')) out.add(tl.cumulative[d.moveIndex] ?? tl.total)
+  }
+  const moves = tl.result.moves
+  for (const line of o.breakpoints)
+    for (const k of tl.movesByLine.get(line) ?? []) if (k === 0 || moves[k - 1]?.line !== line) out.add(tl.cumulative[k] ?? 0)
+  return [...out].sort((a, b) => a - b)
+}
+
+/** Single block: the end of the block running at `time` (where the next one starts). */
+export function blockEnd(tl: Timeline, time: number): number {
+  const moves = tl.result.moves
+  let k = moveAt(tl, time)
+  if (k < 0) return tl.total
+  // Exactly at the end of a move, the next block is the one about to run
+  if (time >= (tl.cumulative[k + 1] ?? tl.total) - 1e-9) k++
+  const line = moves[k]?.line
+  while (k + 1 < moves.length && moves[k + 1]?.line === line) k++
+  return tl.cumulative[k + 1] ?? tl.total
+}
+
+/** First stop strictly after `time`, or the end. */
+export function nextStop(stops: number[], time: number, total: number): number {
+  for (const s of stops) if (s > time + 1e-9) return s
+  return total
 }
