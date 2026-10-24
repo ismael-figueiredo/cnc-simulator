@@ -1038,9 +1038,13 @@ export function simulate(input: SimulationInput): SimulationResult {
         case 'rotation-off':
         case 'macro-call':
         case 'work-offset': {
-          // G54.1 P n selects an additional offset (P1 when P is left out)
-          const name = code === 'G54.1' ? `G54.1 P${W['P'] ?? 1}` : code
-          if (code === 'G54.1') delete W['P']
+          // In a G10 block (Haas: G10 L20 G154 P n) the code only names the offset being written
+          if (fns.some(([f]) => f === 'data-setting')) break
+          // G54.1 P n (Haas also G154 P n, and G110–G129 for P1–P20) selects an additional offset
+          const haasFixed = /^G1[12]\d$/.test(code) ? Number(code.slice(1)) - 109 : null
+          const extra = code === 'G54.1' || code === 'G154'
+          const name = haasFixed !== null ? `G54.1 P${haasFixed}` : extra ? `G54.1 P${W['P'] ?? 1}` : code
+          if (extra) delete W['P']
           st.workOffset = name
           shift = shiftOf(name)
           if (configuredOffsets && !table.has(name)) diag('info', 'work-offset-not-set', { name }, name)
@@ -1161,6 +1165,17 @@ export function simulate(input: SimulationInput): SimulationResult {
           if (start === undefined) fatal('subprogram-missing', { o: prog })
           if (calls.filter((c) => !c.macro).length >= limits.subprogramNesting) fatal('subprogram-nesting', { max: limits.subprogramNesting })
           calls.push({ ret: pc + 1, count, start: start + 1, macro: false })
+          flow = 'call'
+          break
+        }
+        case 'local-subprogram-call': {
+          // M97 P n: the subprogram starts at block N n of this program and ends with M99
+          const n = W['P']
+          if (n === undefined) fatal('subprogram-p-missing', { code })
+          const start = findN(n)
+          if (start < 0) fatal('goto-target-missing', { n })
+          if (calls.filter((c) => !c.macro).length >= limits.subprogramNesting) fatal('subprogram-nesting', { max: limits.subprogramNesting })
+          calls.push({ ret: pc + 1, count: W['L'] ?? 1, start, macro: false })
           flow = 'call'
           break
         }

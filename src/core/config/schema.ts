@@ -93,7 +93,10 @@ export const MFunction = z.enum([
   'live-tool-cw', 'live-tool-ccw', 'live-tool-stop',
   'c-axis-on', 'c-axis-off', 'brake-on', 'brake-off',
   'coolant-on', 'coolant-off',
-  'tool-change', 'subprogram-call', 'subprogram-return', 'other'
+  'tool-change', 'subprogram-call', 'subprogram-return',
+  // Haas M97 P n: subprogram in the same program, from sequence number N n
+  'local-subprogram-call',
+  'other'
 ])
 
 const code = <T extends z.ZodType>(fn: T) => z.object({ function: fn, description: LocalizedTextSchema.optional() })
