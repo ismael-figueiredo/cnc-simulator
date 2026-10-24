@@ -4,6 +4,22 @@ Cada versão em português e inglês. · Each version in Portuguese and English.
 
 Downloads: https://github.com/ismael-figueiredo/cnc-simulator/releases
 
+## 0.11.0 · 2026-10-24
+
+### Português
+**Para ser achado e para a comunidade.**
+- **Site:** https://ismael-figueiredo.github.io/cnc-simulator/ com download direto para cada sistema, em português e inglês.
+- **README** voltado para quem quer aprender e testar G-code: para quem é, roteiro pelos exemplos e o que conferir antes de mandar o programa para a máquina.
+- **Comunidade:** Discussions para dúvidas e programas, pedido de máquina ou comando, e o guia **CONTRIBUTING** para adicionar máquinas, comandos e alarmes em JSON.
+- Descrição do app e do repositório atualizadas.
+
+### English
+**Easier to find, open to the community.**
+- **Website:** https://ismael-figueiredo.github.io/cnc-simulator/ with direct downloads for each system, in English and Portuguese.
+- **README** written for people who want to learn and test G-code: who it is for, a path through the examples and what to check before sending a program to the machine.
+- **Community:** Discussions for questions and programs, a machine or control request form, and a **CONTRIBUTING** guide to add machines, controls and alarms in JSON.
+- Updated app and repository description.
+
 ## 0.10.0 · 2026-10-24
 
 ### Português
