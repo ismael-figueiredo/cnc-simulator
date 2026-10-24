@@ -1,0 +1,29 @@
+{
+  "format": "cnc-simulator-exercise",
+  "version": 1,
+  "title": {
+    "en": "E01 · Shaft with two diameters (G00/G01)",
+    "pt-BR": "E01 · Eixo com dois diâmetros (G00/G01)",
+    "es": "E01 · Eje con dos diámetros (G00/G01)"
+  },
+  "statement": {
+    "en": "Bar Ø50, face at Z1. Part zero on the finished face (Z0).\n1. Face to Z0 (already in the program).\n2. Rough Ø40 to Z-30 and Ø30 to Z-15, in passes of up to 4 mm on the diameter, leaving 0.6 mm for finishing.\n3. Finish with T02: Ø30 with a 1 × 45° chamfer at the face, shoulder to Ø40, Ø40 to Z-30.\nUse only G00 and G01 (the ,C chamfer is allowed).",
+    "pt-BR": "Barra Ø50, face em Z1. Zero peça na face acabada (Z0).\n1. Faceie até Z0 (já está no programa).\n2. Desbaste Ø40 até Z-30 e Ø30 até Z-15, em passes de até 4 mm no diâmetro, deixando 0,6 mm para o acabamento.\n3. Acabe com a T02: Ø30 com chanfro 1 × 45° na face, encosto até Ø40, Ø40 até Z-30.\nUse só G00 e G01 (o chanfro ,C pode).",
+    "es": "Barra Ø50, cara en Z1. Cero pieza en la cara acabada (Z0).\n1. Refrente hasta Z0 (ya está en el programa).\n2. Desbaste Ø40 hasta Z-30 y Ø30 hasta Z-15, en pasadas de hasta 4 mm en diámetro, dejando 0,6 mm para el acabado.\n3. Acabe con T02: Ø30 con chaflán 1 × 45° en la cara, escalón hasta Ø40, Ø40 hasta Z-30.\nUse solo G00 y G01 (se permite el chaflán ,C)."
+  },
+  "level": 1,
+  "machine": "romi-gl300",
+  "control": "fanuc-0i-tf-system-b",
+  "stock": {
+    "shape": "cylinder",
+    "diameter": 50,
+    "length": 70,
+    "color": "#9aa6b1",
+    "offset": {
+      "Z": 1
+    }
+  },
+  "tolerance": 0.1,
+  "start": "%\nO0101 (E01 - EIXO COM DOIS DIAMETROS);\n(BARRA D50, FACE EM Z1. ZERO PECA NA FACE ACABADA);\nG21 G18 G40 G95;\n\n(T01 - DESBASTE);\nT0101;\nG97 S1500 M03;\n(FACEAMENTO);\nG00 X54. Z0 M08;\nG01 X-1. F0.15;\nG00 Z2.;\n(COMPLETE AQUI: DESBASTE D40.6 ATE Z-30 E D30.6 ATE Z-15);\nG00 X100. Z50.;\n\n(T02 - ACABAMENTO COM CHANFRO 1X45 NO D30);\nT0202;\nG97 S2200 M03;\n(COMPLETE AQUI: PERFIL ACABADO);\nG00 X100. Z50. M09;\nM05;\nM30;\n%\n",
+  "solution": "%\nO0101 (E01 - SOLUCAO);\nG21 G18 G40 G95;\nT0101;\nG97 S1500 M03;\nG00 X54. Z0 M08;\nG01 X-1. F0.15;\nG00 Z2.;\nG00 X46.;\nG01 Z-30. F0.25;\nG00 X48. Z2.;\nX42.;\nG01 Z-30.;\nG00 X44. Z2.;\nX40.6;\nG01 Z-30.;\nG00 X42. Z2.;\nX36.;\nG01 Z-15.;\nG00 X38. Z2.;\nX32.;\nG01 Z-15.;\nG00 X34. Z2.;\nX30.6;\nG01 Z-15.;\nG00 X100. Z50.;\nT0202;\nG97 S2200 M03;\nG00 X26. Z2.;\nG01 Z0 F0.1;\nG01 X30. ,C1.;\nG01 Z-15.;\nG01 X40.;\nG01 Z-30.;\nG01 X52.;\nG00 X100. Z50. M09;\nM05;\nM30;\n%\n"
+}

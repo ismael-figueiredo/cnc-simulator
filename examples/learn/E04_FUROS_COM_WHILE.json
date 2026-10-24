@@ -1,0 +1,39 @@
+{
+  "format": "cnc-simulator-exercise",
+  "version": 1,
+  "title": {
+    "en": "E04 · Row of holes with WHILE (Macro B)",
+    "pt-BR": "E04 · Fileira de furos com WHILE (Macro B)",
+    "es": "E04 · Fila de agujeros con WHILE (Macro B)"
+  },
+  "statement": {
+    "en": "Same block as E03, top face Z0. Make a row of 5 holes 5 mm deep with the drill T4, at Y20, the first at X5 and the next ones every 12 mm.\nThe parameters #100 (number of holes) and #101 (spacing) are already set: write a WHILE loop that computes the X of each hole and drills it with G81. Changing #100 or #101 must change the part.",
+    "pt-BR": "Mesmo bloco do E03, face de cima em Z0. Faça uma fileira de 5 furos de 5 mm de profundidade com a broca T4, em Y20, o primeiro em X5 e os seguintes a cada 12 mm.\nOs parâmetros #100 (número de furos) e #101 (passo) já estão definidos: escreva um laço WHILE que calcula o X de cada furo e fura com G81. Mudar #100 ou #101 deve mudar a peça.",
+    "es": "Mismo bloque que E03, cara superior en Z0. Haga una fila de 5 agujeros de 5 mm de profundidad con la broca T4, en Y20, el primero en X5 y los siguientes cada 12 mm.\nLos parámetros #100 (número de agujeros) y #101 (paso) ya están definidos: escriba un bucle WHILE que calcule la X de cada agujero y taladre con G81. Cambiar #100 o #101 debe cambiar la pieza."
+  },
+  "level": 3,
+  "machine": "romi-d600",
+  "control": "fanuc-0i-mf-romi-d",
+  "stock": {
+    "shape": "block",
+    "x": 70,
+    "y": 50,
+    "z": 20,
+    "color": "#c8a24a",
+    "offset": {
+      "X": -5,
+      "Y": -5
+    },
+    "workOffset": "G54"
+  },
+  "workOffsets": {
+    "G54": {
+      "X": 200,
+      "Y": 200,
+      "Z": -400
+    }
+  },
+  "tolerance": 0.3,
+  "start": "%\nO0104 (E04 - FUROS COM WHILE)\n(BLOCO 70X50X20, ZERO G54 NO CANTO DA PECA)\nG21 G17 G40 G49 G80 G90\n\n#100 = 5 (NUMERO DE FUROS)\n#101 = 12. (PASSO EM X)\n\n(T4 - BROCA D8.5)\nT4 M6\nG90 G54 G0 X5. Y20. S2200 M3\nG43 Z50. H4 M8\n(COMPLETE AQUI: CONTADOR, WHILE [...] DO1, X DO FURO, G81 Z-5. R2. F220., END1, G80)\nG0 Z50.\nM9\nM5\nG91 G28 Z0.\nM30\n%\n",
+  "solution": "%\nO0104 (E04 - SOLUCAO)\nG21 G17 G40 G49 G80 G90\n#100 = 5\n#101 = 12.\nT4 M6\nG90 G54 G0 X5. Y20. S2200 M3\nG43 Z50. H4 M8\n#102 = 0\nWHILE [#102 LT #100] DO1\n#103 = 5. + #102 * #101\nG99 G81 X#103 Y20. Z-5. R2. F220.\n#102 = #102 + 1\nEND1\nG80\nG0 Z50.\nM9\nM5\nG91 G28 Z0.\nM30\n%\n"
+}

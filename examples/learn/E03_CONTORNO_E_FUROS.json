@@ -1,0 +1,39 @@
+{
+  "format": "cnc-simulator-exercise",
+  "version": 1,
+  "title": {
+    "en": "E03 · Contour with G41 and drilling",
+    "pt-BR": "E03 · Contorno com G41 e furação",
+    "es": "E03 · Contorno con G41 y taladrado"
+  },
+  "statement": {
+    "en": "Block 70 × 50 × 20 in a vise, part zero G54 at the bottom-left corner of the finished part, top face Z0.\n1. T2 (end mill Ø12): outside contour 60 × 40, 8 mm deep, with R4 corners, using G41 D2 (enter at X0 Y-10, leave with G40).\n2. T4 (drill Ø8.5): two through holes at X15 Y20 and X45 Y20 to Z-20, with G83 Q5.",
+    "pt-BR": "Bloco 70 × 50 × 20 na morsa, zero peça G54 no canto inferior esquerdo da peça acabada, face de cima em Z0.\n1. T2 (fresa Ø12): contorno externo 60 × 40, 8 mm de profundidade, com cantos R4, usando G41 D2 (entre em X0 Y-10, saia com G40).\n2. T4 (broca Ø8,5): dois furos passantes em X15 Y20 e X45 Y20 até Z-20, com G83 Q5.",
+    "es": "Bloque 70 × 50 × 20 en la mordaza, cero pieza G54 en la esquina inferior izquierda de la pieza acabada, cara superior en Z0.\n1. T2 (fresa Ø12): contorno exterior 60 × 40, 8 mm de profundidad, con esquinas R4, usando G41 D2 (entre en X0 Y-10, salga con G40).\n2. T4 (broca Ø8,5): dos agujeros pasantes en X15 Y20 y X45 Y20 hasta Z-20, con G83 Q5."
+  },
+  "level": 2,
+  "machine": "romi-d600",
+  "control": "fanuc-0i-mf-romi-d",
+  "stock": {
+    "shape": "block",
+    "x": 70,
+    "y": 50,
+    "z": 20,
+    "color": "#c8a24a",
+    "offset": {
+      "X": -5,
+      "Y": -5
+    },
+    "workOffset": "G54"
+  },
+  "workOffsets": {
+    "G54": {
+      "X": 200,
+      "Y": 200,
+      "Z": -400
+    }
+  },
+  "tolerance": 0.3,
+  "start": "%\nO0103 (E03 - CONTORNO E FUROS)\n(BLOCO 70X50X20, ZERO G54 NO CANTO DA PECA ACABADA 60X40)\nG21 G17 G40 G49 G80 G90\n\n(T2 - FRESA D12 - CONTORNO)\nT2 M6\nG90 G54 G0 X-20. Y-20. S6000 M3\nG43 Z50. H2 M8\n(COMPLETE AQUI: DESCER, G41 D2, CONTORNO COM ,R4, G40)\nG0 Z50.\nM9\nM5\nG91 G28 Z0.\n\n(T4 - BROCA D8.5 - DOIS FUROS)\nT4 M6\nG90 G54 G0 X15. Y20. S2200 M3\nG43 Z50. H4 M8\n(COMPLETE AQUI: G83 E G80)\nG0 Z50.\nM9\nM5\nG91 G28 Z0.\nM30\n%\n",
+  "solution": "%\nO0103 (E03 - SOLUCAO)\nG21 G17 G40 G49 G80 G90\nT2 M6\nG90 G54 G0 X-20. Y-20. S6000 M3\nG43 Z50. H2 M8\nG0 Z5.\nG1 Z-8. F600.\nG41 D2 G1 X0 Y-10. F800.\nG1 Y40. ,R4.\nG1 X60. ,R4.\nG1 Y0 ,R4.\nG1 X-10.\nG40 G1 X-20. Y-20.\nG0 Z50.\nM9\nM5\nG91 G28 Z0.\nT4 M6\nG90 G54 G0 X15. Y20. S2200 M3\nG43 Z50. H4 M8\nG99 G83 Z-20. R2. Q5. F220.\nG98 X45.\nG80\nG0 Z50.\nM9\nM5\nG91 G28 Z0.\nM30\n%\n"
+}

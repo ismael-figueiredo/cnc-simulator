@@ -7,5 +7,6 @@ export { Expr, MacroError, type MacroErrorKind, type Value, type VariableReader 
 export { DIAGNOSTIC_CODES, type DiagnosticCode } from './interp/diagnostics'
 export * from './tooling'
 export * from './removal'
+export * from './exercise'
 export * from './templates'
 export { simulate, toolRadiusFromComment, type SimulationInput, type SimulationOptions } from './interp/simulate'

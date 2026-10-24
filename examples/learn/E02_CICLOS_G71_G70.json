@@ -1,0 +1,29 @@
+{
+  "format": "cnc-simulator-exercise",
+  "version": 1,
+  "title": {
+    "en": "E02 · Profile with G71 and G70",
+    "pt-BR": "E02 · Perfil com G71 e G70",
+    "es": "E02 · Perfil con G71 y G70"
+  },
+  "statement": {
+    "en": "Bar Ø50, face at Z1. Part zero on the finished face.\nFinished profile: Ø20 with a 1 × 45° chamfer from Z0 to Z-15, taper from Ø20 to Ø30 between Z-15 and Z-25, Ø30 to Z-35, shoulder to Ø40, Ø40 to Z-45.\n1. Rough with G71 (2 mm per pass, 0.4 mm allowance on X, 0.1 mm on Z), shape between N10 and N20.\n2. Finish with T02 using G70 P10 Q20.",
+    "pt-BR": "Barra Ø50, face em Z1. Zero peça na face acabada.\nPerfil acabado: Ø20 com chanfro 1 × 45° de Z0 a Z-15, cone de Ø20 a Ø30 entre Z-15 e Z-25, Ø30 até Z-35, encosto até Ø40, Ø40 até Z-45.\n1. Desbaste com G71 (2 mm por passe, sobremetal 0,4 mm em X e 0,1 mm em Z), perfil entre N10 e N20.\n2. Acabe com a T02 usando G70 P10 Q20.",
+    "es": "Barra Ø50, cara en Z1. Cero pieza en la cara acabada.\nPerfil acabado: Ø20 con chaflán 1 × 45° de Z0 a Z-15, cono de Ø20 a Ø30 entre Z-15 y Z-25, Ø30 hasta Z-35, escalón hasta Ø40, Ø40 hasta Z-45.\n1. Desbaste con G71 (2 mm por pasada, creces 0,4 mm en X y 0,1 mm en Z), perfil entre N10 y N20.\n2. Acabe con T02 usando G70 P10 Q20."
+  },
+  "level": 2,
+  "machine": "romi-gl300",
+  "control": "fanuc-0i-tf-system-b",
+  "stock": {
+    "shape": "cylinder",
+    "diameter": 50,
+    "length": 80,
+    "color": "#9aa6b1",
+    "offset": {
+      "Z": 1
+    }
+  },
+  "tolerance": 0.1,
+  "start": "%\nO0102 (E02 - PERFIL COM G71 E G70);\n(BARRA D50, FACE EM Z1. ZERO PECA NA FACE ACABADA);\nG21 G18 G40 G95;\n\n(T01 - FACEAMENTO E DESBASTE G71);\nT0101;\nG97 S1500 M03;\nG00 X54. Z0 M08;\nG01 X-1. F0.15;\nG00 X52. Z2.;\n(COMPLETE AQUI: G71 U.. R.. / G71 P10 Q20 U.. W.. F..);\n(N10 ... PERFIL ACABADO ... N20);\nG00 X100. Z50.;\n\n(T02 - ACABAMENTO G70);\nT0202;\nG97 S2200 M03;\nG00 X52. Z2.;\n(COMPLETE AQUI: G70);\nG00 X100. Z50. M09;\nM05;\nM30;\n%\n",
+  "solution": "%\nO0102 (E02 - SOLUCAO);\nG21 G18 G40 G95;\nT0101;\nG97 S1500 M03;\nG00 X54. Z0 M08;\nG01 X-1. F0.15;\nG00 X52. Z2.;\nG71 U2. R0.5;\nG71 P10 Q20 U0.4 W0.1 F0.25;\nN10 G00 X16.;\nG01 Z0 F0.1;\nX20. ,C1.;\nZ-15.;\nX30. Z-25.;\nZ-35.;\nX40.;\nZ-45.;\nN20 X52.;\nG00 X100. Z50.;\nT0202;\nG97 S2200 M03;\nG00 X52. Z2.;\nG70 P10 Q20;\nG00 X100. Z50. M09;\nM05;\nM30;\n%\n"
+}
