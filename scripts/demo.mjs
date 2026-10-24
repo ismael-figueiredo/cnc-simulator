@@ -28,7 +28,8 @@ void app.whenReady().then(async () => {
   const win = new BrowserWindow({ ...SIZE, show: false, useContentSize: true, webPreferences: { offscreen: true } })
   // Browser mode (no preload): same UI, and the user's recent files never show up in the recording
   await win.loadFile(resolve(root, 'out/renderer/index.html'))
-  await win.webContents.executeJavaScript(`localStorage.clear()`)
+  // Clean start, without the first-use tour over the recording
+  await win.webContents.executeJavaScript(`localStorage.clear(); localStorage.setItem('cncsim.tourDone', '1')`)
   await win.webContents.reload()
   await sleep(2000)
 
