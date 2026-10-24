@@ -73,15 +73,21 @@ export const CodeView = memo(function CodeView({ lines, currentLine, alarmLine, 
   // every line has the same height, so line i sits at i * rowHeight.
   const rowHeight = fontSize * LINE_HEIGHT
   const [view, setView] = useState({ top: 0, height: 800 })
+  // Scroll position and height as last read or written: following the cursor uses these instead of
+  // reading the element, which would force a layout on every move during playback.
+  const scroll = useRef({ top: 0, height: 800 })
   const readView = () => {
     const el = box.current
-    if (el) setView((v) => (v.top === el.scrollTop && v.height === el.clientHeight ? v : { top: el.scrollTop, height: el.clientHeight }))
+    if (!el) return
+    scroll.current = { top: el.scrollTop, height: el.clientHeight }
+    setView((v) => (v.top === el.scrollTop && v.height === el.clientHeight ? v : { ...scroll.current }))
   }
   useEffect(() => {
     const el = box.current
     if (!el) return
     const ro = new ResizeObserver(() => {
-      setView((v) => (v.height === el.clientHeight ? v : { top: el.scrollTop, height: el.clientHeight }))
+      scroll.current = { top: el.scrollTop, height: el.clientHeight }
+      setView((v) => (v.height === el.clientHeight ? v : { ...scroll.current }))
     })
     ro.observe(el)
     return () => ro.disconnect()
@@ -99,8 +105,15 @@ export const CodeView = memo(function CodeView({ lines, currentLine, alarmLine, 
     const h = rowHeight
     const top = currentLine * h
     const bottom = top + h * (LOOKAHEAD + 1)
-    if (bottom > parent.scrollTop + parent.clientHeight) parent.scrollTop = bottom - parent.clientHeight
-    else if (top - h < parent.scrollTop) parent.scrollTop = Math.max(0, top - h)
+    const s = scroll.current
+    let next = s.top
+    if (bottom > s.top + s.height) next = bottom - s.height
+    else if (top - h < s.top) next = Math.max(0, top - h)
+    // Written only when the cursor leaves the screen, which is every few lines, not every move
+    if (next !== s.top) {
+      parent.scrollTop = next
+      scroll.current = { ...s, top: next }
+    }
   }, [currentLine, rowHeight, lines])
 
   // Lines to draw: the ones on screen, plus the cursor's neighbourhood, so the frame where the
