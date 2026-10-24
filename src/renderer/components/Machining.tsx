@@ -31,28 +31,55 @@ interface Replay<T> {
   applied: number
   /** Bumped whenever the model changes, so memos and effects can follow it. */
   version: number
+  /** Copies of the model taken on the way forward, by the index of the last move applied. */
+  checkpoints: { applied: number; model: T }[]
 }
 
 // Outside React: the cut model is a cache, mutated as playback goes. Each program/stock/tools
 // combination gets its own key, so a new one starts from the raw stock.
 const replays = new WeakMap<object, Replay<unknown>>()
 
-/** Forward: applies the moves not applied yet. Backward: starts over from the raw stock. */
-function replayTo<T>(key: object, create: () => T, apply: (model: T, m: Move) => boolean, moves: Move[], index: number): Replay<T> {
+/** At most this many checkpoints per replay (each is a copy of the heightfield or profile). */
+const MAX_CHECKPOINTS = 64
+const MIN_CHECKPOINT_STEP = 500
+
+/**
+ * Forward: applies the moves not applied yet. Backward: restarts from the last checkpoint at or
+ * before the index (raw stock if none), so seeking back in a long program does not replay it all.
+ */
+function replayTo<T>(
+  key: object,
+  create: () => T,
+  copy: (model: T) => T,
+  apply: (model: T, m: Move) => boolean,
+  moves: Move[],
+  index: number
+): Replay<T> {
   let r = replays.get(key) as Replay<T> | undefined
-  if (!r || index < r.applied) {
-    r = { model: create(), applied: -1, version: (r?.version ?? 0) + 1 }
+  if (!r) {
+    r = { model: create(), applied: -1, version: 0, checkpoints: [] }
     replays.set(key, r)
+  } else if (index < r.applied) {
+    let cp: Replay<T>['checkpoints'][number] | undefined
+    for (const c of r.checkpoints) if (c.applied <= index && (!cp || c.applied > cp.applied)) cp = c
+    r.model = cp ? copy(cp.model) : create()
+    r.applied = cp ? cp.applied : -1
+    r.version++
   }
+  const every = Math.max(MIN_CHECKPOINT_STEP, Math.ceil(moves.length / MAX_CHECKPOINTS))
   let changed = false
   for (let k = r.applied + 1; k <= index; k++) {
     const m = moves[k]
     if (m && apply(r.model, m)) changed = true
+    if ((k + 1) % every === 0 && !r.checkpoints.some((c) => c.applied === k)) r.checkpoints.push({ applied: k, model: copy(r.model) })
   }
   r.applied = Math.max(r.applied, index)
   if (changed) r.version++
   return r
 }
+
+const copyHeightfield = (h: Heightfield): Heightfield => ({ ...h, heights: h.heights.slice() })
+const copyProfile = (p: TurnProfile): TurnProfile => ({ ...p, radii: p.radii.slice() })
 
 function MilledBlock({ moves, index, stock, zero, ballTools, color }: Props) {
   // A new program, stock or tool set starts the replay over
@@ -60,6 +87,7 @@ function MilledBlock({ moves, index, stock, zero, ballTools, color }: Props) {
   const replay = replayTo(
     key,
     () => createHeightfield(stock, zero),
+    copyHeightfield,
     (h: Heightfield, m: Move) => cutHeightfield(h, m, ballTools.has(m.state.tool)),
     moves,
     index
@@ -80,6 +108,7 @@ function MilledBlock({ moves, index, stock, zero, ballTools, color }: Props) {
     g.setIndex(idx)
     return g
   }, [stock, zero])
+  useEffect(() => () => geometry.dispose(), [geometry])
 
   useEffect(() => {
     const pos = geometry.getAttribute('position') as BufferAttribute
@@ -110,10 +139,12 @@ function MilledBlock({ moves, index, stock, zero, ballTools, color }: Props) {
 
 function TurnedBar({ moves, index, stock, zero, color }: Props) {
   const key = useMemo(() => ({ moves, stock, zero }), [moves, stock, zero])
-  const { model, version } = replayTo(key, () => createProfile(stock, zero), (p: TurnProfile, m: Move) => cutProfile(p, m), moves, index)
+  const { model, version } = replayTo(key, () => createProfile(stock, zero), copyProfile, (p: TurnProfile, m: Move) => cutProfile(p, m), moves, index)
 
   // The profile is cut in place: `version` tells the memo it changed
   const geometry = useMemo(() => barGeometry(model, color, version), [model, color, version])
+  // Each version is a new geometry: free the previous one on the GPU
+  useEffect(() => () => geometry.dispose(), [geometry])
 
   return (
     // LatheGeometry turns around +Y; the spindle axis is Z

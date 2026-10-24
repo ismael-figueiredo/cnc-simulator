@@ -34,14 +34,25 @@ const programNumber = (lines: string[]) => {
   return 'O----'
 }
 
-/** Last sequence number at or before the line, as shown in the screen header. */
-const sequenceAt = (lines: string[], line: number) => {
-  for (let i = Math.min(line, lines.length - 1); i >= 0; i--) {
-    const m = /(?:^|[^A-Z#])N(\d+)/i.exec(lines[i]?.replace(/\(.*?\)/g, '') ?? '')
-    if (m?.[1]) return `N${m[1].padStart(5, '0')}`
+/**
+ * Last sequence number at or before each line, as shown in the screen header. Worked out once per
+ * program: searching back from the cursor on every move took a whole pass over CAM files without N.
+ */
+const sequenceNumbers = (lines: string[]): string[] => {
+  const out: string[] = []
+  let last = 'N-----'
+  for (const l of lines) {
+    const m = /(?:^|[^A-Z#])N(\d+)/i.exec(l.replace(/\(.*?\)/g, ''))
+    if (m?.[1]) last = `N${m[1].padStart(5, '0')}`
+    out.push(last)
   }
-  return 'N-----'
+  return out
 }
+
+/** Line height in the stylesheet (.code line-height), in font sizes. */
+const LINE_HEIGHT = 1.45
+/** Lines drawn above and below what is on screen, so fast scrolling shows no gaps. */
+const OVERSCAN = 30
 
 function Clock() {
   const [now, setNow] = useState(() => new Date())
@@ -57,23 +68,53 @@ export const CodeView = memo(function CodeView({ lines, currentLine, alarmLine, 
   const { t } = useI18n()
   const box = useRef<HTMLDivElement>(null)
   const oNumber = useMemo(() => programNumber(lines), [lines])
+  const sequence = useMemo(() => sequenceNumbers(lines), [lines])
+  // Only the lines on screen are in the page (a CAM program can have hundreds of thousands):
+  // every line has the same height, so line i sits at i * rowHeight.
+  const rowHeight = fontSize * LINE_HEIGHT
+  const [view, setView] = useState({ top: 0, height: 800 })
+  const readView = () => {
+    const el = box.current
+    if (el) setView((v) => (v.top === el.scrollTop && v.height === el.clientHeight ? v : { top: el.scrollTop, height: el.clientHeight }))
+  }
+  useEffect(() => {
+    const el = box.current
+    if (!el) return
+    const ro = new ResizeObserver(() => {
+      setView((v) => (v.height === el.clientHeight ? v : { top: el.scrollTop, height: el.clientHeight }))
+    })
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
 
   // The program starts at the top; the screen scrolls only when the cursor would leave it,
   // keeping a few lines ahead visible (or one line above when jumping back).
   useLayoutEffect(() => {
     const parent = box.current
-    const el = parent?.querySelector<HTMLElement>(`[data-line="${Math.max(0, currentLine)}"]`)
-    if (!parent || !el) return
+    if (!parent) return
     if (currentLine < 0) {
       parent.scrollTop = 0
       return
     }
-    const h = el.offsetHeight
-    const top = el.offsetTop
+    const h = rowHeight
+    const top = currentLine * h
     const bottom = top + h * (LOOKAHEAD + 1)
     if (bottom > parent.scrollTop + parent.clientHeight) parent.scrollTop = bottom - parent.clientHeight
     else if (top - h < parent.scrollTop) parent.scrollTop = Math.max(0, top - h)
-  }, [currentLine, fontSize, lines])
+  }, [currentLine, rowHeight, lines])
+
+  // Lines to draw: the ones on screen, plus the cursor's neighbourhood, so the frame where the
+  // screen follows the cursor (before the scroll event arrives) already has its lines.
+  const shown = useMemo(() => {
+    const perScreen = Math.ceil(view.height / rowHeight)
+    const first = Math.max(0, Math.floor(view.top / rowHeight) - OVERSCAN)
+    const last = Math.min(lines.length - 1, first + perScreen + 2 * OVERSCAN)
+    const set = new Set<number>()
+    for (let i = first; i <= last; i++) set.add(i)
+    if (currentLine >= 0)
+      for (let i = Math.max(0, currentLine - perScreen - 2); i <= Math.min(lines.length - 1, currentLine + perScreen + 2); i++) set.add(i)
+    return [...set].sort((a, b) => a - b)
+  }, [view, rowHeight, lines.length, currentLine])
 
   // React's onWheel is passive, so Ctrl + wheel zoom needs a native listener to stop the page zoom
   useEffect(() => {
@@ -95,28 +136,39 @@ export const CodeView = memo(function CodeView({ lines, currentLine, alarmLine, 
         <span>{t('cnc.program')}</span>
         <span className="dim">{t('program.lines', { count: lines.length })}</span>
         <span>{oNumber}</span>
-        <span>{sequenceAt(lines, currentLine)}</span>
+        <span>{currentLine >= 0 ? (sequence[Math.min(currentLine, sequence.length - 1)] ?? 'N-----') : 'N-----'}</span>
       </div>
-      <div className="code" ref={box} role="listbox" title={t('code.clickHint')}>
-        {lines.map((text, i) => {
-          const mark = marks.get(i)
-          const cls = [
-            'line',
-            i === currentLine ? 'current' : '',
-            i < currentLine ? 'done' : '',
-            i === alarmLine ? 'stopped' : '',
-            mark ?? '',
-            hits.has(i) ? 'hit' : ''
-          ]
-            .filter(Boolean)
-            .join(' ')
-          return (
-            <div key={i} data-line={i} className={cls} role="option" aria-selected={i === currentLine} onClick={() => onLineClick(i)}>
-              <span className="n">{i + 1}</span>
-              <span className="t">{text || ' '}</span>
-            </div>
-          )
-        })}
+      <div className="code" ref={box} role="listbox" title={t('code.clickHint')} onScroll={readView}>
+        <div className="code-lines" style={{ height: lines.length * rowHeight }}>
+          {shown.map((i) => {
+            const text = lines[i] ?? ''
+            const mark = marks.get(i)
+            const cls = [
+              'line',
+              i === currentLine ? 'current' : '',
+              i < currentLine ? 'done' : '',
+              i === alarmLine ? 'stopped' : '',
+              mark ?? '',
+              hits.has(i) ? 'hit' : ''
+            ]
+              .filter(Boolean)
+              .join(' ')
+            return (
+              <div
+                key={i}
+                data-line={i}
+                className={cls}
+                role="option"
+                aria-selected={i === currentLine}
+                style={{ top: i * rowHeight, height: rowHeight }}
+                onClick={() => onLineClick(i)}
+              >
+                <span className="n">{i + 1}</span>
+                <span className="t">{text || ' '}</span>
+              </div>
+            )
+          })}
+        </div>
       </div>
       <div className="cnc-status">
         <span>MEM</span>

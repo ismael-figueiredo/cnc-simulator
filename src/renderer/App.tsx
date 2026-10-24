@@ -1,4 +1,5 @@
 import {
+  memo,
   useCallback,
   useEffect,
   useEffectEvent,
@@ -158,6 +159,70 @@ function download(name: string, text: string, type: string) {
 }
 
 const SEVERITY_ORDER: Record<Severity, number> = { alarm: 0, warning: 1, info: 2 }
+
+type Translate = ReturnType<typeof useI18n>['t']
+const configIssueText = (t: Translate, i: ConfigIssue) =>
+  i.kind === 'invalid-json'
+    ? t('config.invalidJson', { source: i.source, message: i.message })
+    : t('config.issue', { source: i.source, path: i.path || t('config.root'), message: i.message })
+
+interface MessagesProps {
+  issues: ConfigIssue[]
+  diagnostics: Diagnostic[]
+  collisions: ReturnType<typeof findHolderCollisions>
+  chuckCollisions: ReturnType<typeof findChuckCollisions>
+  onDiagnostic: (d: Diagnostic) => void
+  onMove: (moveIndex: number) => void
+}
+
+/**
+ * Messages and alarms of the run. Memoized: playback re-renders the app on every frame, and a CAM
+ * program can bring thousands of messages that would all be drawn again each time.
+ */
+const Messages = memo(function Messages({ issues, diagnostics, collisions, chuckCollisions, onDiagnostic, onMove }: MessagesProps) {
+  const { t } = useI18n()
+  const count = diagnostics.length + issues.length + collisions.length + chuckCollisions.length
+  return (
+    <div className="block">
+      <h2>
+        {t('messages.title')}
+        {count > 0 && <span className="count">{count}</span>}
+      </h2>
+      {issues.map((i, k) => (
+        <p key={`cfg${k}`} className="msg alarm">
+          <b>{t('severity.alarm')}</b>
+          <span>{configIssueText(t, i)}</span>
+        </p>
+      ))}
+      {diagnostics.map((d, k) => (
+        <button key={k} className={`msg ${d.severity}`} onClick={() => onDiagnostic(d)}>
+          <b>{d.alarm?.code ?? t(`severity.${d.severity}`)}</b>
+          <span>
+            L{d.line + 1} · {d.alarm?.message && <strong>{d.alarm.message} · </strong>}
+            {t(`diag.${d.code}`, d.params)}
+          </span>
+        </button>
+      ))}
+      {collisions.map((c) => (
+        <button key={`col${c.tool}|${c.line}`} className="msg warning" onClick={() => onMove(c.moveIndex)}>
+          <b>{t('collision.label')}</b>
+          <span>
+            L{c.line + 1} · {t('collision.holder', { tool: String(c.tool).padStart(2, '0'), depth: c.depth })}
+          </span>
+        </button>
+      ))}
+      {chuckCollisions.map((c) => (
+        <button key={`chuck${c.tool}|${c.line}`} className="msg alarm" onClick={() => onMove(c.moveIndex)}>
+          <b>{t('collision.label')}</b>
+          <span>
+            L{c.line + 1} · {t('collision.chuck', { tool: String(c.tool).padStart(2, '0'), z: c.z })}
+          </span>
+        </button>
+      ))}
+      {!count && <p className="muted">{t('messages.none')}</p>}
+    </div>
+  )
+})
 
 export function App() {
   const { lang, setLang, t, l } = useI18n()
@@ -457,11 +522,6 @@ export function App() {
       return { ...s, playing: false, time: Math.max(start, end - 1e-6) }
     })
   }, [])
-  /** Puts the tool at the start of move k, so Play runs that block first (start from the middle). */
-  const startAt = useCallback((k: number) => {
-    // A hair past the start, so the block counts as the current one and not as RESET
-    setSim((s) => ({ ...s, playing: false, time: (s.timeline?.cumulative[k] ?? 0) + 1e-6 }))
-  }, [])
   function step(dir: -1 | 1) {
     if (!tl?.result.moves.length) return
     const atEnd = fraction >= 1
@@ -475,16 +535,20 @@ export function App() {
     setSim((s) => (s.playing ? { ...s, playing: false } : { ...s, playing: true, time: s.time >= (s.timeline?.total ?? 0) ? 0 : s.time }))
   }
 
-  // Clicking a line starts from its next execution (loops run the same line many times).
-  const jumpToLine = useCallback(
-    (line: number) => {
-      const hits = tl?.movesByLine.get(line)
-      if (!hits?.length) return
-      const next = hits.find((h) => h > index) ?? hits[0] ?? 0
-      startAt(next)
-    },
-    [tl, index, startAt]
-  )
+  // Clicking a line starts from its next execution (loops run the same line many times):
+  // the tool goes to the start of that move, so Play runs that block first.
+  // Reads the current move from the state itself, so the callback never changes and the program
+  // screen does not re-render just because playback moved on.
+  const jumpToLine = useCallback((line: number) => {
+    setSim((s) => {
+      const hits = s.timeline?.movesByLine.get(line)
+      if (!s.timeline || !hits?.length) return s
+      const current = s.time <= 0 && !s.playing ? -1 : moveAt(s.timeline, s.time)
+      const next = hits.find((h) => h > current) ?? hits[0] ?? 0
+      // A hair past the start, so the block counts as the current one and not as RESET
+      return { ...s, playing: false, time: (s.timeline.cumulative[next] ?? 0) + 1e-6 }
+    })
+  }, [])
 
   // ---- playback loop ----
   const playing = sim.playing
@@ -563,18 +627,18 @@ export function App() {
 
   const diagText = (d: Diagnostic) => t(`diag.${d.code}`, d.params)
   /** A diagnostic on a line without moves (e.g. the alarm block) goes to where the machine stopped. */
-  function jumpToDiagnostic(d: Diagnostic) {
-    if (tl?.movesByLine.has(d.line)) jumpToLine(d.line)
-    else if (d.moveIndex !== undefined) {
-      if (d.moveIndex > 0) seekMove(d.moveIndex - 1)
-      else seek(0)
-    }
-  }
+  const jumpToDiagnostic = useCallback(
+    (d: Diagnostic) => {
+      if (tl?.movesByLine.has(d.line)) jumpToLine(d.line)
+      else if (d.moveIndex !== undefined) {
+        if (d.moveIndex > 0) seekMove(d.moveIndex - 1)
+        else seek(0)
+      }
+    },
+    [tl, jumpToLine, seekMove, seek]
+  )
   const stoppedBy = result?.stoppedBy
-  const issueText = (i: ConfigIssue) =>
-    i.kind === 'invalid-json'
-      ? t('config.invalidJson', { source: i.source, message: i.message })
-      : t('config.issue', { source: i.source, path: i.path || t('config.root'), message: i.message })
+  const issueText = (i: ConfigIssue) => configIssueText(t, i)
 
   const machineKind = machine && (machine.kinematics.startsWith('lathe') ? 'lathe' : 'mill')
   const shownAxes = machine ? machine.axes.map((a) => a.name) : ['X', 'Y', 'Z']
@@ -612,7 +676,6 @@ export function App() {
   // C angle: from the tip in polar interpolation (C is not tracked as an angle there), else the C position
   const spindleAngle = move ? (move.state.polar && toolTip ? Math.atan2(toolTip[1], toolTip[0]) : ((position?.C ?? 0) * Math.PI) / 180) : 0
   const spinning = playing && !!move?.state.spindleOn && !move.state.liveToolOn
-  const messageCount = diagnostics.length + cfg.issues.length + collisions.length + chuckCollisions.length
 
   return (
     <div className="app">
@@ -817,44 +880,14 @@ export function App() {
                 </p>
               )}
             </div>
-            <div className="block">
-              <h2>
-                {t('messages.title')}
-                {messageCount > 0 && <span className="count">{messageCount}</span>}
-              </h2>
-              {cfg.issues.map((i, k) => (
-                <p key={`cfg${k}`} className="msg alarm">
-                  <b>{t('severity.alarm')}</b>
-                  <span>{issueText(i)}</span>
-                </p>
-              ))}
-              {diagnostics.map((d, k) => (
-                <button key={k} className={`msg ${d.severity}`} onClick={() => jumpToDiagnostic(d)}>
-                  <b>{d.alarm?.code ?? t(`severity.${d.severity}`)}</b>
-                  <span>
-                    L{d.line + 1} · {d.alarm?.message && <strong>{d.alarm.message} · </strong>}
-                    {diagText(d)}
-                  </span>
-                </button>
-              ))}
-              {collisions.map((c) => (
-                <button key={`col${c.tool}|${c.line}`} className="msg warning" onClick={() => seekMove(c.moveIndex)}>
-                  <b>{t('collision.label')}</b>
-                  <span>
-                    L{c.line + 1} · {t('collision.holder', { tool: String(c.tool).padStart(2, '0'), depth: c.depth })}
-                  </span>
-                </button>
-              ))}
-              {chuckCollisions.map((c) => (
-                <button key={`chuck${c.tool}|${c.line}`} className="msg alarm" onClick={() => seekMove(c.moveIndex)}>
-                  <b>{t('collision.label')}</b>
-                  <span>
-                    L{c.line + 1} · {t('collision.chuck', { tool: String(c.tool).padStart(2, '0'), z: c.z })}
-                  </span>
-                </button>
-              ))}
-              {!messageCount && <p className="muted">{t('messages.none')}</p>}
-            </div>
+            <Messages
+              issues={cfg.issues}
+              diagnostics={diagnostics}
+              collisions={collisions}
+              chuckCollisions={chuckCollisions}
+              onDiagnostic={jumpToDiagnostic}
+              onMove={seekMove}
+            />
             {machine && (
               <div className="block">
                 <h2>{t('machine.title')}</h2>

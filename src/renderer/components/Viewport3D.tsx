@@ -1,7 +1,7 @@
-import { useMemo, useRef, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, type ReactNode } from 'react'
 import { Canvas, useFrame } from '@react-three/fiber'
 import { GizmoHelper, GizmoViewport, Grid, Html, OrbitControls } from '@react-three/drei'
-import { ExtrudeGeometry, LatheGeometry, Shape, Vector2, type Group } from 'three'
+import { BufferAttribute, BufferGeometry, ExtrudeGeometry, LatheGeometry, Shape, Vector2, type Group } from 'three'
 import {
   chuckGeometry,
   holderOutline,
@@ -101,19 +101,28 @@ function buildLayer(moves: Move[], pick: (m: Move) => readonly Vec3[] | undefine
 }
 
 function PathLayer({ layer, color, done, ghostOpacity }: { layer: Layer; color: string; done: number; ghostOpacity: number }) {
+  // Ghost (path still to run) and done part share one vertex buffer: uploaded to the GPU once, not twice.
+  // Built here and disposed by hand, so a new program frees the old path's GPU memory.
+  const geometries = useMemo(() => {
+    const position = new BufferAttribute(layer.positions, 3)
+    const make = () => new BufferGeometry().setAttribute('position', position)
+    return { ghost: make(), done: make() }
+  }, [layer])
+  useEffect(
+    () => () => {
+      geometries.ghost.dispose()
+      geometries.done.dispose()
+    },
+    [geometries]
+  )
   if (!layer.positions.length) return null
   return (
     <>
-      <lineSegments frustumCulled={false}>
-        <bufferGeometry>
-          <bufferAttribute attach="attributes-position" args={[layer.positions, 3]} />
-        </bufferGeometry>
+      {/* Ghost: only the part still to run (the done part is drawn solid over it), so each segment is drawn once */}
+      <lineSegments frustumCulled={false} geometry={geometries.ghost} geometry-drawRange-start={done}>
         <lineBasicMaterial color={color} transparent opacity={ghostOpacity} depthWrite={false} />
       </lineSegments>
-      <lineSegments frustumCulled={false}>
-        <bufferGeometry drawRange-count={done}>
-          <bufferAttribute attach="attributes-position" args={[layer.positions, 3]} />
-        </bufferGeometry>
+      <lineSegments frustumCulled={false} geometry={geometries.done} geometry-drawRange-count={done}>
         <lineBasicMaterial color={color} />
       </lineSegments>
     </>
@@ -313,7 +322,10 @@ export function Viewport3D({
   const tip = toolTip ? rotateZ(toolTip, turn) : null
   /** Radial tools point at the spindle axis from where the tip is. */
   const radialAngle = tip ? Math.atan2(tip[1], tip[0]) : 0
-  const stockZero = stock ? zeroOf(workOffsets, stock.workOffset ?? 'G54', lathe) : ([0, 0, 0] as Vec3)
+  // Memoized: the machining view keys its cut model on this array, and a new array on every
+  // playback frame made it throw the cut stock away and replay the whole program each frame.
+  const stockOffset = stock ? (stock.workOffset ?? 'G54') : null
+  const stockZero = useMemo<Vec3>(() => (stockOffset ? zeroOf(workOffsets, stockOffset, lathe) : [0, 0, 0]), [workOffsets, stockOffset, lathe])
   const faded = !!result?.moves.length
   // Removal is drawn on block stock (mills) and bars (lathes); other combinations keep the raw stock
   const cutting = machining && showStock && !!stock && !!result?.moves.length && (lathe ? stock.shape === 'cylinder' : stock.shape === 'block')

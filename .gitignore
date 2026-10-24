@@ -11,3 +11,5 @@ Pós processadores/
 /*.NC
 /*.nc
 /*.txt
+/*.cncsim
+*.patch

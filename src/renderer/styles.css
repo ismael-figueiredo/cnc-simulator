@@ -39,7 +39,8 @@ button, select, input { font: inherit; color: inherit; }
 .panel-title { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 7px 10px; border-bottom: 1px solid var(--line); font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); }
 .panel-title .muted { text-transform: none; letter-spacing: 0; font-weight: 400; }
 .code { position: relative; flex: 1; overflow: auto; line-height: 1.45; font-variant-numeric: tabular-nums; }
-.line { display: flex; white-space: pre; }
+.code-lines { position: relative; min-width: 100%; }
+.line { display: flex; white-space: pre; position: absolute; left: 0; min-width: 100%; box-sizing: border-box; }
 .line .n { width: 4.2em; flex: none; text-align: right; padding-right: 10px; color: var(--muted); user-select: none; }
 .stage { position: relative; flex: 1; min-height: 300px; }
 .sidebar { overflow: auto; }
