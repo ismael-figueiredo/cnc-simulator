@@ -146,3 +146,38 @@ export function distanceToGo(moves: readonly Move[], index: number, position: Pr
   const end = (moves[k] as Move).position
   return { X: end.X - position.X, Y: end.Y - position.Y, Z: end.Z - position.Z, A: end.A - position.A, B: end.B - position.B, C: end.C - position.C }
 }
+
+/** A stretch of the program run by one tool, as a CAM operation list shows it. */
+export interface Operation {
+  tool: number
+  /** First and last move, and their time span on the timeline. */
+  first: number
+  last: number
+  start: number
+  end: number
+  /** First and last file line (0-based). */
+  fromLine: number
+  toLine: number
+  /** Time cutting (feed moves), without rapids and dwells. */
+  cutting: number
+}
+
+/** The program split where the tool changes: one operation per tool use, in order. */
+export function operations(tl: Timeline): Operation[] {
+  const out: Operation[] = []
+  tl.result.moves.forEach((m, i) => {
+    const start = tl.cumulative[i] ?? 0
+    const end = tl.cumulative[i + 1] ?? start
+    let op = out[out.length - 1]
+    if (op?.tool !== m.state.tool) {
+      op = { tool: m.state.tool, first: i, last: i, start, end, fromLine: m.line, toLine: m.line, cutting: 0 }
+      out.push(op)
+    }
+    op.last = i
+    op.end = end
+    op.fromLine = Math.min(op.fromLine, m.line)
+    op.toLine = Math.max(op.toLine, m.line)
+    if (m.kind === 'feed') op.cutting += end - start
+  })
+  return out
+}

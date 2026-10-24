@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Diagnostic, Move, SimulationResult } from '../src/core'
-import { blockEnd, buildTimeline, distanceToGo, nextStop, sameMoment, stopTimes } from '../src/renderer/playback'
+import { blockEnd, buildTimeline, distanceToGo, operations, nextStop, sameMoment, stopTimes } from '../src/renderer/playback'
 
 /** Moves as [line, kind, seconds]; only what the timeline reads. */
 const result = (moves: [number, Move['kind'], number][], diagnostics: Partial<Diagnostic>[] = []): SimulationResult =>
@@ -76,5 +76,29 @@ describe('distance to go', () => {
   it('is zero at the end of the block and undefined before the program starts', () => {
     expect(distanceToGo(moves, 3, at(0, 0))).toEqual(at(0, 0))
     expect(distanceToGo(moves, -1, at(0, 0))).toBeUndefined()
+  })
+})
+
+describe('operations', () => {
+  const ops = (tools: [number, Move['kind'], number][]) =>
+    operations(buildTimeline({ ...result([]), moves: tools.map(([tool, kind, durationS], line) => ({ line, kind, durationS, state: { tool } })) as unknown as Move[] }))
+
+  it('splits the program where the tool changes, with times and lines', () => {
+    const list = ops([
+      [1, 'rapid', 1],
+      [1, 'feed', 4],
+      [2, 'rapid', 2],
+      [2, 'feed', 3],
+      [1, 'feed', 5]
+    ])
+    expect(list.map((o) => [o.tool, o.first, o.last, o.start, o.end, o.fromLine, o.toLine, o.cutting])).toEqual([
+      [1, 0, 1, 0, 5, 0, 1, 4],
+      [2, 2, 3, 5, 10, 2, 3, 3],
+      [1, 4, 4, 10, 15, 4, 4, 5]
+    ])
+  })
+
+  it('is empty without moves', () => {
+    expect(ops([])).toEqual([])
   })
 })
