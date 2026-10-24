@@ -133,3 +133,16 @@ export function nextStop(stops: number[], time: number, total: number): number {
   for (const s of stops) if (s > time + 1e-9) return s
   return total
 }
+
+/**
+ * DISTANCE TO GO of the control's POSITION screen: from where the tool is to the end of the block
+ * being run (a block can make several moves, such as a canned cycle).
+ */
+export function distanceToGo(moves: readonly Move[], index: number, position: ProgramPosition): ProgramPosition | undefined {
+  let k = index
+  const line = moves[k]?.line
+  if (line === undefined) return undefined
+  while (k + 1 < moves.length && moves[k + 1]?.line === line) k++
+  const end = (moves[k] as Move).position
+  return { X: end.X - position.X, Y: end.Y - position.Y, Z: end.Z - position.Z, A: end.A - position.A, B: end.B - position.B, C: end.C - position.C }
+}

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Diagnostic, Move, SimulationResult } from '../src/core'
-import { blockEnd, buildTimeline, nextStop, sameMoment, stopTimes } from '../src/renderer/playback'
+import { blockEnd, buildTimeline, distanceToGo, nextStop, sameMoment, stopTimes } from '../src/renderer/playback'
 
 /** Moves as [line, kind, seconds]; only what the timeline reads. */
 const result = (moves: [number, Move['kind'], number][], diagnostics: Partial<Diagnostic>[] = []): SimulationResult =>
@@ -57,5 +57,24 @@ describe('overrides', () => {
     expect(slow.total).toBe(28)
     // Halfway through the first feed (2 + 1.5 s) → 8 + 3 s on the slower timeline
     expect(sameMoment(plain, slow, 3.5)).toBe(11)
+  })
+})
+
+describe('distance to go', () => {
+  const at = (X: number, Z: number) => ({ X, Y: 0, Z, A: 0, B: 0, C: 0 })
+  const moves = [
+    { line: 1, position: at(10, 0) },
+    { line: 2, position: at(10, -5) },
+    { line: 2, position: at(20, -5) },
+    { line: 3, position: at(0, 0) }
+  ] as Move[]
+
+  it('runs to the end of the whole block, not of the current move', () => {
+    expect(distanceToGo(moves, 1, at(10, -2))).toEqual(at(10, -3))
+  })
+
+  it('is zero at the end of the block and undefined before the program starts', () => {
+    expect(distanceToGo(moves, 3, at(0, 0))).toEqual(at(0, 0))
+    expect(distanceToGo(moves, -1, at(0, 0))).toBeUndefined()
   })
 })
