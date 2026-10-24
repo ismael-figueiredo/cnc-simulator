@@ -47,7 +47,7 @@ const examples = readdirSync(join(root, 'examples')).filter((f) => f.endsWith('.
 
 describe('bundled examples', () => {
   it('has the lathe and machining center examples', () => {
-    expect(examples).toEqual(expect.arrayContaining(['O1001_EIXO_GL300.cncsim', 'O1500_COROA_ANSI40.cncsim', 'O2001_PLACA_D600.cncsim', 'O2002_DUAS_MORSAS_D600.cncsim']))
+    expect(examples).toEqual(expect.arrayContaining(['O1001_EIXO_GL300.cncsim', 'O1002_CICLOS_GL300.cncsim', 'O1500_COROA_ANSI40.cncsim', 'O2001_PLACA_D600.cncsim', 'O2002_DUAS_MORSAS_D600.cncsim']))
   })
 
   it.each(examples)('%s runs to the end without alarms', (file) => {
@@ -64,6 +64,7 @@ describe('bundled examples', () => {
     expect(runExample('O1500_COROA_ANSI40.cncsim').collisions).toEqual([])
     expect(runExample('O2002_DUAS_MORSAS_D600.cncsim').collisions).toEqual([])
     expect(runExample('O1001_EIXO_GL300.cncsim').collisions).toEqual([])
+    expect(runExample('O1002_CICLOS_GL300.cncsim').collisions).toEqual([])
     const plate = runExample('O2001_PLACA_D600.cncsim').collisions
     // The plunge and the slot: 24 mm deep with 22 mm out of the holder, against the raw top 0.5 mm above Z0
     expect([...new Set(plate.map((c) => c.tool))]).toEqual([7])

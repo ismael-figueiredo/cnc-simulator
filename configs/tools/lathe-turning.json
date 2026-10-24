@@ -41,6 +41,18 @@
       "hand": "right"
     },
     {
+      "number": 5,
+      "offset": 5,
+      "name": { "en": "External threading 60°", "pt-BR": "Rosca externa 60°", "es": "Roscado exterior 60°" },
+      "type": "threading",
+      "diameter": 0.4,
+      "length": 100,
+      "tipDirection": 8,
+      "side": "external",
+      "hand": "right",
+      "insert": "T"
+    },
+    {
       "number": 4,
       "offset": 4,
       "name": { "en": "Boring bar Ø16, CCMT 80°", "pt-BR": "Barra de mandrilar Ø16, CCMT 80°", "es": "Barra de mandrinar Ø16, CCMT 80°" },

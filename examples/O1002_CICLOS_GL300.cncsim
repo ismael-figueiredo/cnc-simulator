@@ -1,0 +1,13 @@
+{
+  "format": "cnc-simulator-project",
+  "version": 1,
+  "description": {
+    "en": "Threaded shaft with canned cycles · Romi GL 300, Fanuc 0i-TF · G71 roughing, G70 finishing with ,C and ,R in the shape, relief groove, M20 × 2.5 thread with G76",
+    "pt-BR": "Eixo roscado com ciclos · Romi GL 300, Fanuc 0i-TF · desbaste G71, acabamento G70 com ,C e ,R no perfil, canal de alívio, rosca M20 × 2,5 com G76",
+    "es": "Eje roscado con ciclos · Romi GL 300, Fanuc 0i-TF · desbaste G71, acabado G70 con ,C y ,R en el perfil, ranura de alivio, rosca M20 × 2,5 con G76"
+  },
+  "program": "O1002_CICLOS_GL300.nc",
+  "machine": "romi-gl300",
+  "control": "fanuc-0i-tf-system-b",
+  "stock": { "shape": "cylinder", "diameter": 50, "length": 90, "color": "#9aa6b1", "offset": { "Z": 1 } }
+}
