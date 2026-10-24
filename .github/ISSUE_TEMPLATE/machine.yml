@@ -1,0 +1,48 @@
+name: Pedido de máquina ou comando · Machine or control request
+description: Uma máquina ou um comando que você quer simular. · A machine or control you want to simulate.
+labels: [machine-request]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Os dados vêm da placa da máquina ou do catálogo do fabricante. Não anexe manuais: eles são dos fabricantes.
+        The data comes from the machine plate or the maker's catalog. Do not attach manuals: they belong to their makers.
+
+        Quer fazer você mesmo? Veja o [CONTRIBUTING.md](https://github.com/ismael-figueiredo/cnc-simulator/blob/main/CONTRIBUTING.md). · Want to add it yourself? See CONTRIBUTING.md.
+  - type: input
+    id: machine
+    attributes:
+      label: Fabricante e modelo · Maker and model
+      placeholder: "Romi GL 240, Haas ST-10, Doosan DNM 4500…"
+    validations:
+      required: true
+  - type: input
+    id: control
+    attributes:
+      label: Comando · Control
+      placeholder: "Fanuc 0i-TF Plus, Siemens 828D, Mitsubishi M80…"
+    validations:
+      required: true
+  - type: dropdown
+    id: type
+    attributes:
+      label: Tipo · Type
+      options:
+        - Torno · Lathe
+        - Torno com eixo C / acionada · Lathe with C axis / live tooling
+        - Centro de usinagem 3 eixos · 3-axis machining center
+        - Centro de usinagem 4/5 eixos · 4/5-axis machining center
+        - Outro · Other
+    validations:
+      required: true
+  - type: textarea
+    id: data
+    attributes:
+      label: Dados da máquina · Machine data
+      description: Cursos X/Y/Z, rotação máxima, rápidos, magazine ou torre, tamanho da placa. · Travels, max spindle speed, rapids, magazine or turret, chuck size.
+  - type: textarea
+    id: program
+    attributes:
+      label: Programa de exemplo · Sample program
+      description: Um programa curto que roda nessa máquina (sem dados de cliente). · A short program that runs on it (no customer data).
+      render: gcode
