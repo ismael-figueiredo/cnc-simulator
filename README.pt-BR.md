@@ -21,7 +21,7 @@ Os instaladores de cada versão estão na **[página de Releases](https://github
 
 ## O que faz
 
-- **Roda o G-code como o comando:** dialetos Fanuc e Mitsubishi em JSON, Macro B (variáveis, IF/WHILE/GOTO, G65), subprogramas, ciclos fixos, interpolação polar G12.1 e compensação de raio G41/G42 desenhada no centro da ferramenta.
+- **Roda o G-code como o comando:** dialetos Fanuc, Mitsubishi e Haas em JSON, Macro B (variáveis, IF/WHILE/GOTO, G65), subprogramas, ciclos fixos, interpolação polar G12.1 e compensação de raio G41/G42 desenhada no centro da ferramenta.
 - **Programas parametrizados (Macro B):** variáveis, contas e IF/GOTO/WHILE rodam como no comando, em todas as máquinas incluídas (todos os comandos delas têm a opção de macro). G-code comum e os ciclos fixos do próprio comando também; os exemplos têm os dois.
 - **Para nos alarmes da máquina:** erros de programa param no bloco com o número e a mensagem do próprio comando (por exemplo `PS0010 IMPROPER G-CODE`).
 - **Painel de operação:** bloco a bloco, parada opcional M01, salto de bloco "/", override de avanço e de rápido (o tempo de ciclo acompanha) e pontos de parada em qualquer linha.
@@ -51,7 +51,7 @@ Os instaladores de cada versão estão na **[página de Releases](https://github
 
 ### Programação parametrizada (Macro B)
 
-Todos os comandos incluídos (Fanuc 0i-TF, 0i-MF, linha Romi D, Mitsubishi M80 torno e centro de usinagem) têm a opção de macro, então isto roda no simulador como na máquina:
+Todos os comandos incluídos (Fanuc 0i-TF, 0i-MF, linha Romi D, Mitsubishi M80 torno e centro de usinagem, Haas NGC fresadora) têm a opção de macro, então isto roda no simulador como na máquina:
 
 - **Variáveis:** locais `#1–#33`, comuns `#100–#199` e `#500–#999`, e variáveis de sistema como `#5001–#5003` (posição absoluta) e `#5021–#5023` (posição de máquina).
 - **Contas e funções:** `+ - * /`, `SIN COS TAN ASIN ACOS ATAN SQRT ABS ROUND FIX FUP`, colchetes.
@@ -61,7 +61,7 @@ Todos os comandos incluídos (Fanuc 0i-TF, 0i-MF, linha Romi D, Mitsubishi M80 t
 
 **Arquivo → Novo programa** pergunta se é **G-code comum** ou **parametrizado**. Os dois começam com um cabeçalho escrito nos códigos do comando escolhido (unidade, plano, cancelamentos de segurança, primeira ferramenta, fuso, refrigeração, fim do programa e `;` no fim dos blocos quando o comando exige). O parametrizado acrescenta parâmetros para alterar (`#100…`) e um laço `WHILE` que faz os passes até a profundidade.
 
-O exemplo **O1500** é um programa parametrizado completo (coroa ANSI 40 calculada a partir do número de dentes); **O2001** e **O2002** são G-code comum com ciclos fixos (G81, G83, G84) e subprogramas.
+O exemplo **O1500** é um programa parametrizado completo (coroa ANSI 40 calculada a partir do número de dentes); **O2001** e **O2002** são G-code comum com ciclos fixos (G81, G83, G84) e subprogramas; **O3001** é a versão Haas, com zeros G154 e subprogramas locais M97.
 
 ### Zeros de peça: o que muda na simulação
 
@@ -136,6 +136,10 @@ Depois de uma mudança visível na interface, rode `npm run demo` e faça o comm
   - O torno tem dois comandos: lista de códigos G **2**, como a Fanuc sistema A, e lista **3**, como a Fanuc sistema B.
   - Ponto decimal tipo I: `X1` = 0,001 mm.
   - Ponto decimal em M/S/T/… é ignorado, não dá alarme.
+- **Haas VF-2 e VF-5/40:** comando Haas NGC fresadora.
+  - `G154 P1`–`P99` e `G110`–`G129` (`G154 P1`–`P20`) são os mesmos zeros do `G54.1 P n`. No `G10 L20 G154 P n` o G154 só diz qual zero é escrito.
+  - `M97 P n` chama um subprograma local que começa no bloco `N n` do mesmo programa e termina no `M99`; `L` repete.
+  - Zero de máquina no canto superior direito, com cursos negativos, como na máquina.
 - **Dados a conferir:** o que os manuais não trazem (cursos, rotação máxima, magazine) está marcado como **nota** no JSON da máquina e aparece no painel da máquina.
 - **Manuais:** ficam em `docs/manuals/`. Os PDFs são dos fabricantes e não estão no repositório.
 

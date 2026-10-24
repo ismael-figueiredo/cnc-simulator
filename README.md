@@ -21,7 +21,7 @@ Installers for every version are on the **[Releases page](https://github.com/ism
 
 ## What it does
 
-- **Runs G-code like the control:** Fanuc and Mitsubishi dialects from JSON, Macro B (variables, IF/WHILE/GOTO, G65), subprograms, canned cycles, G12.1 polar interpolation and G41/G42 cutter compensation drawn as the tool center.
+- **Runs G-code like the control:** Fanuc, Mitsubishi and Haas dialects from JSON, Macro B (variables, IF/WHILE/GOTO, G65), subprograms, canned cycles, G12.1 polar interpolation and G41/G42 cutter compensation drawn as the tool center.
 - **Parametric programs (Macro B):** variables, math and IF/GOTO/WHILE run as on the control, on every bundled machine (all their controls have the macro option). Plain G-code and the control's own canned cycles run too; the examples have both.
 - **Stops on the machine's alarms:** program errors stop at the block with the control's own number and message (for example `PS0010 IMPROPER G-CODE`).
 - **Operator panel:** single block, M01 optional stop, block delete "/", feed and rapid overrides (the cycle time follows them), and breakpoints on any line.
@@ -51,7 +51,7 @@ Installers for every version are on the **[Releases page](https://github.com/ism
 
 ### Parametric programming (Macro B)
 
-Every bundled control (Fanuc 0i-TF, 0i-MF, Romi D line, Mitsubishi M80 lathe and machining center) has the macro option, so these run in the simulator as on the machine:
+Every bundled control (Fanuc 0i-TF, 0i-MF, Romi D line, Mitsubishi M80 lathe and machining center, Haas NGC mill) has the macro option, so these run in the simulator as on the machine:
 
 - **Variables:** locals `#1–#33`, commons `#100–#199` and `#500–#999`, and system variables such as `#5001–#5003` (absolute position) and `#5021–#5023` (machine position).
 - **Math and functions:** `+ - * /`, `SIN COS TAN ASIN ACOS ATAN SQRT ABS ROUND FIX FUP`, brackets.
@@ -61,7 +61,7 @@ Every bundled control (Fanuc 0i-TF, 0i-MF, Romi D line, Mitsubishi M80 lathe and
 
 **File → New program** asks for **plain G-code** or **parametric**. Both start with a header written in the selected control's own codes (units, plane, safe cancels, first tool, spindle, coolant, program end, and `;` at the end of blocks when the control needs it). The parametric one adds parameters to change (`#100…`) and a `WHILE` loop that makes the passes down to the depth.
 
-The **O1500** example is a full parametric program (an ANSI 40 sprocket computed from the number of teeth); **O2001** and **O2002** are plain G-code with canned cycles (G81, G83, G84) and subprograms.
+The **O1500** example is a full parametric program (an ANSI 40 sprocket computed from the number of teeth); **O2001** and **O2002** are plain G-code with canned cycles (G81, G83, G84) and subprograms; **O3001** is the Haas version, with G154 work offsets and M97 local subprograms.
 
 ### Work offsets: what changes the simulation
 
@@ -221,6 +221,7 @@ docs/legacy/       original HTML simulator, reference for the port
 | Romi D1000, D1250 | `fanuc-0i-mf-romi-d` | Romi manual U57998C (D800/D1000/D1250, Fanuc 0i-MF) |
 | Mitsubishi M80 lathe (generic) | `mitsubishi-m80-lathe-list3` or `-list2` | Mitsubishi programming manual IB-1501370 (lathe system) |
 | Mitsubishi M80 machining center (generic) | `mitsubishi-m80-mc` | Mitsubishi programming manual IB-1501372 (machining center system) |
+| Haas VF-2, VF-5/40 | `haas-ngc-mill` | Haas NGC mill operator's manual; travels and speeds from the catalog |
 | Generic 3-axis machining center | `fanuc-0i-mf` | — |
 
 - **Data to check on the machine plate:** each machine file has `notes` for anything the manuals do not give, such as travels, maximum speed and magazine size. The app shows these notes in the machine panel.
@@ -231,6 +232,10 @@ docs/legacy/       original HTML simulator, reference for the port
 - **Mitsubishi decimal point and integer addresses:**
   - The files assume decimal point type I (`#1078 Decpt2 = 0`), so `X1` is 0.001 mm.
   - A decimal point on an integer address (D, H, L, M, N, O, P, S, T) is dropped, not an alarm. This is the `integerAddressDecimal: "ignore"` option; Fanuc raises PS0007.
+- **Haas:**
+  - `G154 P1`–`P99` and `G110`–`G129` (`G154 P1`–`P20`) are the same offsets as `G54.1 P n`, so a project table works for Haas and Fanuc programs alike. In `G10 L20 G154 P n` the G154 only names the offset being written.
+  - `M97 P n` calls a local subprogram that starts at block `N n` of the same program and ends with `M99`; `L` repeats it.
+  - Machine zero is at the top right, with negative travels, as on the machine.
 - **Functions the controls accept but the simulator does not draw yet:** G68 rotation, G51.1 mirror, G52 local coordinates, G15/G16 polar coordinates, G12/G13 circle cutting, G92, G07.1 cylindrical interpolation, G66 modal macro calls, and G10 other than L2/L20 (tool offsets). Lathe cycles G74/G75 are drawn simplified (one peck). They raise a warning, because the path after them would be wrong.
 
 ## Config files
