@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CNC Simulator: free CNC simulator to learn and test G-code</title>
+  <meta name="description" content="Free, open-source CNC simulator to learn and test G-code without a machine: lathes and machining centers, Fanuc, Mitsubishi and Haas controls, Macro B parametric programs, alarms and collision checks. Windows, macOS and Linux.">
+  <meta name="keywords" content="CNC simulator, G-code simulator, simulador CNC, simulador torno CNC, Fanuc simulator, Haas simulator, Macro B, programação CNC, programação parametrizada, lathe, machining center">
+  <meta property="og:title" content="CNC Simulator">
+  <meta property="og:description" content="Free CNC simulator to learn and test G-code without a machine.">
+  <meta property="og:image" content="https://ismael-figueiredo.github.io/cnc-simulator/social.png">
+  <meta property="og:type" content="website">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="icon" href="https://raw.githubusercontent.com/ismael-figueiredo/cnc-simulator/main/src/renderer/public/favicon.png">
+  <style>
+    :root { --bg: #0b1117; --panel: #121a23; --line: #233142; --text: #e6edf3; --muted: #9fb0c0; --accent: #22d3ee; --warm: #ffb547; }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--text); font: 17px/1.55 -apple-system, 'Segoe UI', Roboto, sans-serif; }
+    a { color: var(--accent); }
+    .wrap { max-width: 1080px; margin: 0 auto; padding: 0 16px; }
+    header { display: flex; justify-content: space-between; align-items: center; padding: 18px 0; }
+    header .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 20px; }
+    header nav { display: flex; gap: 14px; font-size: 15px; }
+    header nav button { background: none; border: 1px solid var(--line); color: var(--muted); border-radius: 6px; padding: 3px 10px; cursor: pointer; font: inherit; }
+    header nav button.on { color: var(--text); border-color: var(--accent); }
+    .hero { padding: 40px 0 24px; text-align: center; }
+    h1 { font-size: clamp(30px, 5vw, 48px); line-height: 1.15; margin: 0 0 14px; }
+    .lead { color: var(--muted); font-size: 19px; max-width: 760px; margin: 0 auto 28px; }
+    .downloads { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
+    .btn { display: inline-block; text-decoration: none; background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 11px 18px; font-weight: 600; }
+    .btn.primary { background: var(--warm); color: #111; border-color: var(--warm); }
+    .small { font-size: 14px; color: var(--muted); margin-top: 12px; }
+    .shot { margin: 36px auto 0; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,.5); }
+    .shot img { display: block; width: 100%; height: auto; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; margin: 48px 0; }
+    .card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 18px; }
+    .card h3 { margin: 0 0 6px; font-size: 18px; }
+    .card p { margin: 0; color: var(--muted); font-size: 15px; }
+    h2 { font-size: 26px; margin: 48px 0 14px; }
+    ul.features { columns: 2 300px; padding-left: 18px; color: var(--muted); }
+    ul.features li { margin-bottom: 6px; break-inside: avoid; }
+    ul.features b { color: var(--text); }
+    footer { border-top: 1px solid var(--line); margin-top: 48px; padding: 20px 0 40px; color: var(--muted); font-size: 14px; }
+    [data-lang] { display: none; }
+    html[lang="en"] [data-lang="en"], html[lang="pt-BR"] [data-lang="pt-BR"] { display: revert; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="brand"><img src="https://raw.githubusercontent.com/ismael-figueiredo/cnc-simulator/main/build/icon.png" width="36" height="36" alt="">CNC Simulator</div>
+      <nav>
+        <a href="https://github.com/ismael-figueiredo/cnc-simulator">GitHub</a>
+        <button id="lang-en" type="button">EN</button>
+        <button id="lang-pt" type="button">PT</button>
+      </nav>
+    </header>
+
+    <section class="hero">
+      <h1 data-lang="en">Learn and test G-code<br>without a machine</h1>
+      <h1 data-lang="pt-BR">Aprenda e teste G-code<br>sem precisar da máquina</h1>
+      <p class="lead" data-lang="en">A free, open-source CNC simulator for lathes and machining centers. Fanuc, Mitsubishi and Haas controls, Macro B parametric programs, the control's own alarms and collision checks, in 3D.</p>
+      <p class="lead" data-lang="pt-BR">Simulador CNC gratuito e de código aberto para tornos e centros de usinagem. Comandos Fanuc, Mitsubishi e Haas, programas parametrizados em Macro B, os alarmes do próprio comando e a verificação de colisões, em 3D.</p>
+      <div class="downloads">
+        <a class="btn primary" id="dl-main" href="https://github.com/ismael-figueiredo/cnc-simulator/releases/latest"><span data-lang="en">Download</span><span data-lang="pt-BR">Baixar</span></a>
+        <a class="btn" data-os="win" href="https://github.com/ismael-figueiredo/cnc-simulator/releases/latest">Windows</a>
+        <a class="btn" data-os="mac-arm" href="https://github.com/ismael-figueiredo/cnc-simulator/releases/latest">macOS Apple Silicon</a>
+        <a class="btn" data-os="mac-intel" href="https://github.com/ismael-figueiredo/cnc-simulator/releases/latest">macOS Intel</a>
+        <a class="btn" data-os="linux" href="https://github.com/ismael-figueiredo/cnc-simulator/releases/latest">Linux AppImage</a>
+        <a class="btn" data-os="deb" href="https://github.com/ismael-figueiredo/cnc-simulator/releases/latest">Linux .deb</a>
+      </div>
+      <p class="small"><span id="version"></span>
+        <span data-lang="en">The app is not signed: on Windows choose <b>More info → Run anyway</b>; on macOS right-click the app → <b>Open</b>.</span>
+        <span data-lang="pt-BR">O app não é assinado: no Windows escolha <b>Mais informações → Executar assim mesmo</b>; no macOS clique com o botão direito no app → <b>Abrir</b>.</span>
+      </p>
+      <div class="shot"><img src="demo.gif" alt="CNC Simulator running a machining center program: program screen, 3D toolpath and the stock being cut"></div>
+    </section>
+
+    <section class="grid">
+      <div class="card">
+        <h3 data-lang="en">Students</h3><h3 data-lang="pt-BR">Quem está aprendendo</h3>
+        <p data-lang="en">Run your program block by block, see what each code does and which alarm the control would give.</p>
+        <p data-lang="pt-BR">Rode o programa bloco a bloco, veja o que cada código faz e qual alarme o comando daria.</p>
+      </div>
+      <div class="card">
+        <h3 data-lang="en">Programmers</h3><h3 data-lang="pt-BR">Programadores</h3>
+        <p data-lang="en">Check what the CAM post-processor made before it reaches the machine: alarms, travels, holder and chuck collisions.</p>
+        <p data-lang="pt-BR">Confira o que o pós-processador gerou antes de chegar na máquina: alarmes, cursos, colisão de suporte e de placa.</p>
+      </div>
+      <div class="card">
+        <h3 data-lang="en">Teachers</h3><h3 data-lang="pt-BR">Professores</h3>
+        <p data-lang="en">Free for every student to install at home, with ready lathe and machining center examples.</p>
+        <p data-lang="pt-BR">Gratuito para cada aluno instalar em casa, com exemplos prontos de torno e centro de usinagem.</p>
+      </div>
+      <div class="card">
+        <h3 data-lang="en">Parametric programs</h3><h3 data-lang="pt-BR">Programação parametrizada</h3>
+        <p data-lang="en">Variables, IF/WHILE and G65 macro calls run as on the control.</p>
+        <p data-lang="pt-BR">Variáveis, IF/WHILE e chamadas G65 rodam como no comando.</p>
+      </div>
+    </section>
+
+    <h2 data-lang="en">What it does</h2><h2 data-lang="pt-BR">O que faz</h2>
+    <ul class="features" data-lang="en">
+      <li><b>Controls:</b> Fanuc 0i-TF and 0i-MF, Romi D line, Mitsubishi M80, Haas NGC, all defined in JSON.</li>
+      <li><b>Lathe cycles:</b> G71/G72/G73/G70, G90/G94, G76 threading.</li>
+      <li><b>Tool offsets</b> and <b>work offsets</b> (G54–G59, G54.1, G154), cutter and nose radius compensation.</li>
+      <li><b>Material removal</b> on blocks and bars, tools and holders in 3D.</li>
+      <li><b>Operator panel:</b> single block, M01, block delete, feed and rapid overrides, breakpoints.</li>
+      <li><b>Editor</b> with live path and alarms; new programs start with a safe header for the control.</li>
+    </ul>
+    <ul class="features" data-lang="pt-BR">
+      <li><b>Comandos:</b> Fanuc 0i-TF e 0i-MF, linha Romi D, Mitsubishi M80, Haas NGC, todos descritos em JSON.</li>
+      <li><b>Ciclos de torno:</b> G71/G72/G73/G70, G90/G94, rosca G76.</li>
+      <li><b>Corretores de ferramenta</b> e <b>zeros de peça</b> (G54–G59, G54.1, G154), compensação de raio da fresa e da ponta.</li>
+      <li><b>Remoção de material</b> em bloco e barra, ferramentas e suportes em 3D.</li>
+      <li><b>Painel de operação:</b> bloco a bloco, M01, salto de bloco, overrides de avanço e rápido, pontos de parada.</li>
+      <li><b>Editor</b> com percurso e alarmes ao vivo; programas novos começam com um cabeçalho seguro para o comando.</li>
+    </ul>
+
+    <footer>
+      <span data-lang="en">Free software under the GPL-3.0 license. Control and machine names belong to their makers; this project is not affiliated with them.</span>
+      <span data-lang="pt-BR">Software livre sob a licença GPL-3.0. Os nomes de comandos e máquinas pertencem aos fabricantes; este projeto não tem vínculo com eles.</span>
+      · <a href="https://github.com/ismael-figueiredo/cnc-simulator/issues">Issues</a>
+      · <a href="https://github.com/ismael-figueiredo/cnc-simulator/blob/main/CONTRIBUTING.md">Contributing</a>
+    </footer>
+  </div>
+
+  <script>
+    const root = document.documentElement
+    function setLang(lang) {
+      root.lang = lang
+      document.getElementById('lang-en').classList.toggle('on', lang === 'en')
+      document.getElementById('lang-pt').classList.toggle('on', lang === 'pt-BR')
+      try { localStorage.setItem('lang', lang) } catch {}
+    }
+    let saved = null
+    try { saved = localStorage.getItem('lang') } catch {}
+    setLang(saved || (navigator.language.toLowerCase().startsWith('pt') ? 'pt-BR' : 'en'))
+    document.getElementById('lang-en').onclick = () => setLang('en')
+    document.getElementById('lang-pt').onclick = () => setLang('pt-BR')
+
+    // Direct links to the installers of the latest release; the buttons keep the release page if this fails
+    const match = {
+      win: (n) => n.endsWith('-setup.exe'),
+      'mac-arm': (n) => n.endsWith('-arm64.dmg'),
+      'mac-intel': (n) => n.endsWith('-x64.dmg'),
+      linux: (n) => n.endsWith('.AppImage'),
+      deb: (n) => n.endsWith('.deb')
+    }
+    fetch('https://api.github.com/repos/ismael-figueiredo/cnc-simulator/releases/latest')
+      .then((r) => (r.ok ? r.json() : Promise.reject(r.status)))
+      .then((release) => {
+        document.getElementById('version').textContent = release.tag_name + ' · '
+        const links = {}
+        for (const a of document.querySelectorAll('[data-os]')) {
+          const asset = release.assets.find((x) => match[a.dataset.os](x.name))
+          if (asset) a.href = links[a.dataset.os] = asset.browser_download_url
+        }
+        const ua = navigator.userAgent
+        const os = /Windows/.test(ua) ? 'win' : /Mac/.test(ua) ? null : /Linux/.test(ua) ? 'linux' : null
+        if (os && links[os]) document.getElementById('dl-main').href = links[os]
+      })
+      .catch(() => {})
+  </script>
+</body>
+</html>
