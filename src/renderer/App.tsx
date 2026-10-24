@@ -45,7 +45,9 @@ import { CodeView } from './components/CodeView'
 import { ProgramEditor, type EditorHandle } from './components/ProgramEditor'
 import { CncModal } from './components/CncModal'
 import { Player, type PanelState } from './components/Player'
-import { PositionPanel } from './components/PositionPanel'
+import { PositionAll, PositionPanel } from './components/PositionPanel'
+import { SoftKeys, type Screen } from './components/SoftKeys'
+import { StatusHeader } from './components/StatusHeader'
 import { StartScreen } from './components/StartScreen'
 import { NewProgramDialog } from './components/NewProgramDialog'
 import { StockEditor } from './components/StockEditor'
@@ -61,6 +63,7 @@ import { createSimulator } from './simulation'
 import {
   blockEnd,
   buildTimeline,
+  distanceToGo,
   formatTime,
   fractionOf,
   moveAt,
@@ -177,6 +180,16 @@ function run(program: Program | null, machine: Machine | undefined, control: Con
 
 const FONT_KEY = 'cncsim.codeFontSize'
 const WIDTH_KEY = 'cncsim.codeWidth'
+const LAYOUT_KEY = 'cncsim.layout'
+/** Machine (one control screen with soft keys) or CAM (program, 3D view, side panel). */
+type Layout = 'machine' | 'cam'
+const readLayout = (): Layout => {
+  try {
+    return localStorage.getItem(LAYOUT_KEY) === 'cam' ? 'cam' : 'machine'
+  } catch {
+    return 'machine'
+  }
+}
 const readNumber = (key: string, fallback: number) => {
   try {
     const v = Number(localStorage.getItem(key))
@@ -301,6 +314,9 @@ export function App() {
   const [breakpoints, setBreakpoints] = useState<ReadonlySet<number>>(() => new Set())
   const [fontSize, setFontSize] = useState(() => readNumber(FONT_KEY, 11.5))
   const [codeWidth, setCodeWidth] = useState(() => readNumber(WIDTH_KEY, 300))
+  const [layout, setLayout] = useState<Layout>(readLayout)
+  /** Page of the machine layout picked with the soft keys. */
+  const [screen, setScreen] = useState<Screen>('graph')
   const [speed, setSpeed] = useState(20)
   const [showRapids, setShowRapids] = useState(true)
   const [showStock, setShowStock] = useState(true)
@@ -357,15 +373,23 @@ export function App() {
       return next
     })
   }, [])
-  function startResize(e: ReactPointerEvent<HTMLDivElement>) {
-    // Drag the divider to widen the program panel
+  function changeLayout(next: Layout) {
+    setLayout(next)
+    try {
+      localStorage.setItem(LAYOUT_KEY, next)
+    } catch {
+      // not persisted
+    }
+  }
+  /** Drag the divider to widen the program panel; `dir` is -1 when the program is on the right. */
+  function startResize(e: ReactPointerEvent<HTMLDivElement>, dir: 1 | -1) {
     const startX = e.clientX
     const startW = codeWidth
     const el = e.currentTarget
     el.setPointerCapture(e.pointerId)
     let w = startW
     const move = (ev: PointerEvent) => {
-      w = Math.min(window.innerWidth * 0.6, Math.max(200, startW + ev.clientX - startX))
+      w = Math.min(window.innerWidth * 0.6, Math.max(200, startW + dir * (ev.clientX - startX)))
       setCodeWidth(w)
     }
     const up = () => {
@@ -746,6 +770,9 @@ export function App() {
   const machineKind = machine && (machine.kinematics.startsWith('lathe') ? 'lathe' : 'mill')
   const shownAxes = machine ? machine.axes.map((a) => a.name) : ['X', 'Y', 'Z']
   const lathe = machineKind === 'lathe'
+  const toGo = move && position ? distanceToGo(moves, index, position) : undefined
+  const maxRpm = machine?.spindles.find((s) => s.type !== 'live')?.maxRpm ?? 0
+  const maxLiveRpm = machine?.spindles.find((s) => s.type === 'live')?.maxRpm ?? 0
 
   // ---- tool in the spindle, holder and possible holder collisions ----
   const toolTip = move ? pointAlong(move, fraction) : null
@@ -779,6 +806,322 @@ export function App() {
   // C angle: from the tip in polar interpolation (C is not tracked as an angle there), else the C position
   const spindleAngle = move ? (move.state.polar && toolTip ? Math.atan2(toolTip[1], toolTip[0]) : ((position?.C ?? 0) * Math.PI) / 180) : 0
   const spinning = playing && !!move?.state.spindleOn && !move.state.liveToolOn
+  const messageCount = diagnostics.length + cfg.issues.length + collisions.length + chuckCollisions.length
+
+  // Operator panel keys from the keyboard, outside text fields and dialogs: Space is cycle start or
+  // feed hold, Esc is RESET, S toggles single block
+  const onPanelKey = useEffectEvent((e: KeyboardEvent) => {
+    if (!program || e.ctrlKey || e.metaKey || e.altKey) return
+    const el = e.target instanceof HTMLElement ? e.target : null
+    if (el?.closest('input, textarea, select, [contenteditable="true"], .modal-backdrop')) return
+    if (e.key === ' ') {
+      // A focused button already answers Space by itself
+      if (el?.closest('button') || mode === 'edit' || !result?.moves.length) return
+      togglePlay()
+    } else if (e.key === 'Escape') seek(0)
+    else if (e.key.toLowerCase() === 's') changePanel({ singleBlock: !panel.singleBlock })
+    else return
+    e.preventDefault()
+  })
+  useEffect(() => {
+    window.addEventListener('keydown', onPanelKey)
+    return () => window.removeEventListener('keydown', onPanelKey)
+  }, [])
+
+  // ---- pieces of the screen, laid out by the CAM or the machine layout ----
+  const programPanel = (modalArea: boolean) =>
+    program && (
+      <section className="panel">
+        <div className="panel-title">
+          <span className="file" title={`${program.name} · ${t('program.lines', { count: lines.length })}`}>
+            {dirty && <span className="dirty" title={t('program.unsaved')}>● </span>}
+            {program.name}
+            {isExample(program.path) && <span className="tag">{t('start.example')}</span>}
+          </span>
+          <span className="modes" role="group">
+            <button className={`btn tiny ${mode === 'edit' ? 'on' : ''}`} title={t('mode.editHint')} onClick={startEdit}>EDIT</button>
+            <button className={`btn tiny ${mode === 'mem' ? 'on' : ''}`} title={t('mode.memHint')} onClick={runMem}>MEM</button>
+          </span>
+          <button className="btn tiny icon-btn" title={t('program.saveHint')} aria-label={t('program.saveHint')} onClick={() => void save(false)}>
+            <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden>
+              <path d="M2 1.5h9.5L14.5 4.5V14a.5.5 0 0 1-.5.5H2a.5.5 0 0 1-.5-.5V2a.5.5 0 0 1 .5-.5Z" fill="none" stroke="currentColor" strokeWidth="1.3" />
+              <path d="M4.5 1.5v4h6v-4M4 14.5V9.5h8v5" fill="none" stroke="currentColor" strokeWidth="1.3" />
+            </svg>
+          </button>
+          <span className="zoom">
+            <button className="btn tiny" title={t('code.smaller')} aria-label={t('code.smaller')} onClick={() => changeFont(-0.5)}>A−</button>
+            <button className="btn tiny" title={t('code.larger')} aria-label={t('code.larger')} onClick={() => changeFont(0.5)}>A+</button>
+          </span>
+        </div>
+        {/* Like the control: the modal state (F, S, T, active codes and cycle) above the running program */}
+        {mode === 'mem' && modalArea && <CncModal move={move} />}
+        {mode === 'edit' ? (
+          <ProgramEditor key={programKey} ref={editor} text={program.text} fontSize={fontSize} onEdit={edited} />
+        ) : (
+          <CodeView
+            lines={lines}
+            currentLine={move?.line ?? (atReset ? startLine : -1)}
+            alarmLine={stoppedBy?.line ?? -1}
+            marks={marks}
+            hits={hits}
+            fontSize={fontSize}
+            state={playing ? 'start' : sim.time > 0 && sim.time < (tl?.total ?? 0) ? 'hold' : 'reset'}
+            onZoom={changeFont}
+            onLineClick={jumpToLine}
+            breakpoints={breakpoints}
+            onToggleBreakpoint={toggleBreakpoint}
+          />
+        )}
+      </section>
+    )
+  const viewTitle = (
+      <div className="panel-title">
+        <span>{t('view.title')}</span>
+        <span className="layers">
+          <label>
+            <input id="layer-rapids" type="checkbox" checked={showRapids} onChange={(e) => setShowRapids(e.target.checked)} />
+            {t('layers.rapids')}
+          </label>
+          <label>
+            <input id="layer-stock" type="checkbox" checked={showStock} onChange={(e) => setShowStock(e.target.checked)} />
+            {t('layers.stock')}
+          </label>
+          <label title={t('layers.machiningHint')}>
+            <input id="layer-machining" type="checkbox" checked={machining} onChange={(e) => setMachining(e.target.checked)} />
+            {t('layers.machining')}
+          </label>
+          {lathe && (
+            <label title={t('layers.machineViewHint')}>
+              <input id="layer-machine-view" type="checkbox" checked={machineView} onChange={(e) => setMachineView(e.target.checked)} />
+              {t('layers.machineView')}
+            </label>
+          )}
+        </span>
+      </div>
+  )
+  const stage = (
+      <div className="stage">
+        {machine && (
+          <Viewport3D
+            machine={machine}
+            stock={setup.stock}
+            workOffsets={setup.workOffsets}
+            result={result}
+            index={index}
+            toolTip={toolTip}
+            toolRadius={move?.toolRadius ?? 0}
+            tool={currentTool}
+            holder={holder}
+            mount={mount}
+            colliding={colliding}
+            machineView={machineView}
+            spindleAngle={spindleAngle}
+            spinning={spinning}
+            machining={machining}
+            ballTools={ballTools}
+            chuckHit={chuckHit}
+            showRapids={showRapids}
+            showStock={showStock}
+          />
+        )}
+        <div className="legend">
+          <span><i style={{ borderColor: PATH_COLORS.feed }} />{t('legend.programmed')}</span>
+          <span><i style={{ borderColor: PATH_COLORS.center }} />{t('legend.center')}</span>
+          <span><i style={{ borderColor: PATH_COLORS.rapid }} />{t('legend.rapid')}</span>
+        </div>
+        <div className="hint">{t('view.hint')}</div>
+        {mode === 'edit' && <div className="edit-note">{t('view.editNote')}</div>}
+        {busy && <div className="busy-note">{t('sim.running')}</div>}
+        {stoppedBy && (
+          <button className="alarm-banner" onClick={() => jumpToDiagnostic(stoppedBy)}>
+            <b>
+              {t('alarm.title')} {stoppedBy.alarm?.code}
+            </b>
+            {stoppedBy.alarm?.message && <span className="machine-msg">{stoppedBy.alarm.message}</span>}
+            <span>
+              {t('alarm.line', { line: stoppedBy.line + 1 })} · {diagText(stoppedBy)}
+            </span>
+          </button>
+        )}
+      </div>
+  )
+  const player = (
+      <Player
+        time={sim.time}
+        total={tl?.total ?? 0}
+        playing={playing}
+        speed={speed}
+        disabled={!result?.moves.length}
+        runDisabled={mode === 'edit'}
+        onSeek={seek}
+        onTogglePlay={togglePlay}
+        onStep={step}
+        onSpeed={setSpeed}
+        panel={panel}
+        onPanel={changePanel}
+      />
+  )
+  const projectBlock = (
+      <div className="block">
+        <h2>{t('project.title')}</h2>
+        <p className="muted">
+          {projectPath ? projectPath.slice(Math.max(projectPath.lastIndexOf('/'), projectPath.lastIndexOf('\\'), projectPath.indexOf(':')) + 1) : t('project.none')}
+        </p>
+        <button className="btn" title={t('project.explain')} onClick={() => void saveProject(false)}>{t(projectPath ? 'project.save' : 'project.create')}</button>
+        <p className="muted small">{t('project.explain')}</p>
+      </div>
+  )
+  const positionBlock = (
+      <div className="block">
+        <h2>{t('position.title')}</h2>
+        <PositionPanel move={move} position={position} machinePosition={machinePosition} index={index} total={result?.moves.length ?? 0} axes={shownAxes} />
+        {result && (
+          <p className="muted">
+            {t('sim.summary', { moves: result.moves.length, time: formatTime(tl?.total ?? result.totalTimeS) })} ·{' '}
+            {result.finished ? t('sim.finished') : t('sim.stopped')}
+          </p>
+        )}
+      </div>
+  )
+  const messagesBlock = (
+      <Messages
+        issues={cfg.issues}
+        diagnostics={diagnostics}
+        collisions={collisions}
+        chuckCollisions={chuckCollisions}
+        onDiagnostic={jumpToDiagnostic}
+        onMove={seekMove}
+      />
+  )
+  const machineBlock = machine && (
+    <div className="block">
+      <h2>{t('machine.title')}</h2>
+      <p className="muted">
+        {machine.manufacturer ? `${machine.manufacturer} · ` : ''}
+        {t(`machineType.${machine.type}`)} · {machine.kinematics}
+      </p>
+      <table className="table">
+        <thead>
+          <tr><th>{t('machine.axis')}</th><th>{t('machine.travel')}</th><th>{t('machine.rapid')}</th></tr>
+        </thead>
+        <tbody>
+          {machine.axes.map((a) => (
+            <tr key={a.name}>
+              <td>{a.name}{a.diameter ? ' (Ø)' : ''}</td>
+              <td>{a.type === 'rotary' ? t('machine.continuous') : `${a.min} … ${a.max}`}</td>
+              <td>{a.rapid}{a.type === 'rotary' ? ' °/min' : ''}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <p className="muted">
+        {t('machine.spindles')}: {machine.spindles.map((s) => `${l(s.name)} ${s.maxRpm} rpm`).join(' · ')}
+      </p>
+      {machine.notes && <p className="note">{l(machine.notes)}</p>}
+    </div>
+  )
+  const controlBlock = control && (
+    <div className="block">
+      <h2>{t('control.title')}</h2>
+      <p className="muted">
+        {t('control.summary', {
+          family: control.family,
+          system: control.dialect.gCodeSystem,
+          macro: control.dialect.macro,
+          g: Object.keys(control.gCodes).length,
+          m: Object.keys(control.mCodes).length
+        })}
+      </p>
+      {machine && machineKind !== control.machineType && (
+        <p className="warning">
+          {t('control.mismatch', {
+            controlType: t(`machineType.${control.machineType}`),
+            machineType: t(`machineType.${machine.type}`)
+          })}
+        </p>
+      )}
+    </div>
+  )
+  const stockBlock = (
+      <div className="block">
+        <h2>
+          {t('stock.title')}
+          <button className="btn tiny head-action" onClick={() => setEditingStock(true)}>{t('tools.edit')}</button>
+        </h2>
+        {setup.stock ? (
+          <p className="stock-summary">
+            <i style={{ background: setup.stock.color ?? STOCK_COLOR }} />
+            {setup.stock.shape === 'cylinder'
+              ? t('stock.summaryCylinder', { diameter: setup.stock.diameter ?? 0, length: setup.stock.length ?? 0 })
+              : t('stock.summaryBlock', { x: setup.stock.x ?? 0, y: setup.stock.y ?? 0, z: setup.stock.z ?? 0 })}
+            <span className="muted"> · {setup.stock.workOffset ?? 'G54'}</span>
+          </p>
+        ) : (
+          <p className="muted">{t('stock.none')}</p>
+        )}
+      </div>
+  )
+  const offsetsBlock = (
+      <div className="block">
+        <h2>
+          {t('offsets.title')}
+          <button className="btn tiny head-action" onClick={() => setEditingOffsets(true)}>{t('tools.edit')}</button>
+        </h2>
+        {Object.keys(setup.workOffsets).length ? (
+          <ul className="list mono">
+            {Object.entries(setup.workOffsets).map(([name, o]) => (
+              <li key={name}>
+                <b>{name}</b>{' '}
+                {Object.entries(o)
+                  .map(([ax, v]) => `${ax}${v}`)
+                  .join(' ')}
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="muted">{t('offsets.none')}</p>
+        )}
+      </div>
+  )
+  const toolOffsetsBlock = (
+      <div className="block">
+        <h2>
+          {t('toolOffsets.title')}
+          <button className="btn tiny head-action" onClick={() => setEditingToolOffsets(true)}>{t('tools.edit')}</button>
+        </h2>
+        <ul className="list mono">
+          {Object.entries(setup.toolOffsets)
+            .sort(([a], [b]) => Number(a) - Number(b))
+            .slice(0, 8)
+            .map(([n, o]) => (
+              <li key={n}>
+                <b>{n.padStart(2, '0')}</b>{' '}
+                {lathe
+                  ? `X${o.x ?? 0} Z${o.z ?? 0}${o.nose !== undefined ? ` R${o.nose}` : ''}${o.xWear || o.zWear ? ` · Δ X${o.xWear ?? 0} Z${o.zWear ?? 0}` : ''}`
+                  : `H${o.length ?? '—'}${o.lengthWear ? `${o.lengthWear > 0 ? '+' : ''}${o.lengthWear}` : ''} D${o.radius ?? '—'}${o.radiusWear ? `${o.radiusWear > 0 ? '+' : ''}${o.radiusWear}` : ''}`}
+              </li>
+            ))}
+        </ul>
+        {!Object.keys(setup.toolOffsets).length && <p className="muted">{t('toolOffsets.none')}</p>}
+      </div>
+  )
+  const toolsBlock = (
+      <div className="block">
+        <h2>
+          {t('tools.title')}
+          <button className="btn tiny head-action" onClick={() => setEditingTools(true)}>{t('tools.edit')}</button>
+        </h2>
+        {!setup.tools?.tools.length && <p className="muted">{t('tools.none')}</p>}
+        <ul className="list">
+          {setup.tools?.tools.map((tool) => (
+            <li key={tool.number}>
+              <b>T{String(tool.number).padStart(2, '0')}</b> {l(tool.name)}
+              <span className="muted"> · {t('tools.radius', { radius: tool.diameter / 2 })} · {tool.holder ?? t('tools.noHolder')}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+  )
 
   return (
     <div className="app">
@@ -820,6 +1163,14 @@ export function App() {
               </select>
             </label>
           )}
+          <span className="layout-switch" role="group">
+            <button className={`btn tiny ${layout === 'machine' ? 'on' : ''}`} aria-pressed={layout === 'machine'} title={t('layout.machineHint')} onClick={() => changeLayout('machine')}>
+              {t('layout.machine')}
+            </button>
+            <button className={`btn tiny ${layout === 'cam' ? 'on' : ''}`} aria-pressed={layout === 'cam'} title={t('layout.camHint')} onClick={() => changeLayout('cam')}>
+              {t('layout.cam')}
+            </button>
+          </span>
           <input ref={fileInput} type="file" hidden onChange={readInput} />
           {program && <button className="btn" onClick={showStart}>{t('action.home')}</button>}
           <button className="btn" onClick={() => void pickProgram()}>{t('action.openProgram')}</button>
@@ -841,286 +1192,96 @@ export function App() {
           onRemoveRecent={(item) => void recent.remove(item)}
         />
       ) : (
-        <main className="layout" style={{ '--code-w': `${codeWidth}px` } as CSSProperties}>
-          <section className="panel">
-            <div className="panel-title">
-              <span className="file" title={`${program.name} · ${t('program.lines', { count: lines.length })}`}>
-                {dirty && <span className="dirty" title={t('program.unsaved')}>● </span>}
-                {program.name}
-                {isExample(program.path) && <span className="tag">{t('start.example')}</span>}
-              </span>
-              <span className="modes" role="group">
-                <button className={`btn tiny ${mode === 'edit' ? 'on' : ''}`} title={t('mode.editHint')} onClick={startEdit}>EDIT</button>
-                <button className={`btn tiny ${mode === 'mem' ? 'on' : ''}`} title={t('mode.memHint')} onClick={runMem}>MEM</button>
-              </span>
-              <button className="btn tiny icon-btn" title={t('program.saveHint')} aria-label={t('program.saveHint')} onClick={() => void save(false)}>
-                <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden>
-                  <path d="M2 1.5h9.5L14.5 4.5V14a.5.5 0 0 1-.5.5H2a.5.5 0 0 1-.5-.5V2a.5.5 0 0 1 .5-.5Z" fill="none" stroke="currentColor" strokeWidth="1.3" />
-                  <path d="M4.5 1.5v4h6v-4M4 14.5V9.5h8v5" fill="none" stroke="currentColor" strokeWidth="1.3" />
-                </svg>
-              </button>
-              <span className="zoom">
-                <button className="btn tiny" title={t('code.smaller')} aria-label={t('code.smaller')} onClick={() => changeFont(-0.5)}>A−</button>
-                <button className="btn tiny" title={t('code.larger')} aria-label={t('code.larger')} onClick={() => changeFont(0.5)}>A+</button>
-              </span>
-            </div>
-            {/* Like the control: the modal state (F, S, T, active codes and cycle) above the running program */}
-            {mode === 'mem' && <CncModal move={move} />}
-            {mode === 'edit' ? (
-              <ProgramEditor key={programKey} ref={editor} text={program.text} fontSize={fontSize} onEdit={edited} />
-            ) : (
-              <CodeView
-                lines={lines}
-                currentLine={move?.line ?? (atReset ? startLine : -1)}
-                alarmLine={stoppedBy?.line ?? -1}
-                marks={marks}
-                hits={hits}
-                fontSize={fontSize}
-                state={playing ? 'start' : sim.time > 0 && sim.time < (tl?.total ?? 0) ? 'hold' : 'reset'}
-                onZoom={changeFont}
-                onLineClick={jumpToLine}
-                breakpoints={breakpoints}
-                onToggleBreakpoint={toggleBreakpoint}
+        layout === 'cam' ? (
+          <main className="layout" style={{ '--code-w': `${codeWidth}px` } as CSSProperties}>
+            {programPanel(true)}
+            <div className="splitter" role="separator" aria-orientation="vertical" aria-label={t('layout.resize')} title={t('layout.resize')} onPointerDown={(e) => startResize(e, 1)} />
+            <section className="panel view">
+              {viewTitle}
+              {stage}
+              {player}
+            </section>
+            <aside className="panel sidebar">
+              {projectBlock}
+              {positionBlock}
+              {messagesBlock}
+              {machineBlock}
+              {controlBlock}
+              {stockBlock}
+              {offsetsBlock}
+              {toolOffsetsBlock}
+              {toolsBlock}
+            </aside>
+          </main>
+        ) : (
+          // Machine layout: one control screen (status, page picked by the soft keys, program) over the operator panel
+          <main className="machine-panel" style={{ '--code-w': `${codeWidth}px` } as CSSProperties}>
+            <div className="mp-screen">
+              <StatusHeader
+                move={move}
+                position={position}
+                machinePosition={machinePosition}
+                distanceToGo={toGo}
+                axes={shownAxes}
+                maxRpm={maxRpm}
+                maxLiveRpm={maxLiveRpm}
+                feedOverride={panel.feed}
+                rapidOverride={panel.rapid}
               />
-            )}
-          </section>
-
-          <div className="splitter" role="separator" aria-orientation="vertical" aria-label={t('layout.resize')} title={t('layout.resize')} onPointerDown={startResize} />
-
-          <section className="panel view">
-            <div className="panel-title">
-              <span>{t('view.title')}</span>
-              <span className="layers">
-                <label>
-                  <input id="layer-rapids" type="checkbox" checked={showRapids} onChange={(e) => setShowRapids(e.target.checked)} />
-                  {t('layers.rapids')}
-                </label>
-                <label>
-                  <input id="layer-stock" type="checkbox" checked={showStock} onChange={(e) => setShowStock(e.target.checked)} />
-                  {t('layers.stock')}
-                </label>
-                <label title={t('layers.machiningHint')}>
-                  <input id="layer-machining" type="checkbox" checked={machining} onChange={(e) => setMachining(e.target.checked)} />
-                  {t('layers.machining')}
-                </label>
-                {lathe && (
-                  <label title={t('layers.machineViewHint')}>
-                    <input id="layer-machine-view" type="checkbox" checked={machineView} onChange={(e) => setMachineView(e.target.checked)} />
-                    {t('layers.machineView')}
-                  </label>
+              <div className={`mp-body ${screen === 'prog' ? 'full' : ''}`}>
+                {screen !== 'prog' && (
+                  <section className="panel mp-page">
+                    {screen === 'graph' ? (
+                      <>
+                        {viewTitle}
+                        {stage}
+                      </>
+                    ) : (
+                      <div className="mp-scroll">
+                        {screen === 'pos' && (
+                          <PositionAll
+                            position={position}
+                            machinePosition={machinePosition}
+                            distanceToGo={toGo}
+                            axes={shownAxes}
+                            block={move ? t('position.blockValue', { line: move.line + 1, move: index + 1, total: moves.length }) : '—'}
+                            runTime={formatTime(sim.time)}
+                            cycleTime={formatTime(tl?.total ?? 0)}
+                          />
+                        )}
+                        {screen === 'msg' && messagesBlock}
+                        {screen === 'offset' && (
+                          <>
+                            {toolOffsetsBlock}
+                            {offsetsBlock}
+                          </>
+                        )}
+                        {screen === 'setting' && (
+                          <>
+                            {projectBlock}
+                            {machineBlock}
+                            {controlBlock}
+                            {stockBlock}
+                            {toolsBlock}
+                          </>
+                        )}
+                      </div>
+                    )}
+                  </section>
                 )}
-              </span>
-            </div>
-            <div className="stage">
-              {machine && (
-                <Viewport3D
-                  machine={machine}
-                  stock={setup.stock}
-                  workOffsets={setup.workOffsets}
-                  result={result}
-                  index={index}
-                  toolTip={toolTip}
-                  toolRadius={move?.toolRadius ?? 0}
-                  tool={currentTool}
-                  holder={holder}
-                  mount={mount}
-                  colliding={colliding}
-                  machineView={machineView}
-                  spindleAngle={spindleAngle}
-                  spinning={spinning}
-                  machining={machining}
-                  ballTools={ballTools}
-                  chuckHit={chuckHit}
-                  showRapids={showRapids}
-                  showStock={showStock}
-                />
-              )}
-              <div className="legend">
-                <span><i style={{ borderColor: PATH_COLORS.feed }} />{t('legend.programmed')}</span>
-                <span><i style={{ borderColor: PATH_COLORS.center }} />{t('legend.center')}</span>
-                <span><i style={{ borderColor: PATH_COLORS.rapid }} />{t('legend.rapid')}</span>
-              </div>
-              <div className="hint">{t('view.hint')}</div>
-              {mode === 'edit' && <div className="edit-note">{t('view.editNote')}</div>}
-              {busy && <div className="busy-note">{t('sim.running')}</div>}
-              {stoppedBy && (
-                <button className="alarm-banner" onClick={() => jumpToDiagnostic(stoppedBy)}>
-                  <b>
-                    {t('alarm.title')} {stoppedBy.alarm?.code}
-                  </b>
-                  {stoppedBy.alarm?.message && <span className="machine-msg">{stoppedBy.alarm.message}</span>}
-                  <span>
-                    {t('alarm.line', { line: stoppedBy.line + 1 })} · {diagText(stoppedBy)}
-                  </span>
-                </button>
-              )}
-            </div>
-            <Player
-              time={sim.time}
-              total={tl?.total ?? 0}
-              playing={playing}
-              speed={speed}
-              disabled={!result?.moves.length}
-              runDisabled={mode === 'edit'}
-              onSeek={seek}
-              onTogglePlay={togglePlay}
-              onStep={step}
-              onSpeed={setSpeed}
-              panel={panel}
-              onPanel={changePanel}
-            />
-          </section>
-
-          <aside className="panel sidebar">
-            <div className="block">
-              <h2>{t('project.title')}</h2>
-              <p className="muted">
-                {projectPath ? projectPath.slice(Math.max(projectPath.lastIndexOf('/'), projectPath.lastIndexOf('\\'), projectPath.indexOf(':')) + 1) : t('project.none')}
-              </p>
-              <button className="btn" title={t('project.explain')} onClick={() => void saveProject(false)}>{t(projectPath ? 'project.save' : 'project.create')}</button>
-              <p className="muted small">{t('project.explain')}</p>
-            </div>
-            <div className="block">
-              <h2>{t('position.title')}</h2>
-              <PositionPanel move={move} position={position} machinePosition={machinePosition} index={index} total={result?.moves.length ?? 0} axes={shownAxes} />
-              {result && (
-                <p className="muted">
-                  {t('sim.summary', { moves: result.moves.length, time: formatTime(tl?.total ?? result.totalTimeS) })} ·{' '}
-                  {result.finished ? t('sim.finished') : t('sim.stopped')}
-                </p>
-              )}
-            </div>
-            <Messages
-              issues={cfg.issues}
-              diagnostics={diagnostics}
-              collisions={collisions}
-              chuckCollisions={chuckCollisions}
-              onDiagnostic={jumpToDiagnostic}
-              onMove={seekMove}
-            />
-            {machine && (
-              <div className="block">
-                <h2>{t('machine.title')}</h2>
-                <p className="muted">
-                  {machine.manufacturer ? `${machine.manufacturer} · ` : ''}
-                  {t(`machineType.${machine.type}`)} · {machine.kinematics}
-                </p>
-                <table className="table">
-                  <thead>
-                    <tr><th>{t('machine.axis')}</th><th>{t('machine.travel')}</th><th>{t('machine.rapid')}</th></tr>
-                  </thead>
-                  <tbody>
-                    {machine.axes.map((a) => (
-                      <tr key={a.name}>
-                        <td>{a.name}{a.diameter ? ' (Ø)' : ''}</td>
-                        <td>{a.type === 'rotary' ? t('machine.continuous') : `${a.min} … ${a.max}`}</td>
-                        <td>{a.rapid}{a.type === 'rotary' ? ' °/min' : ''}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-                <p className="muted">
-                  {t('machine.spindles')}: {machine.spindles.map((s) => `${l(s.name)} ${s.maxRpm} rpm`).join(' · ')}
-                </p>
-                {machine.notes && <p className="note">{l(machine.notes)}</p>}
-              </div>
-            )}
-            {control && (
-              <div className="block">
-                <h2>{t('control.title')}</h2>
-                <p className="muted">
-                  {t('control.summary', {
-                    family: control.family,
-                    system: control.dialect.gCodeSystem,
-                    macro: control.dialect.macro,
-                    g: Object.keys(control.gCodes).length,
-                    m: Object.keys(control.mCodes).length
-                  })}
-                </p>
-                {machine && machineKind !== control.machineType && (
-                  <p className="warning">
-                    {t('control.mismatch', {
-                      controlType: t(`machineType.${control.machineType}`),
-                      machineType: t(`machineType.${machine.type}`)
-                    })}
-                  </p>
+                {screen !== 'prog' && (
+                  <div className="splitter" role="separator" aria-orientation="vertical" aria-label={t('layout.resize')} title={t('layout.resize')} onPointerDown={(e) => startResize(e, -1)} />
                 )}
+                {programPanel(false)}
               </div>
-            )}
-            <div className="block">
-              <h2>
-                {t('stock.title')}
-                <button className="btn tiny head-action" onClick={() => setEditingStock(true)}>{t('tools.edit')}</button>
-              </h2>
-              {setup.stock ? (
-                <p className="stock-summary">
-                  <i style={{ background: setup.stock.color ?? STOCK_COLOR }} />
-                  {setup.stock.shape === 'cylinder'
-                    ? t('stock.summaryCylinder', { diameter: setup.stock.diameter ?? 0, length: setup.stock.length ?? 0 })
-                    : t('stock.summaryBlock', { x: setup.stock.x ?? 0, y: setup.stock.y ?? 0, z: setup.stock.z ?? 0 })}
-                  <span className="muted"> · {setup.stock.workOffset ?? 'G54'}</span>
-                </p>
-              ) : (
-                <p className="muted">{t('stock.none')}</p>
-              )}
+              <SoftKeys screen={screen} onScreen={setScreen} messages={messageCount} alarm={!!stoppedBy || chuckCollisions.length > 0} />
             </div>
-            <div className="block">
-              <h2>
-                {t('offsets.title')}
-                <button className="btn tiny head-action" onClick={() => setEditingOffsets(true)}>{t('tools.edit')}</button>
-              </h2>
-              {Object.keys(setup.workOffsets).length ? (
-                <ul className="list mono">
-                  {Object.entries(setup.workOffsets).map(([name, o]) => (
-                    <li key={name}>
-                      <b>{name}</b>{' '}
-                      {Object.entries(o)
-                        .map(([ax, v]) => `${ax}${v}`)
-                        .join(' ')}
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="muted">{t('offsets.none')}</p>
-              )}
+            <div className="mp-operator">
+              {player}
+              <span className="muted small">{t('keys.hint')}</span>
             </div>
-            <div className="block">
-              <h2>
-                {t('toolOffsets.title')}
-                <button className="btn tiny head-action" onClick={() => setEditingToolOffsets(true)}>{t('tools.edit')}</button>
-              </h2>
-              <ul className="list mono">
-                {Object.entries(setup.toolOffsets)
-                  .sort(([a], [b]) => Number(a) - Number(b))
-                  .slice(0, 8)
-                  .map(([n, o]) => (
-                    <li key={n}>
-                      <b>{n.padStart(2, '0')}</b>{' '}
-                      {lathe
-                        ? `X${o.x ?? 0} Z${o.z ?? 0}${o.nose !== undefined ? ` R${o.nose}` : ''}${o.xWear || o.zWear ? ` · Δ X${o.xWear ?? 0} Z${o.zWear ?? 0}` : ''}`
-                        : `H${o.length ?? '—'}${o.lengthWear ? `${o.lengthWear > 0 ? '+' : ''}${o.lengthWear}` : ''} D${o.radius ?? '—'}${o.radiusWear ? `${o.radiusWear > 0 ? '+' : ''}${o.radiusWear}` : ''}`}
-                    </li>
-                  ))}
-              </ul>
-              {!Object.keys(setup.toolOffsets).length && <p className="muted">{t('toolOffsets.none')}</p>}
-            </div>
-            <div className="block">
-              <h2>
-                {t('tools.title')}
-                <button className="btn tiny head-action" onClick={() => setEditingTools(true)}>{t('tools.edit')}</button>
-              </h2>
-              {!setup.tools?.tools.length && <p className="muted">{t('tools.none')}</p>}
-              <ul className="list">
-                {setup.tools?.tools.map((tool) => (
-                  <li key={tool.number}>
-                    <b>T{String(tool.number).padStart(2, '0')}</b> {l(tool.name)}
-                    <span className="muted"> · {t('tools.radius', { radius: tool.diameter / 2 })} · {tool.holder ?? t('tools.noHolder')}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </aside>
-        </main>
+          </main>
+        )
       )}
       {editingStock && machine && (
         <StockEditor

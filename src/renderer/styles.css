@@ -255,3 +255,81 @@ button, select, input { font: inherit; color: inherit; }
 .player .key { font: 600 11px 'Share Tech Mono', var(--f-mono); letter-spacing: .04em; padding: 4px 8px; border-radius: 4px; border: 1px solid var(--line); background: var(--raised); cursor: pointer; }
 .player .key.on { background: #2b5d2b; border-color: #4fe08a; color: #e8ffe8; }
 .player .panel-keys label { display: flex; align-items: center; gap: 4px; font: 11px 'Share Tech Mono', var(--f-mono); color: var(--muted); }
+
+/* layout switch in the header */
+.layout-switch { display: flex; gap: 2px; }
+.layout-switch .btn.tiny { padding: 4px 10px; }
+
+/* machine layout: a control's screen in its bezel, over the operator panel (dark in both app themes) */
+.machine-panel {
+  --bg: #0b1013; --panel: #0b1013; --raised: #1b2227; --ink: #dfe6ea; --muted: #7f8c96; --line: #1f3446;
+  --accent: #f0a51e; --accent-ink: #1a1205; --alarm: #ff7a70; --warn: #f0b43a;
+  color-scheme: dark;
+  flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 8px; padding: 12px;
+  background: linear-gradient(#30363c, #1d2226); border: 1px solid #454d55; border-radius: 12px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .08), 0 6px 20px rgba(0, 0, 0, .25); color: var(--ink);
+}
+.mp-screen { flex: 1; min-height: 0; display: flex; flex-direction: column; background: #05080a; border: 6px solid #0d0f11; border-radius: 6px; box-shadow: 0 0 0 1px #59626b; overflow: hidden; font-family: 'Share Tech Mono', var(--f-mono); }
+.mp-status { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 6px 18px; padding: 6px 12px 8px; background: #0b1013; border-bottom: 2px solid #13324f; font-variant-numeric: tabular-nums; }
+.mp-pos { display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; align-items: baseline; gap: 0 16px; }
+.mp-pos .axis { display: contents; }
+.mp-pos .h { font-size: 10.5px; letter-spacing: .08em; text-transform: uppercase; color: #7f9bb5; text-align: right; }
+.mp-pos .k { color: #6fd3ff; font-size: 24px; }
+.mp-pos .v { font-size: 30px; text-align: right; color: #f4f8fa; }
+.mp-pos .m { font-size: 14px; color: #8d99a3; text-align: right; }
+.mp-act { display: flex; flex-direction: column; justify-content: center; gap: 4px; min-width: 0; }
+.mp-meter { display: grid; grid-template-columns: 2em 8.5em minmax(40px, 1fr) auto; align-items: center; gap: 8px; }
+.mp-meter b { color: #6fd3ff; font-weight: 400; font-size: 20px; }
+.mp-meter .val { font-size: 21px; text-align: right; color: #f4f8fa; white-space: nowrap; overflow: hidden; }
+.mp-meter small { color: #8d99a3; font-size: 11.5px; white-space: nowrap; }
+.mp-bar { height: 9px; background: #141c22; border: 1px solid #2b3a46; border-radius: 2px; overflow: hidden; }
+.mp-bar i { display: block; height: 100%; background: linear-gradient(90deg, #2f9e5a, #4fe08a); }
+.mp-ovr { display: flex; flex-wrap: wrap; gap: 2px 16px; font-size: 12.5px; color: #c9d4db; }
+.mp-codes { display: flex; flex-wrap: wrap; gap: 2px 9px; font-size: 12.5px; color: #7f8c96; }
+.mp-codes .on { color: #f2c418; }
+.mp-body { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) 8px var(--code-w, 360px); background: #05080a; }
+.mp-body.full { grid-template-columns: minmax(0, 1fr); }
+.mp-body > .panel { border: 0; border-radius: 0; }
+.mp-body .splitter { background: #0d1419; }
+.mp-page .panel-title { background: #13324f; color: #d6e6f5; border-bottom: 0; padding: 4px 10px; }
+.mp-page .stage { min-height: 200px; }
+.mp-scroll { flex: 1; min-height: 0; overflow: auto; font-family: var(--f-ui); }
+.mp-scroll .block h2 { color: #7f9bb5; }
+.mp-softkeys { display: flex; gap: 5px; padding: 6px; background: #0b1013; border-top: 2px solid #13324f; }
+.softkey { flex: 1; min-width: 0; padding: 7px 4px; border: 1px solid #3a4550; border-radius: 3px; background: linear-gradient(#2a3138, #181d21); color: #d6e6f5; font: 600 12.5px 'Share Tech Mono', var(--f-mono); letter-spacing: .06em; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.softkey:hover { border-color: #6fd3ff; }
+.softkey.on { background: #13324f; border-color: #6fd3ff; color: #fff; }
+.softkey.alm { color: #ff5a4e; border-color: #ff5a4e; }
+.softkey .count { margin-left: 6px; color: #f2c418; font-size: 11px; }
+.mp-operator { display: flex; flex-direction: column; gap: 2px; }
+.mp-operator .player { border-top: 0; padding: 2px 0; }
+.mp-operator .btn { background: linear-gradient(#3a4148, #262b30); border-color: #555e66; }
+.mp-operator .btn.primary { background: linear-gradient(#3fbf6b, #22803f); border-color: #4fe08a; color: #fff; }
+.mp-operator .btn.reset { background: linear-gradient(#c0392b, #8e2219); border-color: #ff7a70; color: #fff; }
+.mp-operator .muted.small { padding-left: 2px; }
+@media (max-width: 1100px) {
+  .mp-pos .v { font-size: 22px; }
+  .mp-pos .k { font-size: 19px; }
+  .mp-pos .m { font-size: 12px; }
+  .mp-meter { grid-template-columns: 1.6em 6.5em minmax(30px, 1fr) auto; }
+  .mp-meter .val { font-size: 17px; }
+  .softkey { font-size: 11px; letter-spacing: 0; }
+  /* The CAM layout hides its splitter here; the machine layout keeps the program beside the page */
+  .mp-body .splitter { display: block; }
+}
+@media (max-width: 760px) {
+  .machine-panel { padding: 6px; }
+  .mp-screen { overflow: auto; }
+  .mp-status { grid-template-columns: 1fr; }
+  .mp-body { flex: none; grid-template-columns: 1fr; grid-template-rows: minmax(300px, 55vh) minmax(240px, 45vh); }
+  .mp-body .splitter { display: none; }
+}
+/* POS page: the control's POSITION (ALL) screen */
+.pos-all { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1px; background: #13324f; font-family: 'Share Tech Mono', var(--f-mono); font-variant-numeric: tabular-nums; min-height: 100%; }
+.pos-quadrant { background: #05080a; padding: 10px 18px; display: flex; flex-direction: column; gap: 2px; }
+.pos-quadrant h3 { margin: 0 0 4px; font-size: 12px; font-weight: 400; letter-spacing: .1em; text-transform: uppercase; color: #7f9bb5; }
+.pos-row { display: flex; align-items: baseline; gap: 16px; }
+.pos-row .k { color: #6fd3ff; font-size: 26px; width: 1.2em; }
+.pos-row .v { flex: 1; text-align: right; font-size: clamp(24px, 3.2vw, 40px); color: #f4f8fa; }
+.pos-row .v.small { font-size: 20px; text-align: left; }
+.pos-quadrant.info { gap: 6px; }
