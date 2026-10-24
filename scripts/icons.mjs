@@ -1,7 +1,9 @@
 // Renders build/icon.svg and the installer artwork. Run with `npm run icons` (needs Electron, no other tools).
 // electron-builder turns build/icon.png into the .icns (macOS) and .ico (Windows) files by itself.
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
-import { dirname, resolve } from 'node:path'
+import { tmpdir } from 'node:os'
+import { dirname, join, resolve } from 'node:path'
+import { pathToFileURL } from 'node:url'
 import { app, BrowserWindow } from 'electron'
 
 const root = resolve(import.meta.dirname, '..')
@@ -60,6 +62,29 @@ const dmg = page(
   'background:linear-gradient(#f7f9fb,#e3e9ef)'
 )
 
+// GitHub social preview (Settings → Social preview): 1280x640, with a frame of the demo
+// The GIF is too big for a data URL: the page is loaded from a file and captured once the demo is under way
+const demo = pathToFileURL(resolve(root, 'docs/demo.gif')).href
+const chip = (text) => `<span style="border:1px solid rgba(34,211,238,.45);border-radius:999px;padding:6px 14px;color:#a5f3fc">${text}</span>`
+const social = page(
+  `<div style="position:absolute;inset:0;${GRID('rgba(34,211,238,.06)')}"></div>
+   <div style="position:absolute;left:64px;top:70px;width:520px;color:#e6edf3">
+     <div style="display:flex;align-items:center;gap:18px">
+       <img src="${logo}" width="96" height="96">
+       <div style="font-size:52px;font-weight:800;line-height:1">CNC Simulator</div>
+     </div>
+     <div style="font-size:30px;font-weight:600;margin-top:34px;line-height:1.25">Learn and test G-code<br>without a machine</div>
+     <div style="font-size:20px;color:#9fb0c0;margin-top:16px;line-height:1.4">Free and open source · lathe and machining center · alarms and collisions in 3D</div>
+     <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:30px;font-size:17px">
+       ${['Fanuc', 'Mitsubishi', 'Haas', 'Macro B', 'Windows · macOS · Linux'].map(chip).join('')}
+     </div>
+   </div>
+   <div style="position:absolute;right:48px;top:80px;width:600px;height:480px;border-radius:14px;overflow:hidden;border:1px solid #2b3a4a;box-shadow:0 20px 60px rgba(0,0,0,.5);background:#0b1117">
+     <img src="${demo}" style="width:100%;height:100%;object-fit:cover;object-position:left top">
+   </div>`,
+  DARK
+)
+
 const outputs = [
   { file: 'build/icon.png', html: iconPage(1024), width: 1024, height: 1024 }, // installers, dock, taskbar, Linux window
   { file: 'src/renderer/public/favicon.png', html: iconPage(64), width: 64, height: 64 }, // browser tab and server mode
@@ -67,10 +92,11 @@ const outputs = [
   { file: 'build/uninstallerSidebar.bmp', html: sidebar, width: 164, height: 314 },
   { file: 'build/installerHeader.bmp', html: header, width: 150, height: 57 },
   { file: 'build/background.png', html: dmg, width: 540, height: 380 },
-  { file: 'build/background@2x.png', html: dmg, width: 540, height: 380, scale: 2 }
+  { file: 'build/background@2x.png', html: dmg, width: 540, height: 380, scale: 2 },
+  { file: 'docs/social.png', html: social, width: 1280, height: 640, wait: 9000 }
 ]
 
-async function render({ html, width, height, scale = 1 }) {
+async function render({ html, width, height, scale = 1, wait = 300 }) {
   const win = new BrowserWindow({
     width,
     height,
@@ -83,9 +109,11 @@ async function render({ html, width, height, scale = 1 }) {
   // The page is laid out at 1x and zoomed, so @2x images keep the same composition
   const zoomed = scale === 1 ? html : html.replace('<body style="', `<body style="zoom:${scale};`)
   win.setContentSize(width * scale, height * scale)
-  await win.loadURL(`data:text/html;base64,${Buffer.from(zoomed).toString('base64')}`)
+  const file = join(tmpdir(), 'cnc-simulator-artwork.html')
+  writeFileSync(file, zoomed)
+  await win.loadFile(file)
   // Offscreen pages can finish loading before the first frame is painted
-  await new Promise((done) => setTimeout(done, 300))
+  await new Promise((done) => setTimeout(done, wait))
   const image = await win.webContents.capturePage({ x: 0, y: 0, width: width * scale, height: height * scale })
   win.destroy()
   return image.resize({ width: width * scale, height: height * scale, quality: 'best' })
