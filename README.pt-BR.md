@@ -41,6 +41,8 @@ Os instaladores de cada versão estão na **[página de Releases](https://github
 - **Tela como a da máquina:** o layout **Máquina** põe tudo numa tela de comando, como na máquina: posição em dígitos grandes com coordenadas de máquina e distância a ir, rotação e avanço com barras e overrides, códigos ativos, a vista 3D ao lado do programa em execução e **softkeys** para as páginas POS (ALL), PROG, OFFSET, GRÁFICO, MENSAGEM e AJUSTES. O painel de operação fica embaixo; **Espaço** é cycle start / feed hold, **Esc** é reset e **S** bloco a bloco. O layout **CAM** (programa, vista 3D, painel lateral) está a um clique, no topo.
 - **Ferramentas de CAM:** o painel lateral tem abas (operações, preparação, máquina, mensagens); a **lista de operações** mostra cada uso de ferramenta com tempo, tempo de corte e linhas, e vai ao início com um clique. A **linha do tempo** abaixo do controle deslizante tem a cor de cada ferramenta e marca paradas M00/M01, pontos de parada, colisões e o alarme. A vista 3D tem **vistas rápidas** (iso, topo, frente, lateral), **seguir ferramenta** e **medir** (clique em dois pontos da peça ou do percurso: distância e ΔX/ΔY/ΔZ).
 - **Tour do primeiro uso:** um passeio curto pela tela na primeira vez que um programa abre, e de novo pelo botão **Tour** no topo.
+- **Modo aprender (?):** passe o mouse num código G/M, numa #variável ou numa palavra de macro do programa (ou do editor) para ver o que ela faz no comando escolhido; o bloco do cursor é explicado palavra por palavra abaixo do programa. G71 no torno Fanuc, M97 na Haas: a ajuda segue o comando.
+- **Exercícios guiados:** quatro exercícios na tela inicial, de um eixo com G00/G01 a uma fileira de furos com WHILE. Cada um abre com a máquina, o blank, o enunciado e um desenho da peça; **Conferir** usina o seu programa e a solução no mesmo blank e diz onde ficou material ou onde a peça foi cortada a mais.
 - **Tela de programa como a do comando:** tela MEM estilo Fanuc com o bloco em execução, números O e N e estado de execução. **EDIT** vira um editor (cores, desfazer, buscar e substituir); ele para o programa que estiver rodando, e o percurso, as mensagens e os alarmes acompanham o texto enquanto você digita.
 - **Corretores de ferramenta:** tela OFFSET com H/D (centro de usinagem) ou X/Z, raio e direção de ponta (torno), geometria e desgaste; um H errado desloca a ponta como na máquina; compensação do raio da ponta G41/G42 no torno.
 - **Ciclos de torno:** desbaste G71/G72, repetição de perfil G73 e acabamento G70 a partir do perfil entre P e Q; ciclos simples G90/G94/G92 (sistema A) e G77/G79/G78 (sistema B); rosca G76 em várias passadas e G32/G33 com avanço pelo passo. A barra é usinada passe a passe.
@@ -67,7 +69,7 @@ Os instaladores de cada versão estão na **[página de Releases](https://github
 
 ### Aprenda com os exemplos
 
-Abra pela tela inicial, nesta ordem:
+Comece pelos **exercícios** da tela inicial (E01 a E04, com **Conferir**) e depois abra os exemplos, nesta ordem:
 
 | Exemplo | Máquina | O que ensina |
 |---|---|---|

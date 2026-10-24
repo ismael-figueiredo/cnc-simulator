@@ -41,6 +41,8 @@ Installers for every version are on the **[Releases page](https://github.com/ism
 - **Screen like the machine:** the **Machine** layout puts everything on one control screen, as on the machine: position in large digits with machine coordinates and distance to go, spindle and feed with load bars and overrides, active codes, the 3D view next to the running program, and **soft keys** for the POS (ALL), PROG, OFFSET, GRAPH, MESSAGE and SETTING pages. The operator panel is underneath; **Space** is cycle start / feed hold, **Esc** is reset and **S** single block. The **CAM** layout (program, 3D view, side panel) is one click away at the top.
 - **CAM tools:** the side panel has tabs (operations, setup, machine, messages); the **operation list** shows each tool use with its time, cutting time and lines, and goes to its start on a click. The **timeline** under the slider is colored by tool and marks M00/M01 stops, breakpoints, collisions and the alarm. The 3D view has **quick views** (iso, top, front, side), **follow tool** and **measure** (click two points on the part or path: distance and ΔX/ΔY/ΔZ).
 - **First-use tour:** a short walk through the screen the first time a program opens, and again from **Tour** at the top.
+- **Learning mode (?):** hover a G/M code, a #variable or a macro word in the program (or in the editor) to see what it does on the selected control; the block at the cursor is explained word by word under the program. G71 on a Fanuc lathe, M97 on a Haas: the help follows the control.
+- **Guided exercises:** four exercises on the start screen, from a shaft with G00/G01 to a row of holes with WHILE. Each opens with its machine, stock, statement and a drawing of the part; **Check** machines your program and the solution on the same stock and says where material is left or the part was cut into.
 - **Program screen like the control:** Fanuc-style MEM screen with the running block, O and N numbers and run state. **EDIT** turns it into an editor (colors, undo, find and replace); it stops a running program, and the path, messages and alarms follow the text as you type.
 - **Tool offsets:** OFFSET screen with H/D (machining centers) or X/Z, nose radius and tip (lathes), geometry and wear; a wrong H moves the tip as on the machine; lathe nose radius compensation G41/G42.
 - **Lathe canned cycles:** G71/G72 roughing, G73 pattern repeating and G70 finishing from the shape between P and Q; G90/G94/G92 (system A) and G77/G79/G78 (system B) single cycles; G76 multiple threading and G32/G33 thread cutting at the lead per revolution. The stock is turned pass by pass.
@@ -67,7 +69,7 @@ Installers for every version are on the **[Releases page](https://github.com/ism
 
 ### Learn with the examples
 
-Open them from the start screen, in this order:
+Start with the **exercises** on the start screen (E01 to E04, with **Check**), then open the examples, in this order:
 
 | Example | Machine | What it teaches |
 |---|---|---|
@@ -365,7 +367,8 @@ Three separate files you can mix: the same machine with another control, or one 
 9. **Screen and learning:**
    - ✅ **Machine layout:** one control screen (position, feed and spindle, graphics and program together, soft keys), next to the **CAM layout**.
    - ✅ **CAM layout:** sidebar tabs, operation list per tool, timeline colored by tool, quick 3D views, measuring, first-use tour.
-   - **Learn mode:** help on each G/M code and macro word, guided exercises checked against the expected part.
+   - ✅ **Learning mode:** help on each G/M code, address and macro word, guided exercises checked against the solution's part.
+   - **Next:** more exercises (grooving, threading, pockets, subprograms), exercises written by teachers and shared as files.
 
 ## License
 

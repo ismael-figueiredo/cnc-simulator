@@ -22,6 +22,9 @@ Machines, controls, alarms and tools are JSON files in [`configs/`](configs), ch
 4. **Test:** add a short test in `tests/` (see `tests/haas.test.ts`) and, if you can, an example in `examples/` with its `.cncsim` project.
 5. Run `npm run check` (types, lint and tests) and open a pull request.
 
+### Write an exercise
+Exercises are JSON files in [`examples/learn/`](examples/learn): a title and statement in the three languages, the machine, control and stock, a starting program and a solution. **Check** compares the student's part with the one the solution makes, so any program that makes the same part passes. Add it to `tests/exercises.test.ts` so the solution is checked to run without alarms.
+
 ### Code
 - `npm install`, then `npm run dev` to run the app. See **For developers** in the README.
 - Small commits, in English, in the [Conventional Commits](https://www.conventionalcommits.org) style (`feat(core): …`, `fix(ui): …`, `docs: …`).
@@ -50,6 +53,9 @@ Máquinas, comandos, alarmes e ferramentas são arquivos JSON em [`configs/`](co
 3. **Alarmes:** ligue as verificações do simulador aos números de alarme do comando em `configs/alarms/`. Números não confirmados em manual ficam marcados no README.
 4. **Teste:** acrescente um teste curto em `tests/` (veja `tests/haas.test.ts`) e, se puder, um exemplo em `examples/` com o projeto `.cncsim`.
 5. Rode `npm run check` (tipos, lint e testes) e abra um pull request.
+
+### Escrever um exercício
+Exercícios são arquivos JSON em [`examples/learn/`](examples/learn): título e enunciado nos três idiomas, máquina, comando e blank, um programa inicial e uma solução. O **Conferir** compara a peça do aluno com a que a solução faz, então qualquer programa que faça a mesma peça passa. Acrescente-o em `tests/exercises.test.ts` para a solução ser conferida sem alarmes.
 
 ### Código
 - `npm install` e depois `npm run dev` para rodar o app. Veja **Para desenvolvedores** no README.
