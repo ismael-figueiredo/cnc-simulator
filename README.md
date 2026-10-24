@@ -12,7 +12,7 @@ Website: **[ismael-figueiredo.github.io/cnc-simulator](https://ismael-figueiredo
 
 It reads G-code, takes the **machine** and the **control** from JSON files (a post-processor in reverse) and shows the toolpath and the machined part in 3D.
 
-![The O2001 plate example being machined: Fanuc-style program screen, 3D toolpath, tool in its BT40 holder, the stock changing where it is cut](docs/demo.gif)
+![The O2001 plate example being machined in the machine layout: position, spindle and feed on top, 3D toolpath and the running program, soft keys and the operator panel below](docs/demo.gif)
 
 ## Who it is for
 
@@ -38,6 +38,7 @@ Installers for every version are on the **[Releases page](https://github.com/ism
 - **Parametric programs (Macro B):** variables, math and IF/GOTO/WHILE run as on the control, on every bundled machine (all their controls have the macro option). Plain G-code and the control's own canned cycles run too; the examples have both.
 - **Stops on the machine's alarms:** program errors stop at the block with the control's own number and message (for example `PS0010 IMPROPER G-CODE`).
 - **Operator panel:** single block, M01 optional stop, block delete "/", feed and rapid overrides (the cycle time follows them), and breakpoints on any line.
+- **Screen like the machine:** the **Machine** layout puts everything on one control screen, as on the machine: position in large digits with machine coordinates and distance to go, spindle and feed with load bars and overrides, active codes, the 3D view next to the running program, and **soft keys** for the POS (ALL), PROG, OFFSET, GRAPH, MESSAGE and SETTING pages. The operator panel is underneath; **Space** is cycle start / feed hold, **Esc** is reset and **S** single block. The **CAM** layout (program, 3D view, side panel) is one click away at the top.
 - **Program screen like the control:** Fanuc-style MEM screen with the running block, O and N numbers and run state. **EDIT** turns it into an editor (colors, undo, find and replace); it stops a running program, and the path, messages and alarms follow the text as you type.
 - **Tool offsets:** OFFSET screen with H/D (machining centers) or X/Z, nose radius and tip (lathes), geometry and wear; a wrong H moves the tip as on the machine; lathe nose radius compensation G41/G42.
 - **Lathe canned cycles:** G71/G72 roughing, G73 pattern repeating and G70 finishing from the shape between P and Q; G90/G94/G92 (system A) and G77/G79/G78 (system B) single cycles; G76 multiple threading and G32/G33 thread cutting at the lead per revolution. The stock is turned pass by pass.
@@ -58,9 +59,9 @@ Installers for every version are on the **[Releases page](https://github.com/ism
 
 1. **Start screen:** open a program (`.nc`, `.tap`, `.txt`…) or a project, create a new program, or open one of the **Examples**: an ANSI 40 sprocket on a Romi GL 250 M with live tooling, a stepped shaft turned on a Romi GL 300 (roughing, finishing with ,C/,R, grooving), a threaded shaft made with G71/G70 and a G76 thread on the same lathe, an aluminium plate and a two-vise job on a Romi D600 machining center. Recent files are listed here and in **File → Open recent**.
 2. **Pick the machine and the control** at the top. A program opened alone uses the machine's stock and the bundled tools.
-3. **Run:** the program opens at RESET, cursor on the first block, as on the control. **▶ Run** plays it; step block by block with ◀ and ▶|; **RESET** goes back to the start and ⏭ to the end. **Click a block to start from it**, or **click its line number** to stop there (breakpoint). Under the player: **SINGLE BLOCK**, **M01**, **BLOCK DELETE /** and the **feed and rapid overrides**. The active G codes, F, S, T and canned cycle are shown above the program. Messages and alarms are listed on the right; click one to go to its block.
+3. **Run:** the program opens at RESET, cursor on the first block, as on the control. **▶ Run** plays it; step block by block with ◀ and ▶|; **RESET** goes back to the start and ⏭ to the end. **Click a block to start from it**, or **click its line number** to stop there (breakpoint). Under the player: **SINGLE BLOCK**, **M01**, **BLOCK DELETE /** and the **feed and rapid overrides**. The active G codes, F, S, T and canned cycle are shown above the program. Messages and alarms are listed on the right (MESSAGE page in the machine layout); click one to go to its block.
 4. **EDIT / MEM:** EDIT changes the program and stops it if it was running; while you type, the path and messages are recomputed (the program goes back to RESET). MEM runs it as edited. **File → Save** (Ctrl/⌘+S) writes it back.
-5. **Setup:** in the right panel, edit the **Stock** (or fit it to the program, and choose where the work zero sits on it), the **Work offsets** and the **Tools**, then **Save as project (.cncsim)** to keep it all next to the program. The disk icon above the program saves only the program (`.nc`).
+5. **Setup:** in the right panel (SETTING and OFFSET pages in the machine layout), edit the **Stock** (or fit it to the program, and choose where the work zero sits on it), the **Work offsets** and the **Tools**, then **Save as project (.cncsim)** to keep it all next to the program. The disk icon above the program saves only the program (`.nc`).
 
 ### Learn with the examples
 
@@ -360,7 +361,7 @@ Three separate files you can mix: the same machine with another control, or one 
 7. **Server:** `/api/simulate` API and use from a browser on the shop network.
 8. **Importers and collision:** read FreeCAD posts and Fusion `.cps`; tool and holder collision with part, chuck and turret.
 9. **Screen and learning:**
-   - **Machine mode:** one panel shaped like a control (position, feed and spindle, graphics and program together, softkeys), next to the current **CAM mode**.
+   - ✅ **Machine layout:** one control screen (position, feed and spindle, graphics and program together, soft keys), next to the **CAM layout**.
    - **CAM mode:** sidebar tabs, operation list per tool, timeline colored by tool, quick 3D views, measuring.
    - **Learn mode:** help on each G/M code and macro word, guided exercises checked against the expected part.
 

@@ -12,7 +12,7 @@ Site: **[ismael-figueiredo.github.io/cnc-simulator](https://ismael-figueiredo.gi
 
 Lê G-code, usa a **máquina** e o **comando** descritos em JSON (um pós-processador às avessas) e mostra o percurso e a peça usinada em 3D.
 
-![O exemplo O2001 sendo usinado: tela de programa estilo Fanuc, percurso 3D, ferramenta no cone BT40, o blank mudando onde é cortado](docs/demo.gif)
+![O exemplo O2001 sendo usinado no layout de máquina: posição, rotação e avanço em cima, percurso 3D e o programa rodando, softkeys e o painel de operação embaixo](docs/demo.gif)
 
 ## Para quem é
 
@@ -38,6 +38,7 @@ Os instaladores de cada versão estão na **[página de Releases](https://github
 - **Programas parametrizados (Macro B):** variáveis, contas e IF/GOTO/WHILE rodam como no comando, em todas as máquinas incluídas (todos os comandos delas têm a opção de macro). G-code comum e os ciclos fixos do próprio comando também; os exemplos têm os dois.
 - **Para nos alarmes da máquina:** erros de programa param no bloco com o número e a mensagem do próprio comando (por exemplo `PS0010 IMPROPER G-CODE`).
 - **Painel de operação:** bloco a bloco, parada opcional M01, salto de bloco "/", override de avanço e de rápido (o tempo de ciclo acompanha) e pontos de parada em qualquer linha.
+- **Tela como a da máquina:** o layout **Máquina** põe tudo numa tela de comando, como na máquina: posição em dígitos grandes com coordenadas de máquina e distância a ir, rotação e avanço com barras e overrides, códigos ativos, a vista 3D ao lado do programa em execução e **softkeys** para as páginas POS (ALL), PROG, OFFSET, GRÁFICO, MENSAGEM e AJUSTES. O painel de operação fica embaixo; **Espaço** é cycle start / feed hold, **Esc** é reset e **S** bloco a bloco. O layout **CAM** (programa, vista 3D, painel lateral) está a um clique, no topo.
 - **Tela de programa como a do comando:** tela MEM estilo Fanuc com o bloco em execução, números O e N e estado de execução. **EDIT** vira um editor (cores, desfazer, buscar e substituir); ele para o programa que estiver rodando, e o percurso, as mensagens e os alarmes acompanham o texto enquanto você digita.
 - **Corretores de ferramenta:** tela OFFSET com H/D (centro de usinagem) ou X/Z, raio e direção de ponta (torno), geometria e desgaste; um H errado desloca a ponta como na máquina; compensação do raio da ponta G41/G42 no torno.
 - **Ciclos de torno:** desbaste G71/G72, repetição de perfil G73 e acabamento G70 a partir do perfil entre P e Q; ciclos simples G90/G94/G92 (sistema A) e G77/G79/G78 (sistema B); rosca G76 em várias passadas e G32/G33 com avanço pelo passo. A barra é usinada passe a passe.
@@ -58,9 +59,9 @@ Os instaladores de cada versão estão na **[página de Releases](https://github
 
 1. **Tela inicial:** abra um programa (`.nc`, `.tap`, `.txt`…) ou um projeto, crie um programa novo ou abra um dos **Exemplos**: coroa ANSI 40 num Romi GL 250 M com ferramenta acionada, um eixo escalonado torneado num Romi GL 300 (desbaste, acabamento com ,C/,R, canal), um eixo roscado feito com G71/G70 e rosca G76 no mesmo torno, uma placa de alumínio e um trabalho em duas morsas num centro de usinagem Romi D600. Os arquivos recentes ficam aqui e em **Arquivo → Abrir recente**.
 2. **Escolha a máquina e o comando** no topo. Um programa aberto sozinho usa o blank da máquina e as ferramentas padrão.
-3. **Execute:** o programa abre em RESET, com o cursor no primeiro bloco, como no comando. **▶ Executar** roda; ◀ e ▶| andam bloco a bloco; **RESET** volta ao início e ⏭ vai ao fim. **Clique num bloco para começar dele**, ou **no número da linha** para parar ali (ponto de parada). Embaixo do player: **BLOCO A BLOCO**, **M01**, **SALTO DE BLOCO /** e os **overrides de avanço e de rápido**. Os códigos G ativos, F, S, T e o ciclo fixo aparecem acima do programa. Mensagens e alarmes ficam à direita; clique numa para ir ao bloco.
+3. **Execute:** o programa abre em RESET, com o cursor no primeiro bloco, como no comando. **▶ Executar** roda; ◀ e ▶| andam bloco a bloco; **RESET** volta ao início e ⏭ vai ao fim. **Clique num bloco para começar dele**, ou **no número da linha** para parar ali (ponto de parada). Embaixo do player: **BLOCO A BLOCO**, **M01**, **SALTO DE BLOCO /** e os **overrides de avanço e de rápido**. Os códigos G ativos, F, S, T e o ciclo fixo aparecem acima do programa. Mensagens e alarmes ficam à direita (página MENSAGEM no layout de máquina); clique numa para ir ao bloco.
 4. **EDIT / MEM:** EDIT altera o programa e para a execução se estiver rodando; enquanto você digita, o percurso e as mensagens são recalculados (o programa volta para RESET). MEM roda como está. **Arquivo → Salvar** (Ctrl/⌘+S) grava.
-5. **Preparação:** no painel da direita, edite o **Blank** (ou gere pelo programa e escolha onde fica o zero peça nele), os **Zeros de peça** e as **Ferramentas** e use **Salvar como projeto (.cncsim)** para guardar tudo ao lado do programa. O disquete acima do programa salva só o programa (`.nc`).
+5. **Preparação:** no painel da direita (páginas AJUSTES e OFFSET no layout de máquina), edite o **Blank** (ou gere pelo programa e escolha onde fica o zero peça nele), os **Zeros de peça** e as **Ferramentas** e use **Salvar como projeto (.cncsim)** para guardar tudo ao lado do programa. O disquete acima do programa salva só o programa (`.nc`).
 
 ### Aprenda com os exemplos
 
