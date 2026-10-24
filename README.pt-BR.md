@@ -99,6 +99,7 @@ Depois de uma mudança visível na interface, rode `npm run demo` e faça o comm
 - Git Bash: `unset ELECTRON_RUN_AS_NODE`
 
 - **CI:** todo push na `main` e todo pull request rodam o `npm run check`.
+- **Notas de versão:** cada versão está descrita no [CHANGELOG.md](CHANGELOG.md) (português e inglês). Crie a tag anotada com esse texto como mensagem; o workflow Release coloca o texto na página do release.
 - **Release:** enviar uma tag `v*` (`git tag v0.1.0 && git push origin v0.1.0`) gera os instaladores de Windows, macOS e Linux e publica na página Releases do GitHub. Rodando à mão pela aba Actions, eles ficam só como artifacts do run.
 - **Atualizações:** o app instalado procura a versão nova ao abrir e em **Ajuda → Procurar atualizações**. No Windows e no AppImage baixa sozinho e instala ao reiniciar; no macOS e no `.deb` avisa e abre a página de download.
 

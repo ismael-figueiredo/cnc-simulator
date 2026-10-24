@@ -42,6 +42,15 @@ jobs:
     permissions:
       contents: write
     steps:
+      # The annotated tag's message (the CHANGELOG entry) becomes the release text
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Release notes from the tag
+        run: |
+          git fetch --force origin "refs/tags/${GITHUB_REF_NAME}:refs/tags/${GITHUB_REF_NAME}"
+          git for-each-ref "refs/tags/${GITHUB_REF_NAME}" --format='%(contents)' > notes.md
+          cat notes.md
       - uses: actions/download-artifact@v4
         with:
           path: dist
@@ -49,4 +58,5 @@ jobs:
       - uses: softprops/action-gh-release@v2
         with:
           files: dist/*
+          body_path: notes.md
           generate_release_notes: true
