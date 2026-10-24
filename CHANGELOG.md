@@ -4,6 +4,22 @@ Cada versão em português e inglês. · Each version in Portuguese and English.
 
 Downloads: https://github.com/ismael-figueiredo/cnc-simulator/releases
 
+## 0.10.0 · 2026-10-24
+
+### Português
+**Comando Haas.**
+- **Haas NGC fresadora** e as máquinas **VF-2** e **VF-5/40**, com zero de máquina no canto superior direito e cursos negativos.
+- **G154 P1–P99** e **G110–G129** usam os mesmos zeros do G54.1 P n; no `G10 L20 G154 P n` o zero é só escrito, não selecionado.
+- **M97 P n:** subprograma local no bloco N n do mesmo programa, com retorno no M99 e repetição L.
+- Exemplo **O3001**: duas fixações na VF-2 com G154, G110/G111 e M97.
+
+### English
+**Haas control.**
+- **Haas NGC mill** and the **VF-2** and **VF-5/40** machines, with machine zero at the top right and negative travels.
+- **G154 P1–P99** and **G110–G129** use the same offsets as G54.1 P n; `G10 L20 G154 P n` only writes the offset, it does not select it.
+- **M97 P n:** local subprogram at block N n of the same program, returning at M99, repeated with L.
+- **O3001** example: two fixtures on the VF-2 with G154, G110/G111 and M97.
+
 ## 0.9.0 · 2026-10-24
 
 ### Português
