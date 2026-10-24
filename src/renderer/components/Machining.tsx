@@ -1,6 +1,6 @@
-import { useEffect, useMemo } from 'react'
-import { BufferAttribute, BufferGeometry, Color, LatheGeometry, Vector2 } from 'three'
-import { createHeightfield, createProfile, cutHeightfield, cutProfile, type Heightfield, type Move, type Stock, type TurnProfile, type Vec3 } from '@core/index'
+import { useEffect, useMemo, useRef } from 'react'
+import { BufferAttribute, BufferGeometry, Color, LatheGeometry, Sphere, Vector2, Vector3 } from 'three'
+import { takeDirty, createHeightfield, createProfile, cutHeightfield, cutProfile, type Heightfield, type Move, type Stock, type TurnProfile, type Vec3 } from '@core/index'
 
 interface Props {
   moves: Move[]
@@ -99,6 +99,9 @@ function MilledBlock({ moves, index, stock, zero, ballTools, color }: Props) {
     const g = new BufferGeometry()
     g.setAttribute('position', new BufferAttribute(new Float32Array(h.nx * h.ny * 3), 3))
     g.setAttribute('color', new BufferAttribute(new Float32Array(h.nx * h.ny * 3), 3))
+    g.setAttribute('normal', new BufferAttribute(new Float32Array(h.nx * h.ny * 3), 3))
+    // The surface stays inside the stock box: a fixed bounding sphere, not recomputed per frame
+    g.boundingSphere = new Sphere(new Vector3(h.x0 + (h.nx * h.cell) / 2, h.y0 + (h.ny * h.cell) / 2, (h.top + h.bottom) / 2), Math.hypot(h.nx * h.cell, h.ny * h.cell, h.top - h.bottom))
     const idx: number[] = []
     for (let j = 0; j + 1 < h.ny; j++)
       for (let i = 0; i + 1 < h.nx; i++) {
@@ -110,23 +113,16 @@ function MilledBlock({ moves, index, stock, zero, ballTools, color }: Props) {
   }, [stock, zero])
   useEffect(() => () => geometry.dispose(), [geometry])
 
+  // Which model the mesh shows: a new model (new stock, checkpoint restore) redraws it all,
+  // the same one only the cells the tool touched since the last frame.
+  const shown = useRef<{ model: Heightfield; color: string } | null>(null)
   useEffect(() => {
-    const pos = geometry.getAttribute('position') as BufferAttribute
-    const col = geometry.getAttribute('color') as BufferAttribute
-    const raw = new Color(color)
-    const cut = cutColor(color)
-    for (let j = 0; j < model.ny; j++)
-      for (let i = 0; i < model.nx; i++) {
-        const k = j * model.nx + i
-        const z = model.heights[k] ?? model.top
-        pos.setXYZ(k, model.x0 + i * model.cell, model.y0 + j * model.cell, z)
-        const c = z < model.top - 1e-3 ? cut : raw
-        col.setXYZ(k, c.r, c.g, c.b)
-      }
-    pos.needsUpdate = true
-    col.needsUpdate = true
-    geometry.computeVertexNormals()
-    geometry.computeBoundingSphere()
+    const full = shown.current?.model !== model || shown.current.color !== color
+    const changed = takeDirty(model)
+    const region = full ? ([0, 0, model.nx - 1, model.ny - 1] as const) : changed
+    shown.current = { model, color }
+    if (!region) return
+    writeCells(geometry, model, region, color)
   }, [geometry, model, version, color])
 
   return (
@@ -135,6 +131,44 @@ function MilledBlock({ moves, index, stock, zero, ballTools, color }: Props) {
       <meshStandardMaterial vertexColors metalness={0.45} roughness={0.45} polygonOffset polygonOffsetFactor={1} polygonOffsetUnits={1} />
     </mesh>
   )
+}
+
+/**
+ * Writes positions, normals and colors of the cells in the region (plus one cell around, whose
+ * normals depend on them) and uploads only those rows to the GPU.
+ */
+function writeCells(g: BufferGeometry, h: Heightfield, [i0, j0, i1, j1]: readonly [number, number, number, number], color: string) {
+  const pos = g.getAttribute('position') as BufferAttribute
+  const nor = g.getAttribute('normal') as BufferAttribute
+  const col = g.getAttribute('color') as BufferAttribute
+  const raw = new Color(color)
+  const cut = cutColor(color)
+  const at = (i: number, j: number) => h.heights[Math.min(h.ny - 1, Math.max(0, j)) * h.nx + Math.min(h.nx - 1, Math.max(0, i))] ?? h.top
+  const ja = Math.max(0, j0 - 1)
+  const jb = Math.min(h.ny - 1, j1 + 1)
+  const ia = Math.max(0, i0 - 1)
+  const ib = Math.min(h.nx - 1, i1 + 1)
+  for (let j = ja; j <= jb; j++)
+    for (let i = ia; i <= ib; i++) {
+      const k = j * h.nx + i
+      const z = at(i, j)
+      pos.setXYZ(k, h.x0 + i * h.cell, h.y0 + j * h.cell, z)
+      // Normal of a heightfield from its slopes (central differences): cheaper than computeVertexNormals
+      const dx = (at(i + 1, j) - at(i - 1, j)) / (2 * h.cell)
+      const dy = (at(i, j + 1) - at(i, j - 1)) / (2 * h.cell)
+      const n = 1 / Math.hypot(dx, dy, 1)
+      nor.setXYZ(k, -dx * n, -dy * n, n)
+      const c = z < h.top - 1e-3 ? cut : raw
+      col.setXYZ(k, c.r, c.g, c.b)
+    }
+  // Whole rows ja…jb are one contiguous range of the buffers
+  const start = ja * h.nx * 3
+  const count = (jb - ja + 1) * h.nx * 3
+  for (const a of [pos, nor, col]) {
+    a.clearUpdateRanges()
+    a.addUpdateRange(start, count)
+    a.needsUpdate = true
+  }
 }
 
 function TurnedBar({ moves, index, stock, zero, color }: Props) {

@@ -15,6 +15,8 @@ export interface Heightfield {
   top: number
   bottom: number
   heights: Float32Array
+  /** Cells changed since the view last read them, as [i0, j0, i1, j1] (null: none). */
+  dirty: [number, number, number, number] | null
 }
 
 /** Radius of the bar along Z: index 0 is the face, each step `cell` mm toward the chuck. */
@@ -38,7 +40,7 @@ export function createHeightfield(s: Stock, zero: Vec3): Heightfield {
   const cell = Math.max(0.25, Math.max(sx, sy) / MAX_CELLS)
   const nx = Math.max(2, Math.ceil(sx / cell) + 1)
   const ny = Math.max(2, Math.ceil(sy / cell) + 1)
-  return { nx, ny, x0: o[0], y0: o[1], cell, top: o[2], bottom: o[2] - (s.z ?? 30), heights: new Float32Array(nx * ny).fill(o[2]) }
+  return { nx, ny, x0: o[0], y0: o[1], cell, top: o[2], bottom: o[2] - (s.z ?? 30), heights: new Float32Array(nx * ny).fill(o[2]), dirty: null }
 }
 
 export function createProfile(s: Stock, zero: Vec3): TurnProfile {
@@ -90,11 +92,26 @@ export function cutHeightfield(h: Heightfield, m: Move, ball: boolean): boolean 
         if (cut < (h.heights[k] ?? h.top)) {
           h.heights[k] = cut
           changed = true
+          const d = h.dirty
+          if (!d) h.dirty = [i, j, i, j]
+          else {
+            if (i < d[0]) d[0] = i
+            if (j < d[1]) d[1] = j
+            if (i > d[2]) d[2] = i
+            if (j > d[3]) d[3] = j
+          }
         }
       }
     }
   }
   return changed
+}
+
+/** The cells changed since the last call (null: none), and starts tracking again. */
+export function takeDirty(h: Heightfield): [number, number, number, number] | null {
+  const d = h.dirty
+  h.dirty = null
+  return d
 }
 
 /** Turning: the programmed radius becomes the bar radius where the tip passes (spindle turning, no live tool). */
