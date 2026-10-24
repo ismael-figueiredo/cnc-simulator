@@ -47,7 +47,7 @@ const examples = readdirSync(join(root, 'examples')).filter((f) => f.endsWith('.
 
 describe('bundled examples', () => {
   it('has the lathe and machining center examples', () => {
-    expect(examples).toEqual(expect.arrayContaining(['O1001_EIXO_GL300.cncsim', 'O1002_CICLOS_GL300.cncsim', 'O1500_COROA_ANSI40.cncsim', 'O2001_PLACA_D600.cncsim', 'O2002_DUAS_MORSAS_D600.cncsim']))
+    expect(examples).toEqual(expect.arrayContaining(['O1001_EIXO_GL300.cncsim', 'O1002_CICLOS_GL300.cncsim', 'O1500_COROA_ANSI40.cncsim', 'O2001_PLACA_D600.cncsim', 'O2002_DUAS_MORSAS_D600.cncsim', 'O3001_HAAS_VF2.cncsim']))
   })
 
   it.each(examples)('%s runs to the end without alarms', (file) => {

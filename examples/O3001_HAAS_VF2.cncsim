@@ -1,0 +1,14 @@
+{
+  "format": "cnc-simulator-project",
+  "version": 1,
+  "description": {
+    "en": "Two fixtures · Haas VF-2, Haas NGC · G154 P1/P2 and G110/G111 work offsets, local subprograms M97, automatic corner radius ,R",
+    "pt-BR": "Duas fixações · Haas VF-2, Haas NGC · zeros G154 P1/P2 e G110/G111, subprogramas locais M97, cantos com raio automático ,R",
+    "es": "Dos fijaciones · Haas VF-2, Haas NGC · ceros G154 P1/P2 y G110/G111, subprogramas locales M97, radio de esquina automático ,R"
+  },
+  "program": "O3001_HAAS_VF2.nc",
+  "machine": "haas-vf2",
+  "control": "haas-ngc-mill",
+  "stock": { "shape": "block", "x": 70, "y": 50, "z": 20, "color": "#c8a24a", "offset": { "X": -5, "Y": -5 }, "workOffset": "G54.1 P1" },
+  "workOffsets": { "G54.1 P1": { "X": -500, "Y": -250, "Z": -400 }, "G54.1 P2": { "X": -350, "Y": -250, "Z": -400 } }
+}
