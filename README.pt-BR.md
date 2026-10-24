@@ -25,6 +25,7 @@ Os instaladores de cada versão estão na **[página de Releases](https://github
 - **Programas parametrizados (Macro B):** variáveis, contas e IF/GOTO/WHILE rodam como no comando, em todas as máquinas incluídas (todos os comandos delas têm a opção de macro). G-code comum e os ciclos fixos do próprio comando também; os exemplos têm os dois.
 - **Para nos alarmes da máquina:** erros de programa param no bloco com o número e a mensagem do próprio comando (por exemplo `PS0010 IMPROPER G-CODE`).
 - **Tela de programa como a do comando:** tela MEM estilo Fanuc com o bloco em execução, números O e N e estado de execução. **EDIT** vira um editor (cores, desfazer, buscar e substituir); ele para o programa que estiver rodando, e o percurso, as mensagens e os alarmes acompanham o texto enquanto você digita.
+- **Ciclos de torno:** desbaste G71/G72, repetição de perfil G73 e acabamento G70 a partir do perfil entre P e Q; ciclos simples G90/G94/G92 (sistema A) e G77/G79/G78 (sistema B); rosca G76 em várias passadas e G32/G33 com avanço pelo passo. A barra é usinada passe a passe.
 - **Chanfro e raio de canto automáticos:** `,C` e `,R` em qualquer ângulo, com o arco tangente seguido pela compensação de raio, e os alarmes do comando quando não dá para fazer. No torno também aceita `C`/`R` sem vírgula (opção `cornerWithoutComma` do comando).
 - **Projetos (`.cncsim`):** guardam o programa com máquina, comando, ferramentas, blank e zeros, para reabrir ou enviar o trabalho inteiro.
 - **Ferramentas em 3D:** cada ferramenta é desenhada pelo tipo e pelas medidas, com o suporte (cones BT40, pinças ER, suportes acionados) e o nariz do fuso em transparência no centro de usinagem. As de tornear mostram o inserto ISO, externas ou internas, direita ou esquerda.
@@ -40,7 +41,7 @@ Os instaladores de cada versão estão na **[página de Releases](https://github
 
 ## Como usar
 
-1. **Tela inicial:** abra um programa (`.nc`, `.tap`, `.txt`…) ou um projeto, crie um programa novo ou abra um dos **Exemplos**: coroa ANSI 40 num Romi GL 250 M com ferramenta acionada, um eixo escalonado torneado num Romi GL 300 (desbaste, acabamento com ,C/,R, canal), uma placa de alumínio e um trabalho em duas morsas num centro de usinagem Romi D600. Os arquivos recentes ficam aqui e em **Arquivo → Abrir recente**.
+1. **Tela inicial:** abra um programa (`.nc`, `.tap`, `.txt`…) ou um projeto, crie um programa novo ou abra um dos **Exemplos**: coroa ANSI 40 num Romi GL 250 M com ferramenta acionada, um eixo escalonado torneado num Romi GL 300 (desbaste, acabamento com ,C/,R, canal), um eixo roscado feito com G71/G70 e rosca G76 no mesmo torno, uma placa de alumínio e um trabalho em duas morsas num centro de usinagem Romi D600. Os arquivos recentes ficam aqui e em **Arquivo → Abrir recente**.
 2. **Escolha a máquina e o comando** no topo. Um programa aberto sozinho usa o blank da máquina e as ferramentas padrão.
 3. **Execute:** o programa abre em RESET, com o cursor no primeiro bloco, como no comando. **▶ Executar** roda; ◀ e ▶| andam bloco a bloco; **RESET** volta ao início e ⏭ vai ao fim. **Clique num bloco para começar dele.** Mensagens e alarmes ficam à direita; clique numa para ir ao bloco.
 4. **EDIT / MEM:** EDIT altera o programa e para a execução se estiver rodando; enquanto você digita, o percurso e as mensagens são recalculados (o programa volta para RESET). MEM roda como está. **Arquivo → Salvar** (Ctrl/⌘+S) grava.
@@ -133,6 +134,7 @@ Depois de uma mudança visível na interface, rode `npm run demo` e faça o comm
 Cada família de comando tem o seu catálogo de alarmes em `configs/alarms/`, e o JSON do comando aponta para ele com `"alarms"`. O catálogo da Fanuc 0i traz os alarmes de programa (P/S) do manual de manutenção, com o número e a mensagem da tela.
 - **Verificação mapeada:** vira o alarme da máquina, como `PS0010 IMPROPER G-CODE`, e **para o programa naquele bloco**.
 - **Na tela:** o programa mostra a linha do alarme em vermelho e uma faixa sobre a vista 3D.
+- **Ciclos de torno:** `PS0061` sem P/Q, `PS0062` profundidade ou passes faltando, `PS0063` número de sequência não encontrado, `PS0064` perfil não monotônico em Z (G71 tipo I), `PS0065` sem G00/G01 no primeiro bloco do perfil. `PS0062`, `PS0064` e `PS0065` ainda precisam ser confirmados no manual de manutenção.
 - **Chanfro e raio de canto (`,C` `,R`):** `PS0051` sem movimento depois, `PS0052` bloco seguinte não é G01/G02/G03, `PS0053` os dois no mesmo bloco, `PS0054` cone depois de canto sem vírgula, `PS0055` canto maior que um dos movimentos. Esses cinco números vêm da lista de alarmes da série 0i e ainda precisam ser confirmados no manual de manutenção.
 - **Arquivo e limites:** o formato (`%` no início e no fim, `;` de fim de bloco, número do programa, ponto decimal obrigatório) e os limites (dígitos, aninhamento, número de corretores…) ficam no JSON do comando, como parâmetros.
 

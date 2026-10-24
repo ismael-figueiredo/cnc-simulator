@@ -25,6 +25,7 @@ Installers for every version are on the **[Releases page](https://github.com/ism
 - **Parametric programs (Macro B):** variables, math and IF/GOTO/WHILE run as on the control, on every bundled machine (all their controls have the macro option). Plain G-code and the control's own canned cycles run too; the examples have both.
 - **Stops on the machine's alarms:** program errors stop at the block with the control's own number and message (for example `PS0010 IMPROPER G-CODE`).
 - **Program screen like the control:** Fanuc-style MEM screen with the running block, O and N numbers and run state. **EDIT** turns it into an editor (colors, undo, find and replace); it stops a running program, and the path, messages and alarms follow the text as you type.
+- **Lathe canned cycles:** G71/G72 roughing, G73 pattern repeating and G70 finishing from the shape between P and Q; G90/G94/G92 (system A) and G77/G79/G78 (system B) single cycles; G76 multiple threading and G32/G33 thread cutting at the lead per revolution. The stock is turned pass by pass.
 - **Automatic chamfer and corner R:** `,C` and `,R` at any angle, with the tangent arc followed by cutter compensation, and the control's alarms when they cannot be made. Lathes can also take `C`/`R` without comma (control option `cornerWithoutComma`).
 - **Projects (`.cncsim`):** keep the program with its machine, control, tools, stock and work offsets, to reopen or send the whole job.
 - **Tools in 3D:** each tool is drawn from its type and lengths with its holder (BT40 tapers, ER collets, live tool holders) and a faded spindle nose on machining centers. Turning tools show their ISO insert, external or internal, right or left hand.
@@ -40,7 +41,7 @@ Installers for every version are on the **[Releases page](https://github.com/ism
 
 ## Using it
 
-1. **Start screen:** open a program (`.nc`, `.tap`, `.txt`…) or a project, create a new program, or open one of the **Examples**: an ANSI 40 sprocket on a Romi GL 250 M with live tooling, a stepped shaft turned on a Romi GL 300 (roughing, finishing with ,C/,R, grooving), an aluminium plate and a two-vise job on a Romi D600 machining center. Recent files are listed here and in **File → Open recent**.
+1. **Start screen:** open a program (`.nc`, `.tap`, `.txt`…) or a project, create a new program, or open one of the **Examples**: an ANSI 40 sprocket on a Romi GL 250 M with live tooling, a stepped shaft turned on a Romi GL 300 (roughing, finishing with ,C/,R, grooving), a threaded shaft made with G71/G70 and a G76 thread on the same lathe, an aluminium plate and a two-vise job on a Romi D600 machining center. Recent files are listed here and in **File → Open recent**.
 2. **Pick the machine and the control** at the top. A program opened alone uses the machine's stock and the bundled tools.
 3. **Run:** the program opens at RESET, cursor on the first block, as on the control. **▶ Run** plays it; step block by block with ◀ and ▶|; **RESET** goes back to the start and ⏭ to the end. **Click a block to start from it.** Messages and alarms are listed on the right; click one to go to its block.
 4. **EDIT / MEM:** EDIT changes the program and stops it if it was running; while you type, the path and messages are recomputed (the program goes back to RESET). MEM runs it as edited. **File → Save** (Ctrl/⌘+S) writes it back.
@@ -220,7 +221,7 @@ docs/legacy/       original HTML simulator, reference for the port
 - **Mitsubishi decimal point and integer addresses:**
   - The files assume decimal point type I (`#1078 Decpt2 = 0`), so `X1` is 0.001 mm.
   - A decimal point on an integer address (D, H, L, M, N, O, P, S, T) is dropped, not an alarm. This is the `integerAddressDecimal: "ignore"` option; Fanuc raises PS0007.
-- **Functions the controls accept but the simulator does not draw yet:** G68 rotation, G51.1 mirror, G52 local coordinates, G15/G16 polar coordinates, G12/G13 circle cutting, G92, and G10 other than L2/L20 (tool offsets). They raise a warning, because the path after them would be wrong.
+- **Functions the controls accept but the simulator does not draw yet:** G68 rotation, G51.1 mirror, G52 local coordinates, G15/G16 polar coordinates, G12/G13 circle cutting, G92, G07.1 cylindrical interpolation, G66 modal macro calls, and G10 other than L2/L20 (tool offsets). Lathe cycles G74/G75 are drawn simplified (one peck). They raise a warning, because the path after them would be wrong.
 
 ## Config files
 
@@ -264,6 +265,7 @@ Three separate files you can mix: the same machine with another control, or one 
   - **Program numbers and subprograms:** `PS0074`–`PS0078`.
   - **Macro:** `PS0110`–`PS0129` and `PS0199` (division by zero, variables, brackets, DO/END, GOTO, G65), plus `#3000` → `PS3000+n`.
   - **Chamfer and corner R (`,C` `,R`):** `PS0051` no move after, `PS0052` next block not G01/G02/G03, `PS0053` both in one block, `PS0054` taper after a corner without comma, `PS0055` corner larger than a move. These five numbers are from the 0i alarm list and still to be confirmed in the maintenance manual.
+  - **Lathe cycles:** `PS0061` P/Q missing, `PS0062` depth or passes missing, `PS0063` sequence number not found, `PS0064` shape not monotonic in Z (G71 type I), `PS0065` no G00/G01 in the first shape block. `PS0062`, `PS0064` and `PS0065` are still to be confirmed in the maintenance manual.
   - **Polar interpolation:** `PS0145`/`PS0146` G12.1.
   - **End of record and decimal point:** `PS5010` end of record, `PS5073` decimal point.
 - **Mitsubishi M800/M80 catalog:** `P32`–`P39` format, `P62` feed, `P70`/`P113` arcs, `P112`/`P151`–`P157` cutter compensation, `P170` offset number, `P230`–`P232` subprograms, `P241`/`P243` variables, `P481`/`P485` polar interpolation.

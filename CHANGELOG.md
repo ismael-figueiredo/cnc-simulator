@@ -4,6 +4,26 @@ Cada versão em português e inglês. · Each version in Portuguese and English.
 
 Downloads: https://github.com/ismael-figueiredo/cnc-simulator/releases
 
+## 0.7.0 · 2026-10-24
+
+### Português
+**Ciclos de torno.** Antes esses blocos davam aviso de "não simulado" e o movimento era pulado.
+- **G71/G72** (desbaste), **G73** (repetição de perfil) e **G70** (acabamento) a partir do perfil entre P e Q, com a sobra U/W. O perfil é lido como o comando lê, inclusive com `,C`/`,R` e arcos, e os blocos dele depois do G71 só rodam no G70.
+- **Ciclos simples** G90/G94/G92 (sistema A) e G77/G79/G78 (sistema B), modais e com cone R.
+- **Roscas:** G76 em várias passadas (profundidade d·√n, passes de acabamento) e G32/G33; o tempo segue o passo × rotação.
+- A barra é usinada passe a passe na visão de usinagem.
+- **Alarmes Fanuc** PS0062, PS0064 e PS0065 (a confirmar no manual).
+- **Exemplo novo:** eixo roscado com G71/G70 e rosca M20 × 2,5 em G76 no Romi GL 300, e ferramenta de rosca na biblioteca de torno.
+
+### English
+**Lathe canned cycles.** Before, these blocks were reported as not simulated and their moves skipped.
+- **G71/G72** (roughing), **G73** (pattern repeating) and **G70** (finishing) from the shape between P and Q, with the U/W allowance. The shape is read as the control reads it, ,C/,R and arcs included, and its blocks after G71 only run in G70.
+- **Single cycles** G90/G94/G92 (system A) and G77/G79/G78 (system B), modal, with the R cone.
+- **Threads:** G76 in several passes (depth d·√n, finishing passes) and G32/G33; time follows lead × spindle speed.
+- The bar is cut pass by pass in the machining view.
+- **Fanuc alarms** PS0062, PS0064 and PS0065 (to confirm in the manual).
+- **New example:** threaded shaft with G71/G70 and an M20 × 2.5 G76 thread on the Romi GL 300, and a threading tool in the lathe library.
+
 ## 0.6.1 · 2026-10-23
 
 ### Português
