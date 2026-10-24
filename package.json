@@ -1,7 +1,7 @@
 {
   "name": "cnc-simulator",
   "productName": "CNC Simulator",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "private": true,
   "description": "Lightweight cross-platform CNC simulator: reads G-code, uses machine and control definitions in JSON, and shows toolpath and machined part in 3D.",
   "main": "./out/main/main.js",
