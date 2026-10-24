@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useRef, type ReactNode } from 'react'
-import { Canvas, useFrame } from '@react-three/fiber'
-import { GizmoHelper, GizmoViewport, Grid, Html, OrbitControls } from '@react-three/drei'
-import { BufferAttribute, BufferGeometry, ExtrudeGeometry, LatheGeometry, Shape, Vector2, type Group } from 'three'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { Canvas, useFrame, useThree, type ThreeEvent } from '@react-three/fiber'
+import { GizmoHelper, GizmoViewport, Grid, Html, Line, OrbitControls } from '@react-three/drei'
+import { BufferAttribute, BufferGeometry, ExtrudeGeometry, LatheGeometry, Shape, Vector2, Vector3, type Group } from 'three'
 import {
   chuckGeometry,
   holderOutline,
@@ -53,6 +53,102 @@ interface Props {
   ballTools: Set<number>
   /** The tool may hit the chuck at this move: the jaws turn red. */
   chuckHit: boolean
+  /** Camera preset to go to; `n` changes on every request, so the same view can be asked again. */
+  view: { kind: ViewKind; n: number } | null
+  /** Keep the tool in the middle of the view while it moves. */
+  follow: boolean
+  /** Measuring session (0: off): clicks pick two points and show the distance between them. */
+  measuring: number
+}
+
+/** Quick camera views: isometric, from the top, the front and the side of the machine. */
+export type ViewKind = 'iso' | 'top' | 'front' | 'side'
+
+// Camera direction of each view, in scene coordinates (scene Y is up on mills)
+const VIEW_DIRECTIONS: Record<ViewKind, [number, number, number]> = { iso: [0.58, 0.58, 0.58], top: [0, 1, 0.0001], front: [0, 0, 1], side: [1, 0, 0] }
+
+/** Machine coordinates to the scene: mills draw machine Z up (scene Y). */
+const toScene = (p: Vec3, lathe: boolean): Vec3 => (lathe ? p : [p[0], p[2], -p[1]])
+
+/** Moves the camera to a view preset and, when following, keeps the tool in the middle. */
+function CameraRig({ view, follow, center, extent, tip }: { view: { kind: ViewKind; n: number } | null; follow: boolean; center: Vec3; extent: number; tip: Vec3 | null }) {
+  const get = useThree((s) => s.get)
+  const [cx, cy, cz] = center
+  useEffect(() => {
+    const { camera, controls } = get()
+    if (!view || !controls) return
+    const target = (controls as unknown as { target: Vector3; update: () => void })
+    const [dx, dy, dz] = VIEW_DIRECTIONS[view.kind]
+    camera.position.set(cx + dx * extent, cy + dy * extent, cz + dz * extent)
+    target.target.set(cx, cy, cz)
+    target.update()
+  }, [view, get, cx, cy, cz, extent])
+  useFrame((state) => {
+    const controls = state.controls as unknown as { target: Vector3; update: () => void } | null
+    if (!follow || !tip || !controls) return
+    const delta = new Vector3(tip[0], tip[1], tip[2]).sub(controls.target)
+    controls.target.add(delta)
+    state.camera.position.add(delta)
+    controls.update()
+  })
+  return null
+}
+
+const fmt3 = (v: number) => (Math.abs(v) < 5e-7 ? 0 : v).toFixed(3)
+
+/** The two measured points, the line between them and the distance, in the drawing frame. */
+function Measure({ points, lathe, size }: { points: Vec3[]; lathe: boolean; size: number }) {
+  const [a, b] = points
+  const r = Math.max(0.4, size * 0.012)
+  const label = (p: Vec3) => (lathe ? `X${fmt3(p[0] * 2)} Z${fmt3(p[2])}` : `X${fmt3(p[0])} Y${fmt3(p[1])} Z${fmt3(p[2])}`)
+  return (
+    <>
+      {points.map((p, k) => (
+        <group key={k} position={p}>
+          <mesh>
+            <sphereGeometry args={[r, 16, 12]} />
+            <meshBasicMaterial color="#ffe14d" depthTest={false} />
+          </mesh>
+          <Html className="measure-label" center={false} style={{ transform: 'translate(8px, -8px)' }}>
+            P{k + 1} {label(p)}
+          </Html>
+        </group>
+      ))}
+      {a && b && (
+        <>
+          <Line points={[a, b]} color="#ffe14d" lineWidth={2} depthTest={false} />
+          <Html className="measure-label total" position={[(a[0] + b[0]) / 2, (a[1] + b[1]) / 2, (a[2] + b[2]) / 2]} center>
+            <b>{fmt3(Math.hypot(b[0] - a[0], b[1] - a[1], b[2] - a[2]))} mm</b>
+            <span>
+              {lathe
+                ? `ΔX(Ø) ${fmt3((b[0] - a[0]) * 2)} ΔZ ${fmt3(b[2] - a[2])}`
+                : `ΔX ${fmt3(b[0] - a[0])} ΔY ${fmt3(b[1] - a[1])} ΔZ ${fmt3(b[2] - a[2])}`}
+            </span>
+          </Html>
+        </>
+      )}
+    </>
+  )
+}
+
+/** Nearest path vertex within `tol` of p (so a click on a line lands on its corner), else p itself. */
+function snap(p: Vec3, layers: Layer[], tol: number): Vec3 {
+  let best = tol * tol
+  let out = p
+  for (const l of layers) {
+    const v = l.positions
+    for (let i = 0; i < v.length; i += 3) {
+      const dx = (v[i] ?? 0) - p[0]
+      const dy = (v[i + 1] ?? 0) - p[1]
+      const dz = (v[i + 2] ?? 0) - p[2]
+      const d = dx * dx + dy * dy + dz * dz
+      if (d < best) {
+        best = d
+        out = [v[i] ?? 0, v[i + 1] ?? 0, v[i + 2] ?? 0]
+      }
+    }
+  }
+  return out
 }
 
 const COLORS = {
@@ -300,7 +396,10 @@ export function Viewport3D({
   showStock,
   machining,
   ballTools,
-  chuckHit
+  chuckHit,
+  view,
+  follow,
+  measuring
 }: Props) {
   const lathe = isLathe(machine)
   const size = lathe ? (stock?.diameter ?? 60) : Math.max(stock?.x ?? 100, stock?.y ?? 80)
@@ -316,6 +415,34 @@ export function Viewport3D({
     }
   }, [result])
   const doneOf = (l: Layer) => l.starts[index + 1] ?? 0
+  // Middle and size of the cutting path (rapids to the tool change would make the part tiny), where the quick views aim
+  const bounds = useMemo(() => {
+    const lo = [Infinity, Infinity, Infinity]
+    const hi = [-Infinity, -Infinity, -Infinity]
+    const moves = result?.moves ?? []
+    const cuts = moves.some((m) => m.kind === 'feed') ? moves.filter((m) => m.kind === 'feed') : moves
+    for (const m of cuts)
+      for (const q of m.points)
+        for (let k = 0; k < 3; k++) {
+          lo[k] = Math.min(lo[k] ?? 0, q[k] ?? 0)
+          hi[k] = Math.max(hi[k] ?? 0, q[k] ?? 0)
+        }
+    if (!Number.isFinite(lo[0])) return { center: [0, 0, 0] as Vec3, span: 0 }
+    const c: Vec3 = [((lo[0] ?? 0) + (hi[0] ?? 0)) / 2, ((lo[1] ?? 0) + (hi[1] ?? 0)) / 2, ((lo[2] ?? 0) + (hi[2] ?? 0)) / 2]
+    return { center: c, span: Math.hypot((hi[0] ?? 0) - (lo[0] ?? 0), (hi[1] ?? 0) - (lo[1] ?? 0), (hi[2] ?? 0) - (lo[2] ?? 0)) }
+  }, [result])
+  const [picks, setPicks] = useState<{ session: number; points: Vec3[] }>({ session: 0, points: [] })
+  const measured = measuring && picks.session === measuring ? picks.points : []
+  const part = useRef<Group>(null)
+  /** Measuring: a click (not a drag) on the part, stock or path picks a point; a third click starts over. */
+  function pick(e: ThreeEvent<MouseEvent>) {
+    if (!measuring || e.delta > 4 || !part.current) return
+    e.stopPropagation()
+    const local = part.current.worldToLocal(e.point.clone())
+    // Snaps to the cutting path only: rapids above the part would pull a click on its face up to the clearance plane
+    const p = snap([local.x, local.y, local.z], [layers.feed], Math.max(0.5, size * 0.03))
+    setPicks((prev) => ({ session: measuring, points: prev.session === measuring && prev.points.length < 2 ? [...prev.points, p] : [p] }))
+  }
   const toolLength = Math.max(20, size * 0.4)
   // Machine view (lathe): everything on the spindle turns by -C, so the tool stays in the X/Z plane
   const turn = lathe && machineView ? -spindleAngle : 0
@@ -362,9 +489,9 @@ export function Viewport3D({
       <directionalLight position={[120, 200, 160]} intensity={1.1} />
       <directionalLight position={[-150, -60, -120]} intensity={0.35} />
       {/* Machine coordinates. Lathe: Z = spindle axis (scene Z). Mill: machine Z is up (scene Y). */}
-      <group rotation={lathe ? [0, 0, 0] : [-Math.PI / 2, 0, 0]}>
+      <group rotation={lathe ? [0, 0, 0] : [-Math.PI / 2, 0, 0]} onClick={measuring ? pick : undefined}>
         {/* Part side: stock, chuck, path and zeros turn together with the spindle in machine view */}
-        <group rotation={[0, 0, turn]}>
+        <group ref={part} rotation={[0, 0, turn]}>
           <Spin on={spinning && lathe && machineView}>
             {showStock && stock && (cutting && lathe ? null : <Stock stock={stock} faded={faded} zero={stockZero} />)}
             {cutting && <Machining moves={result.moves} index={index} stock={stock} zero={stockZero} lathe={lathe} ballTools={ballTools} color={stock.color ?? COLORS.stock} />}
@@ -378,6 +505,7 @@ export function Viewport3D({
           <PathLayer layer={layers.feed} color={COLORS.feed} done={doneOf(layers.feed)} ghostOpacity={0.2} />
           <PathLayer layer={layers.center} color={COLORS.center} done={doneOf(layers.center)} ghostOpacity={0.2} />
           {showRapids && <PathLayer layer={layers.rapid} color={COLORS.rapid} done={doneOf(layers.rapid)} ghostOpacity={0.12} />}
+          {measured.length > 0 && <Measure points={measured} lathe={lathe} size={size} />}
         </group>
         {toolModel}
         <axesHelper args={[size * 0.75]} />
@@ -393,6 +521,7 @@ export function Viewport3D({
         infiniteGrid
       />
       <OrbitControls makeDefault enableDamping />
+      <CameraRig view={view} follow={follow} center={toScene(bounds.center, lathe)} extent={Math.max(bounds.span * 1.3, dist * 0.8)} tip={tip ? toScene(tip, lathe) : null} />
       <GizmoHelper alignment="bottom-right" margin={[64, 64]}>
         <GizmoViewport labelColor="white" axisHeadScale={0.9} />
       </GizmoHelper>
