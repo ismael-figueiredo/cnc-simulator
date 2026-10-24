@@ -1,0 +1,64 @@
+{
+  "id": "haas-vf2",
+  "name": "Haas VF-2",
+  "manufacturer": "Haas",
+  "type": "machining-center",
+  "kinematics": "mill-xyz",
+  "axes": [
+    {
+      "name": "X",
+      "type": "linear",
+      "min": -762,
+      "max": 0,
+      "rapid": 25400
+    },
+    {
+      "name": "Y",
+      "type": "linear",
+      "min": -406,
+      "max": 0,
+      "rapid": 25400
+    },
+    {
+      "name": "Z",
+      "type": "linear",
+      "min": -508,
+      "max": 0,
+      "rapid": 25400
+    }
+  ],
+  "spindles": [
+    {
+      "id": "S",
+      "name": {
+        "en": "Spindle",
+        "pt-BR": "Árvore",
+        "es": "Husillo"
+      },
+      "type": "spindle",
+      "maxRpm": 8100
+    }
+  ],
+  "turret": {
+    "positions": 20,
+    "type": "changer"
+  },
+  "toolChangePosition": {
+    "X": 0,
+    "Y": 0,
+    "Z": 0
+  },
+  "defaultControl": "haas-ngc-mill",
+  "defaultTools": "machining-center",
+  "notes": {
+    "en": "Catalog values for the Haas VF-2 (762 × 406 × 508 mm); machine zero at the top right, travels negative as on Haas. Check spindle speed, rapids and magazine on the machine plate.",
+    "pt-BR": "Valores de catálogo da Haas VF-2 (762 × 406 × 508 mm); zero de máquina no canto superior direito, cursos negativos como na Haas. Conferir rotação, rápidos e magazine na placa da máquina.",
+    "es": "Valores de catálogo de la Haas VF-2 (762 × 406 × 508 mm); cero de máquina arriba a la derecha, recorridos negativos como en Haas. Verificar husillo, rápidos y almacén en la placa de la máquina."
+  },
+  "defaultStock": {
+    "shape": "block",
+    "x": 150,
+    "y": 100,
+    "z": 40
+  }
+}
