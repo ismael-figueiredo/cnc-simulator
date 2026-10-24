@@ -110,7 +110,10 @@ describe('Mitsubishi M800/M80', () => {
     const r = lathe(file(['G98 G0 X50. Z2.', 'G1 Z-10. F200', 'G90 X40. Z-20. F0.2']), 'mitsubishi-m80-lathe-list2')
     expect(alarms(r)).toEqual([])
     expect(r.moves.find((m) => m.kind === 'feed')?.state.feedPerMinute).toBe(true)
-    expect(r.diagnostics.map((d) => d.code)).toContain('cycle-not-simulated')
+    // G90 from X50 Z-10: in to Ø40, cut to Z-20, out to Ø50, back to the start point
+    const ends = r.moves.slice(-4).map((m) => m.points[m.points.length - 1]?.map((v) => Math.round(v * 1000) / 1000))
+    expect(ends).toEqual([[20, 0, -10], [20, 0, -20], [25, 0, -20], [25, 0, -10]])
+    expect(r.moves.slice(-4).map((m) => m.kind)).toEqual(['rapid', 'feed', 'feed', 'rapid'])
   })
 
   it('P155 canned cycle with cutter compensation active on the machining center', () => {

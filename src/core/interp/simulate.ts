@@ -23,6 +23,7 @@ import type {
 } from '../types'
 import { buildCodeTable, formatCode, type GFn } from './codes'
 import { applyCutterComp } from './cutterComp'
+import { patternRepeat, roughFace, roughTurn, singleCycle, threadPasses, type P2, type Step } from './latheCycles'
 import type { DiagnosticCode } from './diagnostics'
 
 export interface SimulationOptions {
@@ -172,6 +173,8 @@ export function simulate(input: SimulationInput): SimulationResult {
   const variables: VariableChange[] = []
   const toolsUsed: ToolUse[] = []
   const reported = new Set<string>()
+  /** > 0 while a cycle's contour blocks are read for their geometry only. */
+  let quiet = 0
   let line = 0
   let stoppedBy: Diagnostic | undefined
 
@@ -198,6 +201,8 @@ export function simulate(input: SimulationInput): SimulationResult {
     onceKey?: string | number,
     fileLevel = false
   ): void {
+    // Reading a cycle's contour runs its blocks silently: their checks belong to the real run
+    if (quiet > 0) return
     if (onceKey !== undefined) {
       const k = `${code}|${onceKey}`
       if (reported.has(k)) return
@@ -216,6 +221,7 @@ export function simulate(input: SimulationInput): SimulationResult {
   }
   /** A check the machine always stops on, even when the catalog does not name the alarm. */
   function fatal(code: DiagnosticCode, params?: Record<string, string | number>): never {
+    if (quiet > 0) throw new Stop()
     diag('alarm', code, params)
     stoppedBy ??= diagnostics[diagnostics.length - 1]
     throw new Stop()
@@ -272,6 +278,17 @@ export function simulate(input: SimulationInput): SimulationResult {
     offset: 0,
     pendingTool: null as { t: number; comment: string } | null,
     workOffset: 'G54',
+    /** G90/G94/G92 (G77/G79/G78) single cycle in effect: axis words repeat it from the same start point. */
+    single: null as 'turn' | 'face' | 'thread' | null,
+    /** End point of the last single cycle: an axis left out of a repeat block keeps it. */
+    singleEnd: null as P2 | null,
+    /** G32/G33: the linear feed is a thread (F is the lead per revolution). */
+    threading: false,
+    /** First blocks of G71/G72/G73/G76, kept for their second block. */
+    roughTurn: { depth: 0, retract: 0 },
+    roughFace: { depth: 0, retract: 0 },
+    pattern: { reliefX: 0, reliefZ: 0, count: 1 },
+    thread: { repeats: 1, minDepth: 0.1, finish: 0.05 },
     cAxisEnabled: false,
     brake: false,
     cycle: null as Cycle | null,
@@ -764,6 +781,7 @@ export function simulate(input: SimulationInput): SimulationResult {
     }
 
     let oneShot: GFn | null = null
+    let latheCycle: { fn: GFn; code: string } | null = null
     let polarCmd = null as boolean | null
     let polarCode = 'G12.1'
     let skipMotion = false
@@ -788,18 +806,26 @@ export function simulate(input: SimulationInput): SimulationResult {
         case 'rapid':
           st.motion = 0
           st.cycle = null
+          st.single = null
+          st.threading = false
           break
         case 'linear':
           st.motion = 1
           st.cycle = null
+          st.single = null
+          st.threading = false
           break
         case 'arc-cw':
           st.motion = 2
           st.cycle = null
+          st.single = null
+          st.threading = false
           break
         case 'arc-ccw':
           st.motion = 3
           st.cycle = null
+          st.single = null
+          st.threading = false
           break
         case 'dwell':
         case 'reference-return':
@@ -878,21 +904,44 @@ export function simulate(input: SimulationInput): SimulationResult {
           st.returnToR = true
           break
         case 'finishing-cycle':
-        case 'roughing-cycle': {
+        case 'roughing-cycle':
+        case 'rough-turn-cycle':
+        case 'rough-face-cycle':
+        case 'pattern-cycle':
+        case 'thread-multi-cycle': {
           // G70 needs P and Q; the second block of G71–G73 has P and Q too
           const p = W['P']
           const q = W['Q']
-          if (fn === 'finishing-cycle' || p !== undefined || q !== undefined) {
+          if (fn !== 'thread-multi-cycle' && (fn === 'finishing-cycle' || p !== undefined || q !== undefined)) {
             if (p === undefined || q === undefined) fatal('cycle-pq-missing', { code })
             for (const n of [p, q]) if (findN(n) < 0) fatal('cycle-sequence-missing', { code, n })
           }
-          diag('warning', 'cycle-not-simulated', { code }, code)
+          // Run after F, S and T of the block are taken (below), with the cycle's own moves
+          latheCycle = { fn, code }
           skipMotion = true
           break
         }
         case 'turning-cycle':
+          st.single = 'turn'
+          st.singleEnd = null
+          st.cycle = null
+          break
         case 'facing-cycle':
+          st.single = 'face'
+          st.singleEnd = null
+          st.cycle = null
+          break
         case 'threading-cycle':
+          st.single = 'thread'
+          st.singleEnd = null
+          st.cycle = null
+          break
+        case 'thread-cut':
+          st.motion = 1
+          st.threading = true
+          st.cycle = null
+          st.single = null
+          break
         case 'cylindrical':
         case 'macro-modal':
           diag('warning', 'cycle-not-simulated', { code }, code)
@@ -1126,6 +1175,15 @@ export function simulate(input: SimulationInput): SimulationResult {
           linear('rapid', at(back))
           diag('info', 'cycle-simplified', { code: oneShot === 'face-peck-cycle' ? 'face-peck' : 'groove' }, oneShot)
         }
+      } else if (st.single && axisWords) {
+        const t = target()
+        const given = (ax: Axis) => has(ax) || [...incremental].some(([a, x]) => x === ax && has(a))
+        // X or Z left out of a repeat block (e.g. just "X42.") keeps the cycle's last end point
+        const prev = st.singleEnd ?? here()
+        const end = { x: given('X') ? t.pos.X / xDia : prev.x, z: given('Z') ? t.pos.Z : prev.z }
+        st.singleEnd = end
+        // R is the cone: radius difference in X (turning, threading) or in Z (facing)
+        runSteps(singleCycle(st.single, here(), end, W['R'] ?? 0))
       } else if (st.cycle && axisWords) {
         runCycle(st.cycle, W, target())
       } else if (axisWords) {
@@ -1141,7 +1199,7 @@ export function simulate(input: SimulationInput): SimulationResult {
         if (cs && !inPlane) diag('info', 'turning-comp-not-drawn', undefined, 'turncomp')
         let m: Move | null
         if (st.motion === 0) m = linear('rapid', t)
-        else if (st.motion === 1) m = linear('feed', t)
+        else if (st.motion === 1) m = st.threading ? asThread(() => linear('feed', t)) : linear('feed', t)
         else {
           // only the plane axes (and the helix axis) may move on an arc
           const pl = PLANES[st.plane]
@@ -1179,6 +1237,12 @@ export function simulate(input: SimulationInput): SimulationResult {
       }
     }
 
+    // ---- lathe multiple repetitive cycles (G70–G73, G76) ----
+    if (latheCycle) {
+      const flow = runLatheCycle(latheCycle.fn, latheCycle.code, W, target)
+      if (flow) return flow
+    }
+
     // ---- chamfer / corner R (",C" ",R", or C/R without comma on lathes that allow it) ----
     const made = moves.slice(movesBefore)
     if (cornerBefore) {
@@ -1204,6 +1268,147 @@ export function simulate(input: SimulationInput): SimulationResult {
       if (st.compNoMove > limits.compNoMoveBlocks) diag('warning', 'comp-no-move-blocks', { count: st.compNoMove, max: limits.compNoMoveBlocks })
     } else st.compNoMove = 0
     return flow
+  }
+
+  // ---------- lathe cycles ----------
+  /** Where the tool is, as a lathe point (radius, Z). */
+  const here = (): P2 => ({ x: pos.X / xDia, z: pos.Z })
+
+  /** Thread cutting: F is the lead, fed per revolution whatever G94/G95 says. */
+  function asThread<T>(f: () => T): T {
+    const saved = st.feedPerMinute
+    st.feedPerMinute = false
+    try {
+      return f()
+    } finally {
+      st.feedPerMinute = saved
+    }
+  }
+
+  /** A cycle's passes as moves: rapids, cutting feed, and threads at the lead per revolution. */
+  function runSteps(steps: Step[]): void {
+    for (const s of steps) {
+      const t: Target = { pos: { ...pos, X: s.to.x * xDia, Z: s.to.z }, px: st.px, py: st.py }
+      if (s.kind === 'thread') asThread(() => linear('feed', t))
+      else linear(s.kind, t)
+    }
+  }
+
+  const isNcBlock = (b: Block | undefined): b is Block => !!b?.text && b.programNumber === undefined && !/^(#|IF|WHILE|GOTO|DO\d|END\d)/.test(b.text)
+
+  /** Runs blocks from..to for real (G70 finishing along the contour). */
+  function runBlocks(from: number, to: number): void {
+    const saved = line
+    for (let k = from; k <= to; k++) {
+      const b = blocks[k]
+      if (!isNcBlock(b)) continue
+      line = b.line
+      execWords(b)
+    }
+    line = saved
+  }
+
+  /**
+   * The finishing contour P–Q as points (radius, Z): its blocks are run silently, their moves read
+   * and thrown away, and the machine state put back, as the control reads the shape program.
+   */
+  function readContour(from: number, to: number, code: string): P2[] {
+    if (!/(^|[^\d.])G0*[01](?![\d.])/i.test(blocks[from]?.text ?? '')) fatal('cycle-contour-first-block', { code })
+    const saved = { pos: { ...pos }, st: { ...st }, shift: { ...shift }, line, corner, count: moves.length }
+    let captured: Move[] = []
+    let ok = true
+    quiet++
+    try {
+      for (let k = from; k <= to; k++) {
+        const b = blocks[k]
+        if (!isNcBlock(b)) continue
+        line = b.line
+        execWords(b)
+      }
+      captured = moves.slice(saved.count)
+    } catch (e) {
+      if (!(e instanceof Stop)) throw e
+      ok = false
+    } finally {
+      quiet--
+      moves.length = saved.count
+      Object.assign(pos, saved.pos)
+      Object.assign(st, saved.st)
+      shift = saved.shift
+      line = saved.line
+      corner = saved.corner
+    }
+    const points = captured.flatMap((m) => m.points.slice(1).map((q) => ({ x: q[0], z: q[2] })))
+    if (!ok || points.length < 2) fatal('cycle-contour-invalid', { code })
+    return points
+  }
+
+  /** P and Q of G76 are in µm without a decimal point (as the control reads them), in mm with one. */
+  const microns = (v: number) => (Number.isInteger(v) ? v / 1000 : v)
+
+  /**
+   * G70–G73 and G76. First blocks (no P/Q, or no end point for G76) only set the parameters; the second
+   * block runs the cycle. The contour blocks right after G71–G73 are run by G70, not now.
+   */
+  function runLatheCycle(fn: GFn, code: string, W: Partial<Record<string, number>>, target: () => Target): Flow {
+    const P = W['P']
+    const Q = W['Q']
+    if (fn === 'thread-multi-cycle') {
+      const ends = AXES.some((ax) => W[ax] !== undefined) || [...incremental.keys()].some((k) => W[k] !== undefined)
+      if (!ends) {
+        // P m r a: finishing passes, chamfer, tool angle; Q smallest depth; R finishing allowance
+        if (P !== undefined) st.thread = { ...st.thread, repeats: Math.floor(P / 10000) % 100 || 1 }
+        if (Q !== undefined) st.thread = { ...st.thread, minDepth: microns(Q) }
+        if (W['R'] !== undefined) st.thread = { ...st.thread, finish: W['R'] }
+        return null
+      }
+      const height = P !== undefined ? microns(P) : 0
+      const first = Q !== undefined ? microns(Q) : 0
+      if (!(height > 0) || !(first > 0)) fatal('cycle-depth-invalid', { code })
+      const t = target()
+      runSteps(threadPasses(here(), { x: t.pos.X / xDia, z: t.pos.Z }, { ...st.thread, height, firstDepth: first, taper: W['R'] ?? 0 }))
+      return null
+    }
+
+    const kind = fn === 'rough-face-cycle' ? 'face' : fn === 'pattern-cycle' ? 'pattern' : fn === 'finishing-cycle' ? 'finish' : 'turn'
+    if (P === undefined || Q === undefined) {
+      // First block: depth and retract (G71 U R, G72 W R) or relief and passes (G73 U W R)
+      if (kind === 'turn') st.roughTurn = { depth: W['U'] ?? st.roughTurn.depth, retract: W['R'] ?? st.roughTurn.retract }
+      else if (kind === 'face') st.roughFace = { depth: W['W'] ?? st.roughFace.depth, retract: W['R'] ?? st.roughFace.retract }
+      else if (kind === 'pattern') st.pattern = { reliefX: W['U'] ?? st.pattern.reliefX, reliefZ: W['W'] ?? st.pattern.reliefZ, count: W['R'] ?? st.pattern.count }
+      return null
+    }
+    const ns = findN(P)
+    const nf = findN(Q)
+    const start = here()
+    if (kind === 'finish') {
+      // G70: the contour blocks with their own F and S, then back to the start point
+      runBlocks(ns, nf)
+      runSteps([{ kind: 'rapid', to: start }])
+      return null
+    }
+    const contour = readContour(ns, nf, code)
+    // U is the finishing allowance in X as programmed (a diameter on lathes), W in Z
+    const finishX = (W['U'] ?? 0) / xDia
+    const finishZ = W['W'] ?? 0
+    if (kind === 'turn') {
+      if (!(st.roughTurn.depth > 0)) fatal('cycle-depth-invalid', { code })
+      // Type I: the shape only moves away from the face in Z
+      if (contour.some((q, i) => i > 0 && q.z > (contour[i - 1]?.z ?? q.z) + 1e-6)) fatal('cycle-contour-not-monotonic', { code })
+      runSteps(roughTurn(start, contour, { ...st.roughTurn, finishX, finishZ }))
+    } else if (kind === 'face') {
+      if (!(st.roughFace.depth > 0)) fatal('cycle-depth-invalid', { code })
+      runSteps(roughFace(start, contour, { ...st.roughFace, finishX, finishZ }))
+    } else {
+      if (!(st.pattern.count >= 1)) fatal('cycle-depth-invalid', { code })
+      runSteps(patternRepeat(start, contour, { ...st.pattern, finishX, finishZ }))
+    }
+    // The shape program right after the cycle is skipped: G70 runs it
+    if (nf > pc) {
+      pc = nf + 1
+      return 'jump'
+    }
+    return null
   }
 
   /**

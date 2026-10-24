@@ -75,6 +75,9 @@ export const GFunction = z.enum([
   'drill', 'peck-drill', 'tap', 'bore', 'radial-drill', 'radial-tap', 'canned-cycle-cancel',
   'return-initial', 'return-r',
   'turning-cycle', 'facing-cycle', 'threading-cycle', 'roughing-cycle', 'finishing-cycle',
+  // Fanuc/Mitsubishi lathe G71 (turning), G72 (facing), G73 (pattern) roughing, G76 multiple threading,
+  // G32/G33 thread cutting
+  'rough-turn-cycle', 'rough-face-cycle', 'pattern-cycle', 'thread-multi-cycle', 'thread-cut',
   // Fanuc lathe G74/G75: one-shot peck cycles along Z (face) or X (grooving)
   'face-peck-cycle', 'groove-cycle',
   'macro-call', 'macro-modal', 'macro-modal-cancel',

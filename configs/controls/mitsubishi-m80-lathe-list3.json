@@ -99,7 +99,7 @@
       "function": "not-simulated"
     },
     "G33": {
-      "function": "not-simulated",
+      "function": "thread-cut",
       "description": {
         "en": "Thread cutting",
         "pt-BR": "Corte de rosca",
@@ -196,13 +196,13 @@
       "function": "finishing-cycle"
     },
     "G71": {
-      "function": "roughing-cycle"
+      "function": "rough-turn-cycle"
     },
     "G72": {
-      "function": "roughing-cycle"
+      "function": "rough-face-cycle"
     },
     "G73": {
-      "function": "roughing-cycle"
+      "function": "pattern-cycle"
     },
     "G74": {
       "function": "face-peck-cycle"
@@ -211,7 +211,7 @@
       "function": "groove-cycle"
     },
     "G76": {
-      "function": "threading-cycle"
+      "function": "thread-multi-cycle"
     },
     "G77": {
       "function": "turning-cycle"

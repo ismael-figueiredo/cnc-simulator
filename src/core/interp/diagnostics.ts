@@ -65,6 +65,10 @@ export const DIAGNOSTIC_CODES = [
   'peck-q-missing',
   'cycle-pq-missing',
   'cycle-sequence-missing',
+  'cycle-depth-invalid',
+  'cycle-contour-not-monotonic',
+  'cycle-contour-first-block',
+  'cycle-contour-invalid',
   // cutter compensation
   'comp-start-on-arc',
   'comp-active-at-polar-on',
