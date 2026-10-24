@@ -61,6 +61,8 @@ export const DIAGNOSTIC_CODES = [
   'corner-taper',
   'corner-too-large',
   'overtravel',
+  'length-comp-off',
+  'length-offset-mismatch',
   'work-offset-not-set',
   'peck-q-missing',
   'cycle-pq-missing',
@@ -118,7 +120,8 @@ export const DIAGNOSTIC_CODES = [
   'turning-comp-not-drawn',
   'tool-radius-from-comment',
   'macro-message',
-  'work-offset-set'
+  'work-offset-set',
+  'tool-offset-set'
 ] as const
 
 export type DiagnosticCode = (typeof DIAGNOSTIC_CODES)[number]

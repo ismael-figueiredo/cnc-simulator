@@ -2,7 +2,8 @@
 // ("rapid", "polar-on", "brake-on"…); nothing here is specific to one brand. Diagnostics go through
 // the control's alarm catalog: a mapped check becomes the machine's alarm and stops the program at
 // that block, as on the machine. Ported from docs/legacy/Simulador_Fanuc.html.
-import type { WorkOffsets } from '../config/project'
+import type { ToolOffset, ToolOffsets, WorkOffsets } from '../config/project'
+import { defaultToolOffsets, gaugeLength, holderOf } from '../tooling'
 import type { AlarmCatalog, Control, Machine, ToolLibrary } from '../config/schema'
 import { Expr, MacroError, type MacroErrorKind, type Value, type VariableReader } from '../macro/expr'
 import { parseProgram, type Block } from '../program/parse'
@@ -47,6 +48,8 @@ export interface SimulationInput {
    * G54 frame; G55… are shifted by their difference to G54, and G54's own values place machine zero.
    */
   workOffsets?: WorkOffsets
+  /** Tool offset table (H/D on machining centers, geometry/wear on lathes); defaults from the tools. */
+  toolOffsets?: ToolOffsets
   options?: SimulationOptions
 }
 
@@ -278,6 +281,10 @@ export function simulate(input: SimulationInput): SimulationResult {
     offset: 0,
     pendingTool: null as { t: number; comment: string } | null,
     workOffset: 'G54',
+    /** H number of G43/G44 in effect, or null after G49. */
+    lengthComp: null as number | null,
+    /** D number given with G41/G42 (null: the tool's own radius). */
+    dNumber: null as number | null,
     /** G90/G94/G92 (G77/G79/G78) single cycle in effect: axis words repeat it from the same start point. */
     single: null as 'turn' | 'face' | 'thread' | null,
     /** End point of the last single cycle: an axis left out of a repeat block keeps it. */
@@ -361,6 +368,52 @@ export function simulate(input: SimulationInput): SimulationResult {
   }
   const ex: Expr = new Expr(vars, limits.bracketNesting)
 
+  // ---------- tool offsets ----------
+  const offsetTable = new Map<number, ToolOffset>(
+    Object.entries(input.toolOffsets ?? defaultToolOffsets(tools ?? null, latheControl)).map(([k, v]) => [Number(k), { ...v }])
+  )
+  const offsetOf = (n: number): ToolOffset => offsetTable.get(n) ?? {}
+  const hasLengthComp = [...codes.g.values()].includes('tool-length-comp')
+  /** Spindle gauge line to tip of a tool in the library (undefined when unknown). */
+  const gaugeOf = (n: number) => {
+    const tool = tools?.tools.find((x) => x.number === n)
+    return tool ? gaugeLength(tool, holderOf(tool, tools ?? null, false)) : undefined
+  }
+  /** Where the tip really is against the programmed point: a wrong H, or wear (radial on lathes). */
+  const tipShift = { r: 0, z: 0 }
+  /** Machine position of the gauge line (H on mills) or of the turret (geometry + wear on lathes). */
+  const machineExtra = { X: 0, Z: 0 }
+  function updateOffsets(): void {
+    tipShift.r = 0
+    tipShift.z = 0
+    machineExtra.X = 0
+    machineExtra.Z = 0
+    if (latheControl) {
+      const e = offsetOf(st.offset)
+      tipShift.r = (e.xWear ?? 0) / xDia
+      tipShift.z = e.zWear ?? 0
+      machineExtra.X = (e.x ?? 0) + (e.xWear ?? 0)
+      machineExtra.Z = (e.z ?? 0) + (e.zWear ?? 0)
+      return
+    }
+    if (st.lengthComp === null) return
+    const e = offsetOf(st.lengthComp)
+    const value = (e.length ?? 0) + (e.lengthWear ?? 0)
+    machineExtra.Z = value
+    const actual = gaugeOf(st.tool)
+    // G43: gauge line at Z + H, so the tip is at Z + H − (real gauge length)
+    if (actual !== undefined) tipShift.z = value - actual
+  }
+  /** Points as the tool really goes: the length or wear error moves them, as on the machine. */
+  const applyTipShift = (points: Vec3[]): Vec3[] => {
+    if (!tipShift.r && !tipShift.z) return points
+    return points.map(([x, y, z]) => {
+      const r = Math.hypot(x, y)
+      const k = tipShift.r && r > 1e-9 ? (r + tipShift.r) / r : 1
+      return [x * k, y * k, z + tipShift.z]
+    })
+  }
+
   // ---------- geometry ----------
   const latheWorld = (X: number, C: number, Y: number, Z: number): Vec3 => {
     const r = X / xDia
@@ -369,7 +422,17 @@ export function simulate(input: SimulationInput): SimulationResult {
   }
   const toWorld = (p: Position): Vec3 => (lathe ? latheWorld(p.X, p.C, p.Y, p.Z) : [p.X, p.Y, p.Z])
   const worldNow = (): Vec3 => (st.polar ? [st.px, st.py, pos.Z] : toWorld(pos))
-  const toolRadius = () => radiusByTool.get(st.tool) ?? 0
+  /** Radius for compensation: the D offset (mills) or the nose radius (lathes), else the tool's own. */
+  const toolRadius = () => {
+    if (latheControl) {
+      const e = offsetOf(st.offset)
+      if (e.nose !== undefined) return e.nose + (e.noseWear ?? 0)
+    } else if (st.dNumber !== null) {
+      const e = offsetOf(st.dNumber)
+      if (e.radius !== undefined) return e.radius + (e.radiusWear ?? 0)
+    }
+    return radiusByTool.get(st.tool) ?? 0
+  }
   const inCompPlaneNow = () => st.polar || (!lathe && st.plane === 17)
 
   const snapshot = (): { state: ModalState; position: ProgramPosition; machinePosition: ProgramPosition } => ({
@@ -394,9 +457,9 @@ export function simulate(input: SimulationInput): SimulationResult {
     },
     position: { X: absX(), Y: pos.Y - shift.Y, Z: pos.Z - shift.Z, A: pos.A, B: pos.B, C: programC() },
     machinePosition: {
-      X: pos.X - machineZero.X,
+      X: pos.X - machineZero.X + machineExtra.X,
       Y: pos.Y - machineZero.Y,
-      Z: pos.Z - machineZero.Z,
+      Z: pos.Z - machineZero.Z + machineExtra.Z,
       A: pos.A,
       B: pos.B,
       C: programC()
@@ -408,7 +471,7 @@ export function simulate(input: SimulationInput): SimulationResult {
     if (!configuredOffsets) return
     for (const a of machine.axes) {
       if (a.type !== 'linear' || base[a.name as Axis] === undefined || !isAxis(a.name)) continue
-      const m = pos[a.name] - machineZero[a.name]
+      const m = pos[a.name] - machineZero[a.name] + (a.name === 'X' ? machineExtra.X : a.name === 'Z' ? machineExtra.Z : 0)
       if (m < a.min - 1e-6 || m > a.max + 1e-6)
         diag('warning', 'overtravel', { axis: a.name, value: Math.round(m * 1000) / 1000, min: a.min, max: a.max }, `ot${a.name}${m > a.max ? '+' : '-'}`)
     }
@@ -434,7 +497,10 @@ export function simulate(input: SimulationInput): SimulationResult {
       }
       durationS = (length / perMin) * 60
     }
-    const m: Move = { kind, line, points, toolRadius: toolRadius(), durationS, ...snapshot(), ...extra }
+    // Cutting on a machining center without G43: the tip would be a whole tool length lower
+    if (kind === 'feed' && !latheControl && hasLengthComp && st.tool > 0 && st.lengthComp === null)
+      diag('warning', 'length-comp-off', { tool: st.tool, length: Math.round((gaugeOf(st.tool) ?? 0) * 1000) / 1000 }, `lc${st.tool}`)
+    const m: Move = { kind, line, points: applyTipShift(points), toolRadius: toolRadius(), durationS, ...snapshot(), ...extra }
     moves.push(m)
     if (moves.length > maxMoves) fatal('too-many-moves', { max: maxMoves })
     return m
@@ -681,6 +747,7 @@ export function simulate(input: SimulationInput): SimulationResult {
       radiusByTool.set(st.tool, r)
       toolsUsed.push({ number: st.tool, line, name: comment, radius: r })
     }
+    updateOffsets()
   }
 
   // ---------- block loop helpers ----------
@@ -974,9 +1041,28 @@ export function simulate(input: SimulationInput): SimulationResult {
           dataSetting(code, W)
           skipMotion = true
           break
-        case 'macro-modal-cancel':
-        case 'tool-length-comp':
+        case 'tool-length-comp': {
+          // G43/G44 H n: H0 (or none) is offset 0, which holds nothing
+          st.lengthComp = Math.round(W['H'] ?? 0)
+          updateOffsets()
+          const e = offsetOf(st.lengthComp)
+          const value = (e.length ?? 0) + (e.lengthWear ?? 0)
+          const actual = gaugeOf(st.tool)
+          if (st.tool > 0 && actual !== undefined && Math.abs(value - actual) > 0.01)
+            diag('warning', 'length-offset-mismatch', {
+              h: st.lengthComp,
+              value: Math.round(value * 1000) / 1000,
+              tool: st.tool,
+              actual: Math.round(actual * 1000) / 1000,
+              diff: Math.round((value - actual) * 1000) / 1000
+            })
+          break
+        }
         case 'tool-length-comp-cancel':
+          st.lengthComp = null
+          updateOffsets()
+          break
+        case 'macro-modal-cancel':
         case 'constant-rpm':
         case 'other':
           break
@@ -1102,6 +1188,7 @@ export function simulate(input: SimulationInput): SimulationResult {
       const v = W[k]
       if (v !== undefined && !latheControl && v > limits.toolOffsets) fatal('offset-number-too-large', { offset: v, max: limits.toolOffsets })
     }
+    if (W['D'] !== undefined && !latheControl) st.dNumber = Math.round(W['D'])
     if (W['T'] !== undefined) {
       const t = Math.round(W['T'])
       if (latheControl) selectTool(t, b.comment)
@@ -1476,6 +1563,39 @@ export function simulate(input: SimulationInput): SimulationResult {
     moves.splice(moves.indexOf(next), 0, cornerMove)
   }
 
+  /**
+   * G10 tool offsets. Machining centers: L10/L11 length geometry/wear, L12/L13 radius geometry/wear,
+   * value in R. Lathes: G10 P n (wear) or P 10000+n (geometry) with X Z R Q, or U W C incremental.
+   */
+  function setToolOffset(L: number | undefined, P: number | undefined, W: Partial<Record<string, number>>): boolean {
+    if (P === undefined) return false
+    let n: number
+    const set: [keyof ToolOffset, string, string | null][] = []
+    if (!latheControl && L !== undefined && L >= 10 && L <= 13) {
+      n = P
+      set.push([L === 10 ? 'length' : L === 11 ? 'lengthWear' : L === 12 ? 'radius' : 'radiusWear', 'R', null])
+    } else if (latheControl && (L === undefined || L === 1) && P >= 1) {
+      const geometry = P >= 10000
+      n = geometry ? P - 10000 : P
+      set.push([geometry ? 'x' : 'xWear', 'X', 'U'], [geometry ? 'z' : 'zWear', 'Z', 'W'], [geometry ? 'nose' : 'noseWear', 'R', 'C'], ['tip', 'Q', null])
+    } else return false
+    const e = { ...offsetOf(n) }
+    for (const [field, abs, inc] of set) {
+      const a = W[abs]
+      const i = inc ? W[inc] : undefined
+      // Lathes: X Z R absolute, U W C incremental. Machining centers: R follows G90/G91.
+      if (a !== undefined) e[field] = field === 'tip' ? Math.round(a) : latheControl || st.absolute ? a : (e[field] ?? 0) + a
+      if (i !== undefined) e[field] = (e[field] ?? 0) + i
+    }
+    offsetTable.set(n, e)
+    updateOffsets()
+    const values = Object.entries(e)
+      .map(([k, v]) => `${k} ${v}`)
+      .join(', ')
+    diag('info', 'tool-offset-set', { n, values })
+    return true
+  }
+
   /** G10 L2 P1–P6 (G54–G59) and L20 P n (G54.1 P n): writes the work offset table, as the program runs. */
   function dataSetting(code: string, W: Partial<Record<string, number>>): void {
     const L = W['L']
@@ -1483,8 +1603,9 @@ export function simulate(input: SimulationInput): SimulationResult {
     let name: string | null = null
     if (L === 2 && P !== undefined && P >= 1 && P <= 6) name = `G${53 + P}`
     else if (L === 20 && P !== undefined && P >= 1) name = `G54.1 P${P}`
+    if (!name && setToolOffset(L, P, W)) return
     if (!name) {
-      // L2 P0 (external shift) and tool offsets (L1, L10–L13, lathe G10 P n) are not drawn
+      // L2 P0 (external shift) and other data are not drawn
       diag('warning', 'function-not-simulated', { code: `${code} L${L ?? '-'} P${P ?? '-'}` }, `g10:${L}:${P}`)
       return
     }

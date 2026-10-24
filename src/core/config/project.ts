@@ -20,6 +20,28 @@ export const WorkOffsetsSchema = z.record(
   z.partialRecord(AxisNameSchema, z.number())
 )
 
+/**
+ * One tool offset, as on the control's OFFSET screen. Machining centers use the length (H) and the
+ * radius (D); lathes the geometry X/Z (X as programmed, a diameter), the nose radius and tip direction.
+ * Each has a geometry value and a wear value that adds to it.
+ */
+export const ToolOffsetSchema = z.object({
+  length: z.number().optional(),
+  lengthWear: z.number().optional(),
+  radius: z.number().optional(),
+  radiusWear: z.number().optional(),
+  x: z.number().optional(),
+  xWear: z.number().optional(),
+  z: z.number().optional(),
+  zWear: z.number().optional(),
+  nose: z.number().optional(),
+  noseWear: z.number().optional(),
+  tip: z.number().int().min(0).max(9).optional()
+})
+
+/** Offset number ("1", "12"…) → values. */
+export const ToolOffsetsSchema = z.record(z.string().regex(/^\d{1,3}$/), ToolOffsetSchema)
+
 export const PROJECT_FORMAT = 'cnc-simulator-project'
 
 export const ProjectSchema = z.object({
@@ -36,11 +58,15 @@ export const ProjectSchema = z.object({
   /** Copy of the tools used, so the project opens the same on another computer. */
   tools: ToolLibrarySchema.optional(),
   stock: StockSchema.optional(),
-  workOffsets: WorkOffsetsSchema.optional()
+  workOffsets: WorkOffsetsSchema.optional(),
+  /** Tool offset table; when missing, it comes from the tools (lengths, radii, nose radii). */
+  toolOffsets: ToolOffsetsSchema.optional()
 })
 
 export type Stock = z.infer<typeof StockSchema>
 export type WorkOffsets = z.infer<typeof WorkOffsetsSchema>
+export type ToolOffset = z.infer<typeof ToolOffsetSchema>
+export type ToolOffsets = z.infer<typeof ToolOffsetsSchema>
 export type Project = z.infer<typeof ProjectSchema>
 
 /**

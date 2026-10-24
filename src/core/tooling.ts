@@ -1,6 +1,6 @@
 // Tool and holder geometry for the 3D view, and a holder-versus-stock check.
 // Pure functions: the renderer draws what they return and the tests check it.
-import type { Stock } from './config/project'
+import type { Stock, ToolOffsets } from './config/project'
 import { stockOrigin } from './removal'
 import type { Holder, Tool, ToolLibrary } from './config/schema'
 import type { Move, Vec3 } from './types'
@@ -250,5 +250,27 @@ export function findChuckCollisions(moves: readonly Move[], s: Stock | null, zer
       return
     }
   })
+  return out
+}
+
+/** Spindle gauge line to tool tip: the holder from the spindle face to its nose, plus the tool. */
+export function gaugeLength(tool: Tool, holder: Holder | undefined): number {
+  const nose = Math.max(0, ...(holder?.profile ?? []).map(([, l]) => l))
+  return tool.length + nose
+}
+
+/**
+ * The offset table a machine would have with these tools measured: on machining centers the
+ * gauge length (H) and the radius (D) under each tool's offset number; on lathes the nose radius and
+ * tip direction of turning tools, with geometry and wear at zero.
+ */
+export function defaultToolOffsets(library: ToolLibrary | null, lathe: boolean): ToolOffsets {
+  const out: ToolOffsets = {}
+  for (const t of library?.tools ?? []) {
+    const n = String(t.offset ?? t.number)
+    if (!lathe) out[n] = { length: Math.round(gaugeLength(t, holderOf(t, library, false)) * 1000) / 1000, radius: t.diameter / 2 }
+    else if (isTurningTool(t)) out[n] = { x: 0, z: 0, nose: t.cornerRadius ?? t.diameter / 2, tip: t.tipDirection ?? 3 }
+    else out[n] = { x: 0, z: 0 }
+  }
   return out
 }
