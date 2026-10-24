@@ -4,6 +4,38 @@ Cada versão em português e inglês. · Each version in Portuguese and English.
 
 Downloads: https://github.com/ismael-figueiredo/cnc-simulator/releases
 
+## 0.14.0 · 2026-10-24
+
+### Português
+**Modo aprender e exercícios guiados.**
+- **Modo aprender (botão ? acima do programa):**
+  - passar o mouse num código G/M, numa #variável ou numa palavra de macro (IF, WHILE, GT…) mostra o que ela faz **no comando escolhido**, na tela MEM e no editor;
+  - abaixo do programa, o bloco do cursor é explicado palavra por palavra (código, endereços, variáveis);
+  - mais de 110 explicações em português, inglês e espanhol.
+- **Exercícios guiados** na tela inicial:
+  - **E01** eixo com G00/G01;
+  - **E02** perfil com G71/G70;
+  - **E03** contorno com G41 e furação;
+  - **E04** fileira de furos com WHILE.
+
+  Cada um abre com a máquina, o blank, o enunciado e um desenho da peça. **Conferir** usina o seu programa e a solução no mesmo blank e diz se a peça está certa, onde ficou material ou onde cortou a mais. **Ver solução** mostra uma resposta.
+- **Correção:** facear até o centro agora remove todo o material à frente do corte na vista de usinagem do torno (antes ficava um disco fino na face).
+
+### English
+**Learning mode and guided exercises.**
+- **Learning mode (? button above the program):**
+  - hovering a G/M code, a #variable or a macro word (IF, WHILE, GT…) shows what it does **on the selected control**, on the MEM screen and in the editor;
+  - under the program, the block at the cursor is explained word by word (code, addresses, variables);
+  - over 110 explanations in English, Portuguese and Spanish.
+- **Guided exercises** on the start screen:
+  - **E01** shaft with G00/G01;
+  - **E02** profile with G71/G70;
+  - **E03** contour with G41 and drilling;
+  - **E04** row of holes with WHILE.
+
+  Each opens with its machine, stock, statement and a drawing of the part. **Check** machines your program and the solution on the same stock and says whether the part is right, where material is left or where it was cut into. **Show solution** shows one answer.
+- **Fix:** facing to the center now removes all the material in front of the cut in the lathe machining view (a thin disc used to stay on the face).
+
 ## 0.13.0 · 2026-10-24
 
 ### Português
