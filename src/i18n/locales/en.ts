@@ -95,6 +95,7 @@ export const en = {
   'chip.cAxis': 'C axis',
   'chip.brake': 'brake',
 
+  'sim.running': 'Simulating…',
   'sim.summary': '{moves} moves · {time}',
   'sim.finished': 'reached the program end',
   'sim.stopped': 'stopped before the end',

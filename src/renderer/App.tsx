@@ -32,6 +32,7 @@ import {
   type Diagnostic,
   type Machine,
   type Severity,
+  type SimulationInput,
   type Stock,
   type Tool,
   type ToolLibrary,
@@ -53,6 +54,7 @@ import { useI18n } from './i18n'
 import { useLibraries } from './libraries'
 import { defaultSetup, projectData, setupFromProject, STOCK_COLOR, type Setup } from './project'
 import { useRecent } from './recent'
+import { createSimulator } from './simulation'
 import { buildTimeline, formatTime, fractionOf, moveAt, pointAlong, positionAlong, type Timeline } from './playback'
 
 
@@ -123,10 +125,18 @@ interface Simulation {
   playing: boolean
 }
 
-function run(program: Program | null, machine: Machine | undefined, control: Control | undefined, cfg: BundledConfigs, setup: Setup): Simulation {
-  if (!program || !machine || !control) return { timeline: null, time: 0, playing: false }
+const NO_SIMULATION: Simulation = { timeline: null, time: 0, playing: false }
+
+function simInput(program: Program | null, machine: Machine | undefined, control: Control | undefined, cfg: BundledConfigs, setup: Setup): SimulationInput | null {
+  if (!program || !machine || !control) return null
   const alarms = cfg.alarmCatalogs.find((a) => a.id === control.alarms) ?? null
-  const timeline = buildTimeline(simulate({ text: program.text, machine, control, tools: setup.tools, alarms, workOffsets: setup.workOffsets }))
+  return { text: program.text, machine, control, tools: setup.tools, alarms, workOffsets: setup.workOffsets }
+}
+
+function run(program: Program | null, machine: Machine | undefined, control: Control | undefined, cfg: BundledConfigs, setup: Setup): Simulation {
+  const input = simInput(program, machine, control, cfg, setup)
+  if (!input) return NO_SIMULATION
+  const timeline = buildTimeline(simulate(input))
   // Like the control after loading a program: RESET, cursor at the top, nothing run yet
   return { timeline, time: 0, playing: false }
 }
@@ -248,6 +258,9 @@ export function App() {
   /** The .cncsim file the setup came from, or null for a program opened alone. */
   const [projectPath, setProjectPath] = useState<string | null>(null)
   const [sim, setSim] = useState<Simulation>(() => run(program, machine, control, cfg, setup))
+  // One worker for the window's lifetime
+  const [simulator] = useState(createSimulator)
+  const [busy, setBusy] = useState(false)
   const [fontSize, setFontSize] = useState(() => readNumber(FONT_KEY, 11.5))
   const [codeWidth, setCodeWidth] = useState(() => readNumber(WIDTH_KEY, 300))
   const [speed, setSpeed] = useState(20)
@@ -279,8 +292,24 @@ export function App() {
   const machinePosition = move ? positionAlong(moves[index - 1], move, fraction, (m) => m.machinePosition) : undefined
 
   // ---- actions (simulation is recomputed in event handlers, not in effects) ----
+  /**
+   * Simulates in the worker: the window stays responsive on long programs. Until the answer comes
+   * the previous result stays on screen, with "Simulating…" over the 3D view.
+   */
   function simulateWith(p: Program | null, m: Machine | undefined, c: Control | undefined, s: Setup = setup) {
-    setSim(run(p, m, c, cfg, s))
+    const input = simInput(p, m, c, cfg, s)
+    if (!input) {
+      simulator.cancel()
+      setBusy(false)
+      setSim(NO_SIMULATION)
+      return
+    }
+    setBusy(true)
+    void simulator.run(input).then((result) => {
+      setBusy(false)
+      // Like the control after loading a program: RESET, cursor at the top, nothing run yet
+      setSim({ timeline: buildTimeline(result), time: 0, playing: false })
+    })
   }
   const changeFont = useCallback((delta: number) => {
     setFontSize((f) => {
@@ -459,7 +488,7 @@ export function App() {
     if (!canDiscard()) return
     load(null)
     setProjectPath(null)
-    setSim(run(null, machine, control, cfg, setup))
+    simulateWith(null, machine, control)
   }
   function changeMachine(id: string) {
     const m = cfg.machines.find((x) => x.id === id)
@@ -835,6 +864,7 @@ export function App() {
               </div>
               <div className="hint">{t('view.hint')}</div>
               {mode === 'edit' && <div className="edit-note">{t('view.editNote')}</div>}
+              {busy && <div className="busy-note">{t('sim.running')}</div>}
               {stoppedBy && (
                 <button className="alarm-banner" onClick={() => jumpToDiagnostic(stoppedBy)}>
                   <b>

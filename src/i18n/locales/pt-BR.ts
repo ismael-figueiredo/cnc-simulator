@@ -96,6 +96,7 @@ export const ptBR: Record<MessageKey, string> = {
   'chip.cAxis': 'Eixo C',
   'chip.brake': 'freio',
 
+  'sim.running': 'Simulando…',
   'sim.summary': '{moves} movimentos · {time}',
   'sim.finished': 'chegou ao fim do programa',
   'sim.stopped': 'parou antes do fim',

@@ -96,6 +96,7 @@ export const es: Record<MessageKey, string> = {
   'chip.cAxis': 'Eje C',
   'chip.brake': 'freno',
 
+  'sim.running': 'Simulando…',
   'sim.summary': '{moves} movimientos · {time}',
   'sim.finished': 'llegó al final del programa',
   'sim.stopped': 'se detuvo antes del final',
