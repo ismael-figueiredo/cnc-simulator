@@ -111,7 +111,7 @@ After a visible UI change, run `npm run demo` and commit the new `docs/demo.gif`
 ### Release builds
 
 - **CI:** every push to `main` and every pull request runs `npm run check`.
-- **Release notes:** each version is described in [CHANGELOG.md](CHANGELOG.md) (Portuguese and English). Tag a release with that text as an annotated tag message; the Release workflow puts it on the release page.
+- **Release notes:** each version is described in [CHANGELOG.md](CHANGELOG.md) (Portuguese and English). Tag a release with that text as an annotated tag message (`git tag -a vX.Y.Z --cleanup=verbatim -F notes.md`, so the `###` headings are kept); the Release workflow puts it on the release page.
 - **Release:** pushing a `v*` tag (`git tag v0.1.0 && git push origin v0.1.0`) builds the Windows, macOS and Linux installers and publishes them on the GitHub Releases page. Running the workflow by hand from the Actions tab only keeps them as run artifacts.
 - **Installer screens:** the Windows installer shows the license and the artwork in `build/` (sidebar and header BMPs); the macOS disk image shows a background with the drag-to-Applications arrow. `npm run icons` renders all of them from `build/icon.svg`.
 
