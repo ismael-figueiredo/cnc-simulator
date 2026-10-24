@@ -3,8 +3,9 @@ import { defaultKeymap, history, historyKeymap, indentWithTab } from '@codemirro
 import { HighlightStyle, StreamLanguage, syntaxHighlighting, type StringStream } from '@codemirror/language'
 import { highlightSelectionMatches, search, searchKeymap } from '@codemirror/search'
 import { EditorState } from '@codemirror/state'
-import { drawSelection, EditorView, highlightActiveLine, highlightActiveLineGutter, keymap, lineNumbers } from '@codemirror/view'
+import { drawSelection, EditorView, highlightActiveLine, highlightActiveLineGutter, hoverTooltip, keymap, lineNumbers } from '@codemirror/view'
 import { tags } from '@lezer/highlight'
+import { HELP_TOKEN } from '../help'
 
 export interface EditorHandle {
   getText: () => string
@@ -16,6 +17,8 @@ interface Props {
   /** Called once per edit; the text itself is read with getText() when needed. */
   onEdit: () => void
   ref?: Ref<EditorHandle>
+  /** Learning mode: help for the G/M code, variable or macro word under the mouse. */
+  help?: (word: string) => string | undefined
 }
 
 const MACRO_WORDS = /^(WHILE|IF|GOTO|THEN|DO|END|EQ|NE|GT|LT|GE|LE|AND|OR|XOR|MOD|SIN|COS|TAN|ATAN|SQRT|ABS|ROUND|FIX|FUP)\b/i
@@ -64,19 +67,25 @@ const theme = EditorView.theme(
     '&.cm-focused .cm-selectionBackground, .cm-selectionBackground, ::selection': { backgroundColor: 'rgba(111, 211, 255, .25)' },
     '.cm-selectionMatch': { backgroundColor: 'rgba(255, 255, 255, .08)' },
     '.cm-panels': { backgroundColor: '#13324f', color: '#d6e6f5' },
-    '.cm-searchMatch': { backgroundColor: 'rgba(242, 196, 24, .35)' }
+    '.cm-searchMatch': { backgroundColor: 'rgba(242, 196, 24, .35)' },
+    '.cm-help': { maxWidth: '420px', padding: '6px 9px', backgroundColor: '#13324f', color: '#e4ebef', border: '1px solid #6fd3ff', fontFamily: 'var(--f-ui)', fontSize: '12.5px', lineHeight: '1.4' }
   },
   { dark: true }
 )
 
 /** EDIT mode: the program as an editable text, styled like the control's edit screen. */
-export function ProgramEditor({ text, fontSize, onEdit, ref }: Props) {
+export function ProgramEditor({ text, fontSize, onEdit, ref, help }: Props) {
   const box = useRef<HTMLDivElement>(null)
   const view = useRef<EditorView | null>(null)
   const onEditRef = useRef(onEdit)
   useEffect(() => {
     onEditRef.current = onEdit
   }, [onEdit])
+  // The editor is built once; the help it shows follows the control and language through this ref
+  const helpRef = useRef(help)
+  useEffect(() => {
+    helpRef.current = help
+  }, [help])
 
   useImperativeHandle(ref, () => ({ getText: () => view.current?.state.doc.toString() ?? text }), [text])
 
@@ -97,6 +106,31 @@ export function ProgramEditor({ text, fontSize, onEdit, ref }: Props) {
           highlightSelectionMatches(),
           gcode,
           syntaxHighlighting(highlight),
+          hoverTooltip((v, pos) => {
+            const help = helpRef.current
+            if (!help) return null
+            const line = v.state.doc.lineAt(pos)
+            const code = line.text.split('(')[0] ?? ''
+            for (const m of code.matchAll(HELP_TOKEN)) {
+              const from = line.from + m.index
+              const to = from + m[0].length
+              if (pos < from || pos > to) continue
+              const tip = help(m[0])
+              if (!tip) return null
+              return {
+                pos: from,
+                end: to,
+                above: true,
+                create: () => {
+                  const dom = document.createElement('div')
+                  dom.className = 'cm-help'
+                  dom.textContent = `${m[0].toUpperCase().replace(/\s+/g, '')} — ${tip}`
+                  return { dom }
+                }
+              }
+            }
+            return null
+          }),
           theme,
           keymap.of([...defaultKeymap, ...historyKeymap, ...searchKeymap, indentWithTab]),
           EditorView.updateListener.of((u) => {

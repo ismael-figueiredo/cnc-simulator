@@ -1,6 +1,7 @@
-import { memo, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { memo, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactElement } from 'react'
 import type { Severity } from '@core/index'
 import { useI18n } from '../i18n'
+import { HELP_TOKEN } from '../help'
 
 /** Run state shown on the status line, as the Fanuc screen does: reset (****), cycle start, feed hold. */
 export type RunState = 'reset' | 'start' | 'hold'
@@ -23,6 +24,31 @@ interface Props {
   breakpoints: ReadonlySet<number>
   /** Clicking a line number sets or clears its breakpoint. */
   onToggleBreakpoint: (line: number) => void
+  /** Learning mode: what a word does, shown as a tooltip over G/M codes, variables and macro words. */
+  help?: (word: string) => string | undefined
+}
+
+/** The line with its G/M codes, variables and macro words wrapped in spans that carry their help. */
+function withHelp(text: string, help: (word: string) => string | undefined) {
+  const out: (string | ReactElement)[] = []
+  let last = 0
+  // Comments are left as they are
+  const comment = text.indexOf('(')
+  const code = comment >= 0 ? text.slice(0, comment) : text
+  for (const m of code.matchAll(HELP_TOKEN)) {
+    const word = m[0]
+    const tip = help(word)
+    if (!tip) continue
+    out.push(text.slice(last, m.index))
+    out.push(
+      <span key={m.index} className="w" title={`${word.toUpperCase().replace(/\s+/g, '')} — ${tip}`}>
+        {word}
+      </span>
+    )
+    last = m.index + word.length
+  }
+  out.push(text.slice(last))
+  return out
 }
 
 /** Lines kept visible below the cursor before the screen scrolls, like the control's program screen. */
@@ -68,7 +94,7 @@ function Clock() {
 }
 
 // Re-renders only when the current line or the program changes, not on every playback frame.
-export const CodeView = memo(function CodeView({ lines, currentLine, alarmLine, marks, hits, fontSize, state, onZoom, onLineClick, breakpoints, onToggleBreakpoint }: Props) {
+export const CodeView = memo(function CodeView({ lines, currentLine, alarmLine, marks, hits, fontSize, state, onZoom, onLineClick, breakpoints, onToggleBreakpoint, help }: Props) {
   const { t } = useI18n()
   const box = useRef<HTMLDivElement>(null)
   const oNumber = useMemo(() => programNumber(lines), [lines])
@@ -190,7 +216,7 @@ export const CodeView = memo(function CodeView({ lines, currentLine, alarmLine, 
               >
                 {i + 1}
               </span>
-                <span className="t">{text || ' '}</span>
+                <span className="t">{text ? (help ? withHelp(text, help) : text) : ' '}</span>
               </div>
             )
           })}

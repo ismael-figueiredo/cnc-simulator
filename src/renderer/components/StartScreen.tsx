@@ -6,6 +6,9 @@ interface Props {
   /** Bundled examples, pinned above the recent files. */
   examples: { id: string; name: string; detail: string }[]
   onOpenExample: (id: string) => void
+  /** Guided exercises, from first steps to parametric programs. */
+  exercises: { id: string; name: string; level: number; detail: string }[]
+  onOpenExercise: (id: string) => void
   onNew: () => void
   onPick: () => void
   onOpenRecent: (item: RecentItem) => void
@@ -13,7 +16,7 @@ interface Props {
 }
 
 /** Shown when no program is open: actions on the left, recent files (example pinned first) on the right. */
-export function StartScreen({ recent, examples, onOpenExample, onNew, onPick, onOpenRecent, onRemoveRecent }: Props) {
+export function StartScreen({ recent, examples, onOpenExample, exercises, onOpenExercise, onNew, onPick, onOpenRecent, onRemoveRecent }: Props) {
   const { t, lang } = useI18n()
   const when = (ms: number) => new Date(ms).toLocaleString(lang, { dateStyle: 'short', timeStyle: 'short' })
 
@@ -23,6 +26,22 @@ export function StartScreen({ recent, examples, onOpenExample, onNew, onPick, on
         <h2>{t('start.begin')}</h2>
         <button className="btn primary" onClick={onPick}>{t('action.openProgram')}…</button>
         <button className="btn" onClick={onNew}>{t('action.newProgram')}</button>
+        {exercises.length > 0 && (
+          <>
+            <h2 className="start-learn">{t('exercise.title')}</h2>
+            <p className="muted small">{t('exercise.intro')}</p>
+            <ul className="start-exercises">
+              {exercises.map((ex) => (
+                <li key={ex.id}>
+                  <button className="recent-item" title={ex.detail} onClick={() => onOpenExercise(ex.id)}>
+                    <span className="recent-name">{ex.name}</span>
+                    <span className="muted">{t('exercise.level', { level: ex.level })}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
       </section>
 
       <section className="start-recent">
