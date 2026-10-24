@@ -236,3 +236,4 @@ button, select, input { font: inherit; color: inherit; }
 .muted.small { font-size: 11.5px; }
 .stock-body .zero-at { max-width: 280px; }
 .busy-note { position: absolute; right: 10px; bottom: 30px; padding: 4px 10px; border-radius: 4px; background: rgba(14, 18, 21, .85); color: #f2c418; font: 12px 'Share Tech Mono', var(--f-mono); pointer-events: none; }
+.offsets-editor.tool-offsets { width: min(860px, 100%); }

@@ -36,6 +36,7 @@ import {
   type Stock,
   type Tool,
   type ToolLibrary,
+  type ToolOffsets,
   type WorkOffsets
 } from '@core/index'
 import { LANGUAGES, isLanguage } from '@i18n/index'
@@ -48,11 +49,12 @@ import { StartScreen } from './components/StartScreen'
 import { NewProgramDialog } from './components/NewProgramDialog'
 import { StockEditor } from './components/StockEditor'
 import { ToolEditor } from './components/ToolEditor'
+import { ToolOffsetsEditor } from './components/ToolOffsetsEditor'
 import { WorkOffsetsEditor } from './components/WorkOffsetsEditor'
 import { PATH_COLORS, Viewport3D } from './components/Viewport3D'
 import { useI18n } from './i18n'
 import { useLibraries } from './libraries'
-import { defaultSetup, projectData, setupFromProject, STOCK_COLOR, type Setup } from './project'
+import { defaultSetup, offsetsFor, projectData, setupFromProject, STOCK_COLOR, type Setup } from './project'
 import { useRecent } from './recent'
 import { createSimulator } from './simulation'
 import { buildTimeline, formatTime, fractionOf, moveAt, pointAlong, positionAlong, type Timeline } from './playback'
@@ -130,7 +132,7 @@ const NO_SIMULATION: Simulation = { timeline: null, time: 0, playing: false }
 function simInput(program: Program | null, machine: Machine | undefined, control: Control | undefined, cfg: BundledConfigs, setup: Setup): SimulationInput | null {
   if (!program || !machine || !control) return null
   const alarms = cfg.alarmCatalogs.find((a) => a.id === control.alarms) ?? null
-  return { text: program.text, machine, control, tools: setup.tools, alarms, workOffsets: setup.workOffsets }
+  return { text: program.text, machine, control, tools: setup.tools, alarms, workOffsets: setup.workOffsets, toolOffsets: setup.toolOffsets }
 }
 
 function run(program: Program | null, machine: Machine | undefined, control: Control | undefined, cfg: BundledConfigs, setup: Setup): Simulation {
@@ -275,6 +277,7 @@ export function App() {
   const [editingTools, setEditingTools] = useState(false)
   const [editingStock, setEditingStock] = useState(false)
   const [editingOffsets, setEditingOffsets] = useState(false)
+  const [editingToolOffsets, setEditingToolOffsets] = useState(false)
   const [creating, setCreating] = useState(false)
 
   const lines = useMemo(() => (program?.text ?? '').replace(/\r/g, '').split('\n'), [program])
@@ -499,7 +502,8 @@ export function App() {
     // (lathe tools on a machining center make no sense, and the other way round)
     const kindOf = (x: Machine | undefined) => x?.kinematics.startsWith('lathe')
     const own = defaultSetup(m, cfg.libraries)
-    const s = { ...setup, stock: own.stock, tools: kindOf(m) === kindOf(machine) ? setup.tools : own.tools }
+    const sameKind = kindOf(m) === kindOf(machine)
+    const s = { ...setup, stock: own.stock, tools: sameKind ? setup.tools : own.tools, toolOffsets: sameKind ? setup.toolOffsets : own.toolOffsets }
     setSetup(s)
     simulateWith(currentProgram(), m, c, s)
   }
@@ -519,9 +523,16 @@ export function App() {
     simulateWith(currentProgram(), machine, control, s)
   }
   function applyTools(lib: ToolLibrary) {
-    const s = { ...setup, tools: lib }
+    // New offset numbers are measured from the tools; the ones already in the table stay as they are
+    const s = { ...setup, tools: lib, toolOffsets: offsetsFor(lib, machine, setup.toolOffsets) }
     setSetup(s)
     setEditingTools(false)
+    simulateWith(currentProgram(), machine, control, s)
+  }
+  function applyToolOffsets(toolOffsets: ToolOffsets) {
+    const s = { ...setup, toolOffsets }
+    setSetup(s)
+    setEditingToolOffsets(false)
     simulateWith(currentProgram(), machine, control, s)
   }
   async function pickProgram() {
@@ -1006,6 +1017,26 @@ export function App() {
             </div>
             <div className="block">
               <h2>
+                {t('toolOffsets.title')}
+                <button className="btn tiny head-action" onClick={() => setEditingToolOffsets(true)}>{t('tools.edit')}</button>
+              </h2>
+              <ul className="list mono">
+                {Object.entries(setup.toolOffsets)
+                  .sort(([a], [b]) => Number(a) - Number(b))
+                  .slice(0, 8)
+                  .map(([n, o]) => (
+                    <li key={n}>
+                      <b>{n.padStart(2, '0')}</b>{' '}
+                      {lathe
+                        ? `X${o.x ?? 0} Z${o.z ?? 0}${o.nose !== undefined ? ` R${o.nose}` : ''}${o.xWear || o.zWear ? ` · Δ X${o.xWear ?? 0} Z${o.zWear ?? 0}` : ''}`
+                        : `H${o.length ?? '—'}${o.lengthWear ? `${o.lengthWear > 0 ? '+' : ''}${o.lengthWear}` : ''} D${o.radius ?? '—'}${o.radiusWear ? `${o.radiusWear > 0 ? '+' : ''}${o.radiusWear}` : ''}`}
+                    </li>
+                  ))}
+              </ul>
+              {!Object.keys(setup.toolOffsets).length && <p className="muted">{t('toolOffsets.none')}</p>}
+            </div>
+            <div className="block">
+              <h2>
                 {t('tools.title')}
                 <button className="btn tiny head-action" onClick={() => setEditingTools(true)}>{t('tools.edit')}</button>
               </h2>
@@ -1049,6 +1080,15 @@ export function App() {
           macro={supportsMacro(control)}
           onCreate={createProgram}
           onClose={() => setCreating(false)}
+        />
+      )}
+      {editingToolOffsets && (
+        <ToolOffsetsEditor
+          offsets={setup.toolOffsets}
+          measured={offsetsFor(setup.tools, machine)}
+          lathe={lathe}
+          onApply={applyToolOffsets}
+          onClose={() => setEditingToolOffsets(false)}
         />
       )}
       {editingTools && (
