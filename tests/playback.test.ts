@@ -11,7 +11,7 @@ const result = (moves: [number, Move['kind'], number][], diagnostics: Partial<Di
     totalTimeS: 0,
     tools: [],
     variables: []
-  }) as SimulationResult
+  })
 
 // Line 1: rapid 2 s · line 2: two feeds of 3 s · M01 at line 3 · line 4: feed 4 s
 const r = result(

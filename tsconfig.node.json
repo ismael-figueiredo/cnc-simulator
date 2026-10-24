@@ -13,6 +13,7 @@
     "src/server/**/*",
     "src/core/**/*",
     "src/i18n/**/*",
+    "src/renderer/playback.ts",
     "tests/**/*"
   ]
 }
