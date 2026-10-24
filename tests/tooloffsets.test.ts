@@ -120,3 +120,14 @@ describe('nose radius compensation (lathe G41/G42)', () => {
     expect(along?.toolCenter?.[1]?.[0]).toBeCloseTo(20.5, 6)
   })
 })
+
+describe('reference return with offsets', () => {
+  it('takes the gauge line to machine zero: no overtravel, the tip H below it', () => {
+    const r = mill([...T2, 'G43 Z5 H2', 'G1 Z-2 F300', 'G91 G28 Z0', 'G90'])
+    const back = r.moves[r.moves.length - 1]
+    expect(back?.machinePosition.Z).toBeCloseTo(0, 6)
+    expect(r.diagnostics.map((d) => d.code)).not.toContain('overtravel')
+    // Machine zero is G54 Z +400 above the part zero; the tip hangs 125 mm (H2) below it
+    expect(end(back)[2]).toBeCloseTo(400 - 125, 6)
+  })
+})

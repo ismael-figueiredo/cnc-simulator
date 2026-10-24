@@ -54,6 +54,8 @@ describe('bundled examples', () => {
     const { result } = runExample(file)
     expect(result.diagnostics.filter((d) => d.severity === 'alarm').map((d) => `${d.code} L${d.line + 1}`)).toEqual([])
     expect(result.finished).toBe(true)
+    // With the tool offsets measured from the tools, no example leaves the machine travels
+    expect(result.diagnostics.filter((d) => d.code === 'overtravel').map((d) => `L${d.line + 1} ${JSON.stringify(d.params)}`)).toEqual([])
   })
 
   it.each(examples)('%s keeps the tools off the chuck', (file) => {

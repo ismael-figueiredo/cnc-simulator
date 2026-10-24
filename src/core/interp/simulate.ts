@@ -404,6 +404,8 @@ export function simulate(input: SimulationInput): SimulationResult {
     // G43: gauge line at Z + H, so the tip is at Z + H − (real gauge length)
     if (actual !== undefined) tipShift.z = value - actual
   }
+  /** Offset part of the machine position on an axis (Z on mills, X and Z on lathes). */
+  const extraOf = (ax: Axis) => (ax === 'X' ? machineExtra.X : ax === 'Z' ? machineExtra.Z : 0)
   /** Points as the tool really goes: the length or wear error moves them, as on the machine. */
   const applyTipShift = (points: Vec3[]): Vec3[] => {
     if (!tipShift.r && !tipShift.z) return points
@@ -473,7 +475,7 @@ export function simulate(input: SimulationInput): SimulationResult {
     if (!configuredOffsets) return
     for (const a of machine.axes) {
       if (a.type !== 'linear' || base[a.name as Axis] === undefined || !isAxis(a.name)) continue
-      const m = pos[a.name] - machineZero[a.name] + (a.name === 'X' ? machineExtra.X : a.name === 'Z' ? machineExtra.Z : 0)
+      const m = pos[a.name] - machineZero[a.name] + extraOf(a.name)
       if (m < a.min - 1e-6 || m > a.max + 1e-6)
         diag('warning', 'overtravel', { axis: a.name, value: Math.round(m * 1000) / 1000, min: a.min, max: a.max }, `ot${a.name}${m > a.max ? '+' : '-'}`)
     }
@@ -1248,7 +1250,8 @@ export function simulate(input: SimulationInput): SimulationResult {
         const p: Partial<Position> = {}
         for (const ax of AXES) {
           const w = W[ax]
-          if (w !== undefined) p[ax] = machineZero[ax] + w
+          // The gauge line (or turret) goes to the machine position: the tip is the offset below it
+          if (w !== undefined) p[ax] = machineZero[ax] + w - extraOf(ax)
         }
         linear('rapid', at(p))
       } else if (oneShot === 'reference-return') {
@@ -1257,7 +1260,7 @@ export function simulate(input: SimulationInput): SimulationResult {
         for (const ax of AXES) {
           const inc = [...incremental].find(([, a]) => a === ax)?.[0]
           if (!has(ax) && !(inc && has(inc))) continue
-          p[ax] = ax === 'C' || ax === 'A' || ax === 'B' ? 0 : machineZero[ax]
+          p[ax] = ax === 'C' || ax === 'A' || ax === 'B' ? 0 : machineZero[ax] - extraOf(ax)
           if (ax === 'C') st.cAxisEnabled = true
         }
         linear('rapid', at(p))
