@@ -4,6 +4,30 @@ Cada versão em português e inglês. · Each version in Portuguese and English.
 
 Downloads: https://github.com/ismael-figueiredo/cnc-simulator/releases
 
+## 0.13.0 · 2026-10-24
+
+### Português
+**Ferramentas de CAM e tour de primeiro uso.**
+- **Lista de operações:** cada uso de ferramenta com tempo total, tempo de corte e linhas do programa. Um clique vai ao início da operação.
+- **Linha do tempo colorida por ferramenta** abaixo do controle deslizante, nos dois layouts, com marcas de parada (M00, M01, ponto de parada), colisão e alarme. Clicar num trecho vai ao início dele.
+- **Vista 3D:**
+  - vistas rápidas iso, topo, frente e lateral, enquadradas no percurso de corte;
+  - **seguir ferramenta**;
+  - **medir:** clique em dois pontos da peça ou do percurso para ver a distância e ΔX/ΔY/ΔZ (no torno, ΔX em diâmetro).
+- **Painel lateral do layout CAM em abas:** operações, preparação, máquina e mensagens. A aba de mensagens mostra a contagem e fica vermelha quando há alarme.
+- **Tour do primeiro uso:** 5 passos pela tela, que também abrem pelo botão **Tour** no topo.
+
+### English
+**CAM tools and a first-use tour.**
+- **Operation list:** each tool use with its total time, cutting time and program lines. A click goes to the start of the operation.
+- **Timeline colored by tool** under the slider, in both layouts, with marks for stops (M00, M01, breakpoints), collisions and the alarm. Clicking a stretch goes to its start.
+- **3D view:**
+  - quick views iso, top, front and side, framed on the cutting path;
+  - **follow tool**;
+  - **measure:** click two points on the part or the path to see the distance and ΔX/ΔY/ΔZ (on lathes, ΔX as a diameter).
+- **Tabs in the CAM layout's side panel:** operations, setup, machine and messages. The messages tab shows the count and turns red on an alarm.
+- **First-use tour:** 5 steps through the screen, also opened from the **Tour** button at the top.
+
 ## 0.12.0 · 2026-10-24
 
 ### Português
