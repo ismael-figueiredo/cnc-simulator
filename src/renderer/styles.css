@@ -333,3 +333,47 @@ button, select, input { font: inherit; color: inherit; }
 .pos-row .v { flex: 1; text-align: right; font-size: clamp(24px, 3.2vw, 40px); color: #f4f8fa; }
 .pos-row .v.small { font-size: 20px; text-align: left; }
 .pos-quadrant.info { gap: 6px; }
+
+/* timeline under the slider: tools in color, stops, alarms and collisions */
+.player .track { flex: 1; min-width: 140px; display: flex; flex-direction: column; gap: 3px; }
+.player .track input[type=range] { width: 100%; min-width: 0; }
+.strip { position: relative; height: 8px; margin: 0 7px; border-radius: 2px; background: color-mix(in srgb, var(--muted) 25%, transparent); }
+.strip .seg { position: absolute; top: 0; bottom: 0; padding: 0; border: 0; border-right: 1px solid var(--panel); opacity: .85; cursor: pointer; }
+.strip .seg:hover { opacity: 1; }
+.strip .mark { position: absolute; top: -3px; width: 2px; height: 14px; margin-left: -1px; pointer-events: auto; }
+.strip .mark.stop { background: #e6edf3; }
+.strip .mark.collision { background: #f0b43a; }
+.strip .mark.alarm { background: #ff5a4e; width: 3px; }
+
+/* operation list (CAM side panel) */
+.ops { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 3px; }
+.ops button { width: 100%; display: grid; grid-template-columns: 10px auto minmax(0, 1fr); align-items: center; gap: 2px 8px; padding: 5px 7px; text-align: left; background: var(--raised); border: 1px solid var(--line); border-radius: 5px; cursor: pointer; font-size: 12.5px; }
+.ops button:hover { border-color: var(--muted); }
+.ops button.on { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, var(--raised)); }
+.ops i { width: 10px; height: 10px; border-radius: 2px; }
+.ops b { font: 600 12.5px 'Share Tech Mono', var(--f-mono); }
+.ops .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ops .muted { grid-column: 2 / -1; font-size: 11.5px; font-family: 'Share Tech Mono', var(--f-mono); }
+
+/* side panel tabs (CAM) */
+.side-tabs { display: flex; gap: 2px; padding: 6px 8px 0; border-bottom: 1px solid var(--line); position: sticky; top: 0; background: var(--panel); z-index: 1; }
+.side-tabs button { flex: 1; min-width: 0; padding: 5px 4px; border: 1px solid transparent; border-bottom: 0; border-radius: 4px 4px 0 0; background: none; color: var(--muted); font-size: 12px; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.side-tabs button.on { background: var(--raised); border-color: var(--line); color: var(--ink); font-weight: 600; }
+.side-tabs button.alm { color: var(--alarm); }
+.side-tabs .count { margin-left: 4px; font-family: var(--f-mono); font-size: 11px; }
+
+/* 3D view tools */
+.view-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 4px 10px; border-bottom: 1px solid var(--line); }
+.view-tools .group { display: flex; gap: 2px; }
+.stage.measuring canvas { cursor: crosshair; }
+.measure-label { white-space: nowrap; pointer-events: none; padding: 2px 6px; border-radius: 3px; background: rgba(14, 18, 21, .85); color: #ffe14d; font: 11.5px 'Share Tech Mono', var(--f-mono); }
+.measure-label.total { display: flex; flex-direction: column; align-items: center; gap: 1px; border: 1px solid #ffe14d; }
+.measure-label.total b { font-size: 13px; }
+
+/* first-use tour */
+.tour { position: fixed; z-index: 30; left: 50%; bottom: 96px; transform: translateX(-50%); width: min(460px, calc(100% - 32px)); display: flex; flex-direction: column; gap: 6px; padding: 14px 16px; background: var(--panel); color: var(--ink); border: 1px solid var(--accent); border-radius: 8px; box-shadow: 0 16px 50px rgba(0, 0, 0, .5); }
+.tour h3 { margin: 0; font-size: 15px; }
+.tour p { margin: 0; font-size: 13.5px; line-height: 1.45; }
+.tour .row { align-items: center; margin-top: 4px; }
+.tour .spacer { flex: 1; }
+.tour-target { outline: 3px solid var(--accent) !important; outline-offset: 2px; box-shadow: inset 0 0 0 3px var(--accent); border-radius: 4px; position: relative; z-index: 5; }
