@@ -4,6 +4,26 @@ Cada versão em português e inglês. · Each version in Portuguese and English.
 
 Downloads: https://github.com/ismael-figueiredo/cnc-simulator/releases
 
+## 0.8.0 · 2026-10-24
+
+### Português
+**Corretores de ferramenta.**
+- **Tabela de corretores** (tela OFFSET) no projeto, preenchida pelas ferramentas: comprimento e raio no centro de usinagem; X/Z, raio e direção de ponta no torno; geometria e desgaste.
+- **G43 H:** a posição de máquina passa a ser a da linha de referência do fuso, e o sobrecurso é conferido com ela. Um H errado (de outra ferramenta, ou zerado) desenha a ponta onde ela vai de verdade e avisa a diferença; cortar sem G43 também avisa.
+- **G41/G42 com D** (centro de usinagem) e **compensação do raio da ponta no torno**, com desgaste.
+- **Torno:** o desgaste X/Z desloca a ponta; a geometria entra na posição de máquina.
+- **G10** L10–L13 (centro) e G10 P n / P 10000+n (torno) gravam corretores durante a execução.
+- **Correção:** G28/G53 com G43 ativo davam um falso sobrecurso.
+
+### English
+**Tool offsets.**
+- **Offset table** (OFFSET screen) in the project, filled from the tools: length and radius on machining centers; X/Z, nose radius and tip direction on lathes; geometry and wear.
+- **G43 H:** machine position is the spindle gauge line, and travel is checked with it. A wrong H (another tool's, or empty) draws the tip where it really goes and warns of the difference; cutting without G43 warns too.
+- **G41/G42 with D** (machining centers) and **lathe nose radius compensation**, wear included.
+- **Lathes:** X/Z wear moves the tip; geometry goes into the machine position.
+- **G10** L10–L13 (machining centers) and G10 P n / P 10000+n (lathes) write offsets as the program runs.
+- **Fix:** G28/G53 with G43 active gave a false overtravel.
+
 ## 0.7.0 · 2026-10-24
 
 ### Português

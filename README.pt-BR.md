@@ -25,6 +25,7 @@ Os instaladores de cada versão estão na **[página de Releases](https://github
 - **Programas parametrizados (Macro B):** variáveis, contas e IF/GOTO/WHILE rodam como no comando, em todas as máquinas incluídas (todos os comandos delas têm a opção de macro). G-code comum e os ciclos fixos do próprio comando também; os exemplos têm os dois.
 - **Para nos alarmes da máquina:** erros de programa param no bloco com o número e a mensagem do próprio comando (por exemplo `PS0010 IMPROPER G-CODE`).
 - **Tela de programa como a do comando:** tela MEM estilo Fanuc com o bloco em execução, números O e N e estado de execução. **EDIT** vira um editor (cores, desfazer, buscar e substituir); ele para o programa que estiver rodando, e o percurso, as mensagens e os alarmes acompanham o texto enquanto você digita.
+- **Corretores de ferramenta:** tela OFFSET com H/D (centro de usinagem) ou X/Z, raio e direção de ponta (torno), geometria e desgaste; um H errado desloca a ponta como na máquina; compensação do raio da ponta G41/G42 no torno.
 - **Ciclos de torno:** desbaste G71/G72, repetição de perfil G73 e acabamento G70 a partir do perfil entre P e Q; ciclos simples G90/G94/G92 (sistema A) e G77/G79/G78 (sistema B); rosca G76 em várias passadas e G32/G33 com avanço pelo passo. A barra é usinada passe a passe.
 - **Chanfro e raio de canto automáticos:** `,C` e `,R` em qualquer ângulo, com o arco tangente seguido pela compensação de raio, e os alarmes do comando quando não dá para fazer. No torno também aceita `C`/`R` sem vírgula (opção `cornerWithoutComma` do comando).
 - **Projetos (`.cncsim`):** guardam o programa com máquina, comando, ferramentas, blank e zeros, para reabrir ou enviar o trabalho inteiro.
@@ -66,7 +67,15 @@ O exemplo **O1500** é um programa parametrizado completo (coroa ANSI 40 calcula
 - **Um zero só:** o percurso não muda em relação à peça. Os valores dele (posição de máquina do zero peça) posicionam o zero de máquina, e aí a coluna **Máquina**, o G53/G28 e a conferência de curso passam a ser reais.
 - **Vários zeros** (duas morsas, duas faces): cada um é desenhado deslocado pela diferença para o G54, e o blank fica no zero que você escolher.
 - **G10 L2 / L20** no programa gravam a tabela durante a execução, como na máquina.
-- **Ainda não:** comprimento de ferramenta (G43 H) e desgaste; o aviso de curso diz isso.
+- **Corretores também contam:** o G43 H põe a linha de referência do fuso em Z + H, então posição de máquina e conferência de curso são reais; veja abaixo.
+
+### Corretores de ferramenta
+
+**Corretores de ferramenta** (painel da direita) é a tela OFFSET do comando, salva no projeto e preenchida no início pelas ferramentas (comprimento = suporte + ferramenta, raio, raio de ponta).
+
+- **Centro de usinagem:** o `G43 H` lê o comprimento, o `G41/G42 D` o raio; o desgaste soma à geometria. Se o H não for o comprimento real da ferramenta no fuso, a ponta é desenhada onde ela vai de verdade (um H menor entra mais fundo) e um aviso mostra a diferença. Cortar sem G43 também gera aviso.
+- **Torno:** a palavra T escolhe o corretor (`T0101` → 01). O desgaste X/Z desloca a ponta, R e T (direção de ponta) entram na **compensação do raio da ponta** G41/G42, e a geometria entra na posição de máquina.
+- **G10** grava corretores durante a execução: L10–L13 no centro de usinagem, `G10 P n` (desgaste) e `P 10000+n` (geometria) no torno.
 
 ### Relatar problemas
 

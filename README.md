@@ -25,6 +25,7 @@ Installers for every version are on the **[Releases page](https://github.com/ism
 - **Parametric programs (Macro B):** variables, math and IF/GOTO/WHILE run as on the control, on every bundled machine (all their controls have the macro option). Plain G-code and the control's own canned cycles run too; the examples have both.
 - **Stops on the machine's alarms:** program errors stop at the block with the control's own number and message (for example `PS0010 IMPROPER G-CODE`).
 - **Program screen like the control:** Fanuc-style MEM screen with the running block, O and N numbers and run state. **EDIT** turns it into an editor (colors, undo, find and replace); it stops a running program, and the path, messages and alarms follow the text as you type.
+- **Tool offsets:** OFFSET screen with H/D (machining centers) or X/Z, nose radius and tip (lathes), geometry and wear; a wrong H moves the tip as on the machine; lathe nose radius compensation G41/G42.
 - **Lathe canned cycles:** G71/G72 roughing, G73 pattern repeating and G70 finishing from the shape between P and Q; G90/G94/G92 (system A) and G77/G79/G78 (system B) single cycles; G76 multiple threading and G32/G33 thread cutting at the lead per revolution. The stock is turned pass by pass.
 - **Automatic chamfer and corner R:** `,C` and `,R` at any angle, with the tangent arc followed by cutter compensation, and the control's alarms when they cannot be made. Lathes can also take `C`/`R` without comma (control option `cornerWithoutComma`).
 - **Projects (`.cncsim`):** keep the program with its machine, control, tools, stock and work offsets, to reopen or send the whole job.
@@ -66,7 +67,15 @@ The **O1500** example is a full parametric program (an ANSI 40 sprocket computed
 - **One work offset:** the path does not change on the part. Its values (machine position of the part zero) place machine zero, so the **Machine** column, G53/G28 and the travel check become real.
 - **Several work offsets** (two vises, two faces): each one is drawn shifted by its difference to G54, and the stock sits on the offset you choose.
 - **G10 L2 / L20** in the program write the table while it runs, as on the machine.
-- **Not yet:** tool length (G43 H) and wear offsets; travel warnings say so.
+- **Tool offsets count too:** G43 H puts the spindle gauge line at Z + H, so machine positions and travel checks are real; see below.
+
+### Tool offsets
+
+**Tool offsets** (right panel) is the control's OFFSET screen, saved in the project and filled from the tools at first (gauge length = holder + tool, radius, nose radius).
+
+- **Machining centers:** `G43 H` reads the length, `G41/G42 D` the radius; wear adds to geometry. If H is not the real length of the tool in the spindle, the tip is drawn where it really goes (a shorter H plunges deeper) and a warning gives the difference. Cutting without G43 is warned too.
+- **Lathes:** the T word picks the offset (`T0101` → 01). X/Z wear moves the tip, R and T (tip direction) drive **nose radius compensation** G41/G42, geometry goes into the machine position.
+- **G10** writes offsets while the program runs: L10–L13 on machining centers, `G10 P n` (wear) and `P 10000+n` (geometry) on lathes.
 
 ### Reporting problems
 
@@ -293,7 +302,8 @@ Three separate files you can mix: the same machine with another control, or one 
    - drilling cycles.
 2. ◐ **Toolpath:**
    - Done: 3D path with done/remaining parts, tool marker, playback, click-to-block, translated diagnostics, absolute and machine position, work offsets (G54–G59, G54.1, G10 L2/L20, G53) with travel warnings.
-   - Next: 2D face and side views, a fit-to-path camera, tool length and wear offsets (G43, G10 L10–L13).
+   - Done too: tool offsets (G43 H, D, lathe geometry/wear, G10) and lathe nose radius compensation.
+   - Next: 2D face and side views, a fit-to-path camera.
 3. **Machines and controls:** load the user's JSON; profiles for Fanuc T (A/B), Fanuc M, Haas and LinuxCNC; later Siemens and Mazak.
 4. ◐ **Tools:** done: tool editor, user libraries, import/export, 3D tools with holders and tapers, ISO inserts, holder-stock collision warnings. Next: turret and tool changer, collisions with the chuck and fixtures.
 5. ◐ **Machined part in 3D:** done: heightfield for milling on block stock, turned profile for bars. Next: live tooling on lathes, multi-axis, undercuts.

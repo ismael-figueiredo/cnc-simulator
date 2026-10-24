@@ -328,7 +328,7 @@ export const ptBR: Record<MessageKey, string> = {
   'update.devOnly': 'As atualizações só funcionam no app instalado.',
   'update.failed': 'Não foi possível procurar atualizações.',
 
-  'diag.overtravel': 'Sobrecurso: o {axis} de máquina iria a {value} (curso {min} … {max}). O corretor de ferramenta ainda não é considerado.',
+  'diag.overtravel': 'Sobrecurso: o {axis} de máquina iria a {value} (curso {min} … {max}), já com o corretor de ferramenta.',
   'diag.work-offset-not-set': '{name} não está na tabela de zeros do projeto: desenhado como se fosse igual ao G54.',
   'diag.work-offset-set': 'G10 gravou {name} = {values}.',
   'diag.corner-without-move': 'Chanfro ou raio de canto sem movimento no bloco seguinte.',

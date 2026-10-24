@@ -328,7 +328,7 @@ export const es: Record<MessageKey, string> = {
   'update.devOnly': 'Las actualizaciones solo funcionan en la app instalada.',
   'update.failed': 'No se pudo buscar actualizaciones.',
 
-  'diag.overtravel': 'Sobrerrecorrido: el {axis} de máquina llegaría a {value} (recorrido {min} … {max}). El corrector de herramienta aún no se considera.',
+  'diag.overtravel': 'Sobrerrecorrido: el {axis} de máquina llegaría a {value} (recorrido {min} … {max}), con el corrector de herramienta.',
   'diag.work-offset-not-set': '{name} no está en la tabla de ceros del proyecto: se dibuja como si fuera igual a G54.',
   'diag.work-offset-set': 'G10 escribió {name} = {values}.',
   'diag.corner-without-move': 'Chaflán o radio de esquina sin movimiento en el bloque siguiente.',
