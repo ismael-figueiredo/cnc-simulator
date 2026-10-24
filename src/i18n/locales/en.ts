@@ -449,7 +449,26 @@ export const en = {
   'diag.comp-no-solution': 'The compensated path has no intersection at this corner.',
   'diag.improper-g-in-polar': '{code} is not allowed in polar interpolation (G12.1).',
   'diag.option-not-on-machine': '{code}: this machine does not have this function (axis or option missing).',
-  'diag.cycle-in-comp': '{code}: canned cycle with cutter compensation active.'
+  'diag.cycle-in-comp': '{code}: canned cycle with cutter compensation active.',
+  'position.runTime': 'Run time / cycle',
+  'position.toGo': 'Dist. to go',
+  'layout.machine': 'Machine',
+  'layout.machineHint': 'Machine layout: one control screen with position, program and graphics, and soft keys',
+  'layout.cam': 'CAM',
+  'layout.camHint': 'CAM layout: program, 3D view and side panel',
+  'softkey.pos': 'POS',
+  'softkey.posHint': 'Position: absolute, machine and distance to go',
+  'softkey.prog': 'PROG',
+  'softkey.progHint': 'Program on the whole screen',
+  'softkey.offset': 'OFFSET',
+  'softkey.offsetHint': 'Tool offsets and work offsets',
+  'softkey.graph': 'GRAPH',
+  'softkey.graphHint': 'Toolpath and machining in 3D',
+  'softkey.msg': 'MESSAGE',
+  'softkey.msgHint': 'Alarms, warnings and collisions',
+  'softkey.setting': 'SETTING',
+  'softkey.settingHint': 'Project, machine, control, stock and tools',
+  'keys.hint': 'Space: cycle start / feed hold · Esc: reset · S: single block'
 } as const
 
 export type MessageKey = keyof typeof en
