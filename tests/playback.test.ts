@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import type { Diagnostic, Move, SimulationResult } from '../src/core'
-import { blockEnd, buildTimeline, distanceToGo, operations, nextStop, sameMoment, stopTimes } from '../src/renderer/playback'
+import { blockEnd, buildTimeline, distanceToGo, operations, overrideFactor, nextStop, sameMoment, stopTimes } from '../src/renderer/playback'
 
 /** Moves as [line, kind, seconds]; only what the timeline reads. */
 const result = (moves: [number, Move['kind'], number][], diagnostics: Partial<Diagnostic>[] = []): SimulationResult =>
   ({
-    moves: moves.map(([line, kind, durationS]) => ({ line, kind, durationS })) as Move[],
+    moves: moves.map(([line, kind, durationS]) => ({ line, kind, durationS, state: { feedPerMinute: true } })) as Move[],
     diagnostics: diagnostics as Diagnostic[],
     finished: true,
     totalTimeS: 0,
@@ -52,7 +52,7 @@ describe('playback stops', () => {
 describe('overrides', () => {
   it('scale feed and rapid times, and keep the same point of the program', () => {
     const plain = buildTimeline(r)
-    const slow = buildTimeline(r, { feed: 0.5, rapid: 0.25 })
+    const slow = buildTimeline(r, { feed: 0.5, rapid: 0.25, spindle: 1 })
     // Rapid 2 s at 25 % → 8 s; feeds 3+3+4 s at 50 % → 20 s
     expect(slow.total).toBe(28)
     // Halfway through the first feed (2 + 1.5 s) → 8 + 3 s on the slower timeline
@@ -81,7 +81,7 @@ describe('distance to go', () => {
 
 describe('operations', () => {
   const ops = (tools: [number, Move['kind'], number][]) =>
-    operations(buildTimeline({ ...result([]), moves: tools.map(([tool, kind, durationS], line) => ({ line, kind, durationS, state: { tool } })) as unknown as Move[] }))
+    operations(buildTimeline({ ...result([]), moves: tools.map(([tool, kind, durationS], line) => ({ line, kind, durationS, state: { tool, feedPerMinute: true } })) as unknown as Move[] }))
 
   it('splits the program where the tool changes, with times and lines', () => {
     const list = ops([
@@ -100,5 +100,27 @@ describe('operations', () => {
 
   it('is empty without moves', () => {
     expect(ops([])).toEqual([])
+  })
+})
+
+describe('overrides on the cycle time', () => {
+  const o = { feed: 1.5, rapid: 0.25, spindle: 0.8 }
+  const mv = (kind: Move['kind'], feedPerMinute: boolean, thread?: boolean) => ({ kind, thread, state: { feedPerMinute } })
+
+  it('rapids follow the rapid override, dwells nothing', () => {
+    expect(overrideFactor(mv('rapid', true), o)).toBe(0.25)
+    expect(overrideFactor(mv('dwell', true), o)).toBe(1)
+  })
+
+  it('feed per minute follows the feed override only', () => {
+    expect(overrideFactor(mv('feed', true), o)).toBe(1.5)
+  })
+
+  it('feed per revolution (G95) also follows the spindle override', () => {
+    expect(overrideFactor(mv('feed', false), o)).toBeCloseTo(1.2, 12)
+  })
+
+  it('threads follow the spindle only: the feed override is off while threading', () => {
+    expect(overrideFactor(mv('feed', false, true), o)).toBe(0.8)
   })
 })

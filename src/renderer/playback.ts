@@ -10,20 +10,34 @@ export interface Timeline {
   movesByLine: Map<number, number[]>
 }
 
-/** Panel overrides as fractions (1 = 100 %): cutting feed and rapid traverse. */
+/** Panel overrides as fractions (1 = 100 %): cutting feed, rapid traverse and spindle speed. */
 export interface Overrides {
   feed: number
   rapid: number
+  spindle: number
 }
-export const NO_OVERRIDE: Overrides = { feed: 1, rapid: 1 }
+export const NO_OVERRIDE: Overrides = { feed: 1, rapid: 1, spindle: 1 }
 
-/** Times follow the overrides, as the machine's cycle time does (dwells are not affected). */
+/**
+ * How much faster a move runs with the overrides, as on the machine: rapids follow the rapid override;
+ * cutting feed follows the feed override, and also the spindle override when it is fed per revolution
+ * (G95, the lathe's usual mode); threads follow only the spindle (the feed override is off while
+ * threading); dwells are not affected.
+ */
+export function overrideFactor(m: Pick<Move, 'kind' | 'thread'> & { state: Pick<Move['state'], 'feedPerMinute'> }, o: Overrides): number {
+  if (m.kind === 'rapid') return o.rapid
+  if (m.kind !== 'feed') return 1
+  if (m.thread) return o.spindle
+  return m.state.feedPerMinute ? o.feed : o.feed * o.spindle
+}
+
+/** Times follow the overrides, as the machine's cycle time does. */
 export function buildTimeline(result: SimulationResult, overrides: Overrides = NO_OVERRIDE): Timeline {
   const cumulative = [0]
   const movesByLine = new Map<number, number[]>()
   let t = 0
   result.moves.forEach((m, i) => {
-    t += m.kind === 'rapid' ? m.durationS / overrides.rapid : m.kind === 'feed' ? m.durationS / overrides.feed : m.durationS
+    t += m.durationS / overrideFactor(m, overrides)
     cumulative.push(t)
     const list = movesByLine.get(m.line)
     if (list) list.push(i)
