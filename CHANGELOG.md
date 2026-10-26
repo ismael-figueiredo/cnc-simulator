@@ -4,6 +4,52 @@ Cada versão em português e inglês. · Each version in Portuguese and English.
 
 Downloads: https://github.com/ismael-figueiredo/cnc-simulator/releases
 
+## 0.17.0 · 2026-10-26
+
+### Português
+**Tela de máquina como a do comando.**
+- **Display:**
+  - barra de título com a página (PROGRAM CHECK, POSITION (ALL), ALARM MESSAGE…), o modo MEM/EDIT, STRT/HOLD e ALM piscando;
+  - posição, rotação e avanço com os overrides, e o programa.
+- **Softkeys** físicas embaixo da tela, com os rótulos de cada grupo (GRAPH, PROGRM, CHECK, OFFSET, WORK, ALARM…).
+- **Teclado MDI** ao lado:
+  - POS, PROG, OFS/SET, SYSTEM, MESSAGE e GRAPH trocam a página, e a tecla MESSAGE acende quando há alarme;
+  - RESET;
+  - setas e PAGE andam pelo programa;
+  - HELP abre o tour.
+
+  As teclas de endereço e de edição explicam para que servem.
+- **Painel de operação:**
+  - seletor MODE (EDIT/MEM; MDI, JOG e REF ficam visíveis, mas não são simulados);
+  - **CYCLE START** verde e **FEED HOLD**;
+  - teclas com LED: SINGLE BLOCK, OPT STOP e BLOCK SKIP;
+  - **knobs de override** de avanço (10–150 %), rápido (F0/25/50/100 %) e árvore (50–120 %); clique sobe, o botão direito desce e a roda gira.
+- **Alarme como na máquina:** uma linha vermelha no alto da tela com número e texto curto; a página **ALARM MESSAGE** traz a mensagem completa e vai ao bloco.
+- A **simulação** (velocidade e linha do tempo) fica numa barra separada, abaixo do painel.
+- Em janelas estreitas o MDI mostra só as teclas de função e o painel fica compacto.
+
+### English
+**Machine screen like the control's.**
+- **Display:**
+  - title bar with the page (PROGRAM CHECK, POSITION (ALL), ALARM MESSAGE…), the MEM/EDIT mode, STRT/HOLD and a blinking ALM;
+  - position, spindle and feed with the overrides, and the program.
+- **Soft keys** under the screen, with each group's labels (GRAPH, PROGRM, CHECK, OFFSET, WORK, ALARM…).
+- **MDI keys** beside it:
+  - POS, PROG, OFS/SET, SYSTEM, MESSAGE and GRAPH switch pages, and the MESSAGE key lights up on an alarm;
+  - RESET;
+  - the arrows and PAGE step through the program;
+  - HELP opens the tour.
+
+  The address and editing keys explain what they are for.
+- **Operator panel:**
+  - MODE selector (EDIT/MEM; MDI, JOG and REF are shown but not simulated);
+  - green **CYCLE START** and **FEED HOLD**;
+  - lit keys: SINGLE BLOCK, OPT STOP and BLOCK SKIP;
+  - **override knobs** for feed (10–150 %), rapid (F0/25/50/100 %) and spindle (50–120 %); click turns up, right click turns down, the wheel both ways.
+- **Alarms as on the machine:** a red line across the top of the screen with the number and short text; the **ALARM MESSAGE** page has the full message and goes to the block.
+- The **simulation** (speed and timeline) has its own bar under the panel.
+- On narrow windows the MDI shows only the function keys and the panel gets compact.
+
 ## 0.16.0 · 2026-10-26
 
 ### Português
