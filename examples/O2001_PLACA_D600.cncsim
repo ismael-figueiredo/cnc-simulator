@@ -2,9 +2,9 @@
   "format": "cnc-simulator-project",
   "version": 1,
   "description": {
-    "en": "Aluminium plate · Romi D600, Fanuc 0i-MF · facing, G41 contour, pocket, G81/G83/G84 holes, engraving; T7 shows a holder collision warning",
-    "pt-BR": "Placa de alumínio · Romi D600, Fanuc 0i-MF · faceamento, contorno G41, bolsão, furos G81/G83/G84, gravação; a T7 mostra o aviso de colisão do suporte",
-    "es": "Placa de aluminio · Romi D600, Fanuc 0i-MF · planeado, contorno G41, cajera, agujeros G81/G83/G84, grabado; la T7 muestra el aviso de colisión del portaherramientas"
+    "en": "Aluminium plate · Romi D600, Fanuc 0i-MF · facing, G41 contour, pocket, G81/G83/G84 holes, engraving",
+    "pt-BR": "Placa de alumínio · Romi D600, Fanuc 0i-MF · faceamento, contorno G41, bolsão, furos G81/G83/G84, gravação",
+    "es": "Placa de aluminio · Romi D600, Fanuc 0i-MF · planeado, contorno G41, cajera, agujeros G81/G83/G84, grabado"
   },
   "program": "O2001_PLACA_D600.nc",
   "machine": "romi-d600",

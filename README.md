@@ -75,7 +75,7 @@ Start with the **exercises** on the start screen (E01 to E04, with **Check**), t
 |---|---|---|
 | **O1001** stepped shaft | Romi GL 300 lathe | Facing, roughing passes by hand, finishing with automatic `,C` chamfers and `,R` radii, grooving |
 | **O1002** threaded shaft | Romi GL 300 lathe | The same part with canned cycles: G71 roughing, G70 finishing, G76 thread |
-| **O2001** plate | Romi D600 machining center | Face milling, contour with G41, pocket, drilling and tapping cycles G81/G83/G84, engraving; T7 shows a holder collision |
+| **O2001** plate | Romi D600 machining center | Face milling, contour with G41, pocket, drilling and tapping cycles G81/G83/G84, engraving |
 | **O2002** two vises | Romi D600 machining center | G54 and G55 work offsets, M98/M99 subprograms, machine coordinates |
 | **O3001** two fixtures | Haas VF-2 | The same job on Haas: G154 work offsets and M97 local subprograms |
 | **O1500** sprocket | Romi GL 250 M lathe | A full Macro B parametric program with live tooling and G12.1 |

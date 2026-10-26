@@ -75,7 +75,7 @@ Comece pelos **exercícios** da tela inicial (E01 a E04, com **Conferir**) e dep
 |---|---|---|
 | **O1001** eixo escalonado | Torno Romi GL 300 | Faceamento, passes de desbaste à mão, acabamento com chanfro `,C` e raio `,R` automáticos, canal |
 | **O1002** eixo roscado | Torno Romi GL 300 | A mesma peça com ciclos: desbaste G71, acabamento G70, rosca G76 |
-| **O2001** placa | Centro de usinagem Romi D600 | Faceamento, contorno com G41, bolsão, ciclos de furação e roscamento G81/G83/G84, gravação; o T7 mostra uma colisão de suporte |
+| **O2001** placa | Centro de usinagem Romi D600 | Faceamento, contorno com G41, bolsão, ciclos de furação e roscamento G81/G83/G84, gravação |
 | **O2002** duas morsas | Centro de usinagem Romi D600 | Zeros G54 e G55, subprogramas M98/M99, coordenadas de máquina |
 | **O3001** duas fixações | Haas VF-2 | O mesmo trabalho na Haas: zeros G154 e subprogramas locais M97 |
 | **O1500** coroa | Torno Romi GL 250 M | Programa parametrizado completo em Macro B, com ferramenta acionada e G12.1 |

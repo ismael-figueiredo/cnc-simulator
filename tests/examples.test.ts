@@ -62,14 +62,14 @@ describe('bundled examples', () => {
     expect(runExample(file).chuck).toEqual([])
   })
 
-  it('warns only about the short T7 in the plate example', () => {
-    expect(runExample('O1500_COROA_ANSI40.cncsim').collisions).toEqual([])
-    expect(runExample('O2002_DUAS_MORSAS_D600.cncsim').collisions).toEqual([])
-    expect(runExample('O1001_EIXO_GL300.cncsim').collisions).toEqual([])
-    expect(runExample('O1002_CICLOS_GL300.cncsim').collisions).toEqual([])
-    const plate = runExample('O2001_PLACA_D600.cncsim').collisions
-    // The plunge and the slot: 24 mm deep with 22 mm out of the holder, against the raw top 0.5 mm above Z0
-    expect([...new Set(plate.map((c) => c.tool))]).toEqual([7])
-    expect(plate.map((c) => c.depth)).toEqual([2.5, 2.5])
+  it.each(examples)('%s has no holder or chuck collision', (file) => {
+    const { collisions, chuck } = runExample(file)
+    expect(collisions.map((c) => `T${c.tool} L${c.line + 1}`)).toEqual([])
+    expect(chuck.map((c) => `T${c.tool} L${c.line + 1}`)).toEqual([])
+  })
+
+  it.each(examples)('%s runs with no warning', (file) => {
+    const { result } = runExample(file)
+    expect(result.diagnostics.map((d) => `${d.severity} ${d.code} L${d.line + 1}`)).toEqual([])
   })
 })

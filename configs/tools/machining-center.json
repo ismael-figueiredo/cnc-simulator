@@ -97,11 +97,11 @@
     {
       "number": 7,
       "offset": 7,
-      "name": { "en": "Ø8 endmill, short (deep pocket)", "pt-BR": "Fresa de topo Ø8 curta (bolsão fundo)", "es": "Fresa plana Ø8 corta (cajera profunda)" },
+      "name": { "en": "Ø8 endmill, long (deep slot)", "pt-BR": "Fresa de topo Ø8 longa (rasgo fundo)", "es": "Fresa plana Ø8 larga (ranura profunda)" },
       "type": "flat-endmill",
       "diameter": 8,
-      "length": 22,
-      "fluteLength": 16,
+      "length": 36,
+      "fluteLength": 26,
       "flutes": 3,
       "holder": "bt40-er32"
     }
