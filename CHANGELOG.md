@@ -4,6 +4,16 @@ Cada versão em português e inglês. · Each version in Portuguese and English.
 
 Downloads: https://github.com/ismael-figueiredo/cnc-simulator/releases
 
+## 0.19.4 · 2026-10-26
+
+### Português
+**Correção: ferramenta do torno trocando de lado.**
+- No faceamento até o centro (por exemplo `G01 X-1.`), a ponta passa um pouco do eixo e a ferramenta era desenhada do lado oposto; ao voltar para a torre, ela pulava de volta. Agora a ferramenta fica sempre do lado da torre; só gira em volta do eixo quando a ponta realmente anda em volta dele (interpolação polar).
+
+### English
+**Fix: lathe tool switching sides.**
+- When facing to the center (for example `G01 X-1.`), the tip passes the axis slightly and the tool was drawn on the opposite side; going back to the turret, it jumped back. The tool now stays on the turret's side; it only turns around the axis when the tip really goes around it (polar interpolation).
+
 ## 0.19.3 · 2026-10-26
 
 ### Português
