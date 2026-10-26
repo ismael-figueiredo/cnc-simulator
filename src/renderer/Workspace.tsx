@@ -373,6 +373,7 @@ export function Workspace({ init, cfg, active, layout, learn, onLearn, onHelp, o
   const [speed, setSpeed] = useState(20)
   const [showRapids, setShowRapids] = useState(true)
   const [showStock, setShowStock] = useState(true)
+  const [showFixture, setShowFixture] = useState(true)
   /** Lathe: chuck and part turn in C while the tool stays in X/Z (off: the part stands still). */
   const [machineView, setMachineView] = useState(true)
   /** Show the stock being cut where the tool passes. */
@@ -733,8 +734,8 @@ export function Workspace({ init, cfg, active, layout, learn, onLearn, onHelp, o
   const chuckCollisions = useMemo(() => {
     if (!lathe) return []
     const shift = workShift(setup.workOffsets, setup.stock?.workOffset ?? 'G54')
-    return findChuckCollisions(result?.moves ?? [], setup.stock, [0, 0, shift.Z])
-  }, [result, setup, lathe])
+    return findChuckCollisions(result?.moves ?? [], setup.stock, [0, 0, shift.Z], machine?.chuck)
+  }, [result, setup, lathe, machine])
   const chuckHit = !!move && chuckCollisions.some((c) => c.line === move.line && c.tool === move.state.tool)
   const ballTools = useMemo(() => new Set(setup.tools?.tools.filter((x) => x.type === 'ball-endmill').map((x) => x.number) ?? []), [setup.tools])
   /** Stock wrapping what the program cuts, offered in the stock editor. */
@@ -912,6 +913,7 @@ export function Workspace({ init, cfg, active, layout, learn, onLearn, onHelp, o
           chuckHit={chuckHit}
           showRapids={showRapids}
           showStock={showStock}
+          showFixture={showFixture}
           view={view}
           follow={follow}
           measuring={measuring}
@@ -923,10 +925,11 @@ export function Workspace({ init, cfg, active, layout, learn, onLearn, onHelp, o
       <ViewToolbar
         lathe={lathe}
         onView={(kind) => setView((v) => ({ kind, n: v.n + 1 }))}
-        display={{ rapids: showRapids, stock: showStock, machining, machineView, finished }}
+        display={{ rapids: showRapids, stock: showStock, fixture: showFixture, machining, machineView, finished }}
         onDisplay={(c) => {
           if (c.rapids !== undefined) setShowRapids(c.rapids)
           if (c.stock !== undefined) setShowStock(c.stock)
+          if (c.fixture !== undefined) setShowFixture(c.fixture)
           if (c.machining !== undefined) setMachining(c.machining)
           if (c.machineView !== undefined) setMachineView(c.machineView)
           if (c.finished !== undefined) setFinished(c.finished)

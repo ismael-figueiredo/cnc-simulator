@@ -5,6 +5,8 @@ import type { ViewKind } from '../views'
 export interface DisplayOptions {
   rapids: boolean
   stock: boolean
+  /** Chuck (lathes) or table and vise (machining centers). */
+  fixture: boolean
   machining: boolean
   /** Lathe only: chuck and part turn in C while the tool stays in X/Z. */
   machineView: boolean
@@ -83,6 +85,7 @@ export function ViewToolbar({ lathe, onView, display, onDisplay, ortho, onOrtho,
   const layers: { key: keyof DisplayOptions; label: string; hint?: string }[] = [
     { key: 'rapids', label: t('layers.rapids') },
     { key: 'stock', label: t('layers.stock') },
+    { key: 'fixture', label: lathe ? t('layers.chuck') : t('layers.table') },
     { key: 'machining', label: t('layers.machining'), hint: t('layers.machiningHint') },
     { key: 'finished', label: t('layers.finished'), hint: t('layers.finishedHint') },
     ...(lathe ? [{ key: 'machineView' as const, label: t('layers.machineView'), hint: t('layers.machineViewHint') }] : [])

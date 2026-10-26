@@ -599,5 +599,7 @@ export const es: Record<MessageKey, string> = {
   'brand.tagline': 'G-code · Torno · Fresa',
   'offsets.keepStock': 'El bruto queda sujeto en la mesa ({offset})',
   'offsets.keepStockOn': 'Como en la máquina: cambiar el cero cambia dónde corta el programa en la pieza (un cero equivocado corta en el aire o dentro de la pieza).',
-  'offsets.keepStockOff': 'El bruto sigue al cero: úselo para corregir dónde está realmente la pieza.'
+  'offsets.keepStockOff': 'El bruto sigue al cero: úselo para corregir dónde está realmente la pieza.',
+  'layers.chuck': 'Plato',
+  'layers.table': 'Mesa y mordaza'
 }

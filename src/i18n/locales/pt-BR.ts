@@ -599,5 +599,7 @@ export const ptBR: Record<MessageKey, string> = {
   'brand.tagline': 'G-code · Torno · Fresa',
   'offsets.keepStock': 'O blank fica preso na mesa ({offset})',
   'offsets.keepStockOn': 'Como na máquina: mudar o zero muda onde o programa corta na peça (um zero errado corta no ar ou dentro da peça).',
-  'offsets.keepStockOff': 'O blank acompanha o zero: use para corrigir onde a peça realmente está.'
+  'offsets.keepStockOff': 'O blank acompanha o zero: use para corrigir onde a peça realmente está.',
+  'layers.chuck': 'Placa',
+  'layers.table': 'Mesa e morsa'
 }

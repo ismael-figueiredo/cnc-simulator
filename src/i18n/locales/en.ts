@@ -599,7 +599,9 @@ export const en = {
   'brand.tagline': 'G-code · Lathe · Mill',
   'offsets.keepStock': 'The stock stays clamped on the table ({offset})',
   'offsets.keepStockOn': 'As on the machine: changing the zero moves where the program cuts on the part (a wrong zero cuts in the air or into the part).',
-  'offsets.keepStockOff': 'The stock follows the zero: use it to correct where the part really is.'
+  'offsets.keepStockOff': 'The stock follows the zero: use it to correct where the part really is.',
+  'layers.chuck': 'Chuck',
+  'layers.table': 'Table and vise'
 } as const
 
 export type MessageKey = keyof typeof en
