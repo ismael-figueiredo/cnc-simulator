@@ -4,6 +4,16 @@ Cada versão em português e inglês. · Each version in Portuguese and English.
 
 Downloads: https://github.com/ismael-figueiredo/cnc-simulator/releases
 
+## 0.19.3 · 2026-10-26
+
+### Português
+**Correção: a barra piscando junto da placa.**
+- A ponta da barra ficava exatamente no plano da face da placa, e as castanhas exatamente sobre a superfície da barra; ao girar a vista, a tela alternava entre as duas superfícies ("piscava"). A placa agora é desenhada 0,6 mm atrás e as castanhas com uma folga mínima, só no desenho: a verificação de colisão com a placa continua igual.
+
+### English
+**Fix: the bar flickering at the chuck.**
+- The bar's end was exactly on the chuck face's plane, and the jaws exactly on the bar's surface; as the view turned, the screen switched between the two surfaces (flicker). The chuck is now drawn 0.6 mm back and the jaws with a tiny gap, in the drawing only: the chuck collision check is unchanged.
+
 ## 0.19.2 · 2026-10-26
 
 ### Português
