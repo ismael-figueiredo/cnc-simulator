@@ -38,11 +38,14 @@ function buildMenu(): void {
           label: t('menu.openRecent'),
           submenu: recentMenu()
         },
+        { label: t('menu.examples'), click: (_item, win) => sendCommand(win, 'start:examples') },
+        { label: t('menu.exercises'), click: (_item, win) => sendCommand(win, 'start:exercises') },
         { type: 'separator' },
         { label: t('menu.save'), accelerator: 'CmdOrCtrl+S', click: (_item, win) => sendCommand(win, 'save') },
         { label: t('menu.saveAs'), accelerator: 'CmdOrCtrl+Shift+S', click: (_item, win) => sendCommand(win, 'saveAs') },
         { label: t('menu.saveProject'), accelerator: 'CmdOrCtrl+Alt+S', click: (_item, win) => sendCommand(win, 'saveProject') },
         { type: 'separator' },
+        { label: t('menu.closeTab'), accelerator: 'CmdOrCtrl+W', click: (_item, win) => sendCommand(win, 'closeTab') },
         {
           label: t('menu.home'),
           accelerator: 'CmdOrCtrl+Shift+H',
@@ -51,12 +54,25 @@ function buildMenu(): void {
           }
         },
         { type: 'separator' },
-        isMac ? { role: 'close', label: t('menu.closeWindow') } : { role: 'quit', label: t('menu.quit') }
+        isMac ? { role: 'close', label: t('menu.closeWindow'), accelerator: 'CmdOrCtrl+Shift+W' } : { role: 'quit', label: t('menu.quit') }
       ]
     },
     {
       label: t('menu.view'),
       submenu: [
+        { label: t('layout.machine'), accelerator: 'CmdOrCtrl+1', click: (_item, win) => sendCommand(win, 'layout:machine') },
+        { label: t('layout.model'), accelerator: 'CmdOrCtrl+2', click: (_item, win) => sendCommand(win, 'layout:model') },
+        {
+          label: t('menu.views'),
+          submenu: [
+            { label: t('menu.viewIso'), click: (_item, win) => sendCommand(win, 'view:iso') },
+            { label: t('menu.viewTop'), click: (_item, win) => sendCommand(win, 'view:top') },
+            { label: t('menu.viewFront'), click: (_item, win) => sendCommand(win, 'view:front') },
+            { label: t('menu.viewSide'), click: (_item, win) => sendCommand(win, 'view:side') }
+          ]
+        },
+        { label: t('menu.learn'), click: (_item, win) => sendCommand(win, 'learn') },
+        { type: 'separator' },
         { role: 'reload', label: t('menu.reload') },
         { role: 'forceReload', label: t('menu.forceReload') },
         { role: 'toggleDevTools', label: t('menu.toggleDevTools') },
@@ -73,7 +89,7 @@ function buildMenu(): void {
       submenu: [
         { role: 'minimize', label: t('menu.minimize') },
         ...(isMac ? [{ role: 'zoom' as const, label: t('menu.zoom') }] : []),
-        { role: 'close', label: t('menu.closeWindow') }
+        { role: 'close', label: t('menu.closeWindow'), accelerator: 'CmdOrCtrl+Shift+W' }
       ]
     },
     {
@@ -95,6 +111,9 @@ function buildMenu(): void {
       role: 'help',
       label: t('menu.help'),
       submenu: [
+        { label: t('menu.tour'), click: (_item, win) => sendCommand(win, 'tour') },
+        { label: t('menu.shortcuts'), click: (_item, win) => sendCommand(win, 'shortcuts') },
+        { type: 'separator' },
         {
           label: t('menu.reportProblem'),
           click: (_item, win) => void reportProblem(win instanceof BrowserWindow ? win : undefined, t)

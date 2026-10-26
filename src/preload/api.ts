@@ -26,8 +26,26 @@ export interface RecentItem {
   missing?: boolean
 }
 
-/** File menu items handled by the window (it owns the program text). */
-export type MenuCommand = 'new' | 'save' | 'saveAs' | 'saveProject'
+/** Menu items handled by the window: the File menu's document actions, the View menu and the tour. */
+export type MenuCommand =
+  | 'new'
+  | 'open'
+  | 'save'
+  | 'saveAs'
+  | 'saveProject'
+  | 'closeTab'
+  | 'home'
+  | 'start:examples'
+  | 'start:exercises'
+  | 'layout:machine'
+  | 'layout:model'
+  | 'learn'
+  | 'tour'
+  | 'shortcuts'
+  | 'view:iso'
+  | 'view:top'
+  | 'view:front'
+  | 'view:side'
 
 export interface CncApi {
   /** Shows the system dialog and returns the chosen program, or null if cancelled. */
