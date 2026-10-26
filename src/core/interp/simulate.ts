@@ -22,6 +22,7 @@ import type {
   Vec3
 } from '../types'
 import { machineAlarm as catalogAlarm } from './alarms'
+import { arcThrough } from './arcs'
 import { AXES, D2R, isAxis, lerpPosition, positionOf, type Axis, type Position } from './axes'
 import { buildCodeTable, formatCode, type GFn } from './codes'
 import { cutCorner, type Corner } from './corner'
@@ -29,6 +30,7 @@ import { toolOffsetSetting, workOffsetName, writeWorkOffset } from './dataSettin
 import { applyCutterComp } from './cutterComp'
 import { patternRepeat, roughFace, roughTurn, singleCycle, threadPasses, type P2, type Step } from './latheCycles'
 import type { DiagnosticCode } from './diagnostics'
+import { illegalProgramNumber, loadIssues } from './loadChecks'
 import { findLoopEnd, findLoopStart, findSequence, isNcBlock, usesMacro } from './flow'
 import { isIgnoredWrite, isReadOnly, isValidVariable, LAST_COMMON, LAST_LOCAL, MODAL, positionVariable, SYSTEM } from './variables'
 import { createWordReader, DIMENSION } from './words'
@@ -541,39 +543,17 @@ export function simulate(input: SimulationInput): SimulationResult {
       u1 = t.pos[pl.u] / scaleOf(pl.u)
       v1 = t.pos[pl.v] / scaleOf(pl.v)
     }
-    const du = u1 - u0
-    const dv = v1 - v0
-    const d = Math.hypot(du, dv)
-    let cu: number
-    let cv: number
-    if (R !== undefined) {
-      if (d < 1e-9) fatal('arc-start-equals-end')
-      let h2 = R * R - (d * d) / 4
-      if (h2 < 0) {
-        if (h2 > -1e-3 * Math.abs(R)) h2 = 0
-        else fatal('arc-radius-too-small', { r: +R.toFixed(4), half: +(d / 2).toFixed(4) })
-      }
-      const h = Math.sqrt(h2)
-      let sgn = cw ? -1 : 1
-      if (R < 0) sgn = -sgn
-      cu = (u0 + u1) / 2 + (-dv / d) * h * sgn
-      cv = (v0 + v1) / 2 + (du / d) * h * sgn
-    } else {
-      const I = st.polar ? (W['I'] ?? 0) : (W[pl.cu] ?? 0)
-      const J = st.polar ? (W['J'] ?? W['K'] ?? 0) : (W[pl.cv] ?? 0)
-      cu = u0 + I
-      cv = v0 + J
-    }
-    const r0 = Math.hypot(u0 - cu, v0 - cv)
-    const r1 = Math.hypot(u1 - cu, v1 - cv)
-    if (r0 < 1e-9) fatal('arc-center-missing')
+    const center =
+      R !== undefined
+        ? { r: R }
+        : st.polar
+          ? { iu: W['I'] ?? 0, iv: W['J'] ?? W['K'] ?? 0 }
+          : { iu: W[pl.cu] ?? 0, iv: W[pl.cv] ?? 0 }
+    const result = arcThrough(u0, v0, u1, v1, cw, center)
+    if (!result.ok) fatal(result.code, result.params)
+    const { cu, cv, r0, r1, a0, sweep } = result.arc
     const off = Math.abs(r0 - r1)
     if (off > limits.arcTolerance) diag('warning', 'arc-end-off-circle', { diff: +off.toFixed(4), limit: limits.arcTolerance })
-    const a0 = Math.atan2(v0 - cv, u0 - cu)
-    const a1 = Math.atan2(v1 - cv, u1 - cu)
-    let sweep = cw ? a0 - a1 : a1 - a0
-    while (sweep <= 1e-12) sweep += 2 * Math.PI
-    if (d < 1e-9 && R === undefined) sweep = 2 * Math.PI
     const n = Math.max(4, Math.ceil((sweep / (2 * Math.PI)) * 120))
     const start = { ...pos }
     const points: Vec3[] = []
@@ -1486,30 +1466,14 @@ export function simulate(input: SimulationInput): SimulationResult {
 
   try {
     // Load checks: what the control verifies when the file comes in
-    line = 0
-    if (format.startPercent && !layout.startPercent) diag('alarm', 'file-start-percent-missing', undefined, undefined, true)
-    if (format.endPercent && !layout.endPercent) {
-      line = layout.endLine
-      diag('alarm', 'file-end-percent-missing', undefined, undefined, true)
+    for (const issue of loadIssues(layout, blocks, format)) {
+      line = issue.line
+      diag(issue.severity, issue.code, issue.params, undefined, true)
     }
-    if (format.eob === 'semicolon' && format.missingEob !== 'off') {
-      for (const l of layout.missingEob) {
-        line = l
-        diag(format.missingEob === 'alarm' ? 'alarm' : 'warning', 'eob-missing', undefined, undefined, true)
-      }
-    }
-    for (const l of layout.unclosedComments) {
-      line = l
-      diag('warning', 'unclosed-comment', undefined, undefined, true)
-    }
-    const first = blocks[0]
-    line = first?.line ?? 0
-    if (format.programNumber === 'required' && first?.programNumber === undefined) diag('warning', 'program-number-missing', undefined, undefined, true)
-    for (const b of blocks) {
-      if (b.programNumber !== undefined && (b.programNumber < 1 || b.programNumber > limits.maxProgramNumber)) {
-        line = b.line
-        fatal('illegal-program-number', { o: b.programNumber, max: limits.maxProgramNumber })
-      }
+    const badNumber = illegalProgramNumber(blocks, limits.maxProgramNumber)
+    if (badNumber) {
+      line = badNumber.line
+      fatal('illegal-program-number', { o: badNumber.programNumber ?? 0, max: limits.maxProgramNumber })
     }
 
     while (pc < blocks.length) {
