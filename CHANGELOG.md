@@ -4,6 +4,42 @@ Cada versão em português e inglês. · Each version in Portuguese and English.
 
 Downloads: https://github.com/ismael-figueiredo/cnc-simulator/releases
 
+## 0.21.0 · 2026-10-26
+
+### Português
+**Contraponta e ferramentas redesenhadas.**
+- **Contraponta no torno:** centro rotativo (ponta de 60°), mangote e corpo, do lado oposto à placa, com o tamanho do arquivo da máquina (`tailstock`: GL 300 e GL 250 M).
+  - Segue o programa: na Romi GL, **M27** encosta o contraponto na peça e **M26**/**M31** recuam, como no manual (seção 11.3.4). O exemplo O1002 agora usa a contraponta depois do faceamento.
+  - Facear até o centro ou sair pelo eixo com o contraponto encostado aparece nas mensagens como colisão, e o centro fica vermelho.
+  - **Placa** em "O que mostrar" esconde a contraponta também.
+- **Ferramentas de tornear**, desenhadas a partir de fotos de catálogo:
+  - **rosca:** pastilha deitada (laydown) triangular, com a ponta de 60° de frente para a peça, em vez do losango;
+  - **suporte:** haste quadrada com a cabeça em volta do inserto e o parafuso Torx;
+  - **trigon WNMG** com os três cantos de 80°;
+  - barra de mandrilar redonda nas internas, e lâmina com bloco de fixação no bedame.
+- **Fresas e cones:**
+  - **cones BT40/BT30/BT50, CAT40, SK40:** rasgo em V do flange, cone 7:24 que entra no fuso e tirante; cone curto no HSK;
+  - porca chanfrada nas pinças ER;
+  - fresas e brocas com a hélice dos canais, e o cabeçote fresador com os insertos.
+- **Quinas vivas:** cones, ferramentas e a peça torneada passam a ter quinas vivas no sombreado (antes os degraus pareciam arredondados), e o anel sobre os furos ficou mais largo.
+
+### English
+**Tailstock and redrawn tools.**
+- **Lathe tailstock:** live center (60° point), quill and casting opposite the chuck, sized from the machine file (`tailstock`: GL 300 and GL 250 M).
+  - It follows the program: on the Romi GL, **M27** brings the center against the part and **M26**/**M31** back it off, as in the manual (section 11.3.4). The O1002 example now uses the tailstock after facing.
+  - Facing to the axis or backing off along it with the center against the part is listed as a collision, and the center turns red.
+  - **Chuck** in "What to show" hides the tailstock too.
+- **Turning tools**, drawn from catalog photos:
+  - **threading:** a laydown triangular insert with its 60° point square to the part, instead of the rhombus;
+  - **holder:** a square shank with the head around the insert and the Torx screw;
+  - a **WNMG trigon** with its three 80° corners;
+  - a round boring bar for internal tools, and a blade with its clamp block for grooving.
+- **Mills and tapers:**
+  - **BT40/BT30/BT50, CAT40, SK40 tapers:** the flange V-groove, the 7:24 taper going into the spindle and the pull stud; a short taper on HSK;
+  - a chamfered nut on ER collet holders;
+  - end mills and drills with their flute helices, and the face mill with its inserts.
+- **Sharp edges:** tapers, tools and the turned part now shade with sharp edges (shoulders looked rounded before), and the rim over drilled holes is wider.
+
 ## 0.20.0 · 2026-10-26
 
 ### Português
