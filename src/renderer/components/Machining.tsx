@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef } from 'react'
 import { BackSide, BufferAttribute, BufferGeometry, Color, LatheGeometry, Sphere, Uint32BufferAttribute, Vector2, Vector3 } from 'three'
 import { takeDirty, createHeightfield, createProfile, cutHeightfield, cutProfile, holesOf, type Heightfield, type Hole, type Move, type Stock, type TurnProfile, type Vec3 } from '@core/index'
+import { sharpLathe } from './sharpLathe'
 
 interface Props {
   moves: Move[]
@@ -168,7 +169,7 @@ const onStock = (h: Heightfield, hole: Hole) =>
 /** Cells drawn at the hole's bottom: inside it and one cell around, so no slanted triangle shows in it. */
 function seatHole(floor: Float32Array, h: Heightfield, hole: Hole) {
   if (!onStock(h, hole)) return
-  const reach = hole.radius + h.cell
+  const reach = hole.radius + h.cell * 1.5
   const i0 = Math.max(0, Math.floor((hole.x - reach - h.x0) / h.cell))
   const i1 = Math.min(h.nx - 1, Math.ceil((hole.x + reach - h.x0) / h.cell))
   const j0 = Math.max(0, Math.floor((hole.y - reach - h.y0) / h.cell))
@@ -200,7 +201,7 @@ function holeGeometry(holes: readonly Hole[], h: Heightfield, color: string) {
   }
   for (const hole of holes) {
     if (!onStock(h, hole)) continue
-    const outer = hole.radius + h.cell * 1.6
+    const outer = hole.radius + h.cell * 2.6
     // The surface the hole was drilled from: the highest point just outside the ring
     let top = -Infinity
     for (let k = 0; k < 8; k++) {
@@ -319,7 +320,7 @@ export function barGeometry(p: TurnProfile, color: string, _version = 0): LatheG
   p.radii.forEach((r, i) => pts.push(new Vector2(Math.max(r, 0.01), p.face - i * p.cell)))
   pts.push(new Vector2(0, back))
   // LatheGeometry faces outward when the profile goes up its axis: from the back to the face
-  const g = new LatheGeometry(pts.reverse(), 72)
+  const g = sharpLathe(pts.reverse(), 72)
   const pos = g.getAttribute('position') as BufferAttribute
   const colors = new Float32Array(pos.count * 3)
   const raw = new Color(color)
