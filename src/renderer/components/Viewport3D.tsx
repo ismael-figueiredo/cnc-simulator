@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useEffectEvent, useMemo, useRef, useState, type ReactNode } from 'react'
 import { Canvas, useFrame, useThree, type ThreeEvent } from '@react-three/fiber'
-import { GizmoHelper, GizmoViewport, Grid, Html, Line, OrbitControls } from '@react-three/drei'
-import { BufferAttribute, BufferGeometry, ExtrudeGeometry, LatheGeometry, Shape, Vector2, Vector3, type Group } from 'three'
+import { CameraControls, GizmoHelper, GizmoViewcube, Grid, Html, Line, OrthographicCamera, PerspectiveCamera } from '@react-three/drei'
+import type CameraControlsImpl from 'camera-controls'
+import { Box3, BufferAttribute, Sphere, BufferGeometry, ExtrudeGeometry, LatheGeometry, Shape, Vector2, Vector3, type Group } from 'three'
 import {
   chuckGeometry,
   holderOutline,
@@ -20,6 +21,8 @@ import {
   type WorkOffsets
 } from '@core/index'
 import { Machining } from './Machining'
+import { useI18n } from '../i18n'
+import { viewAngles, viewDirection, type ViewKind } from '../views'
 
 interface Props {
   machine: Machine
@@ -54,42 +57,51 @@ interface Props {
   /** The tool may hit the chuck at this move: the jaws turn red. */
   chuckHit: boolean
   /** Camera preset to go to; `n` changes on every request, so the same view can be asked again. */
-  view: { kind: ViewKind; n: number } | null
+  view: { kind: ViewKind; n: number }
   /** Keep the tool in the middle of the view while it moves. */
   follow: boolean
   /** Measuring session (0: off): clicks pick two points and show the distance between them. */
   measuring: number
+  /** Orthographic camera, as CAD programs use by default (false: perspective). */
+  ortho: boolean
+  /** Moves of the operation picked in the feature tree, drawn highlighted. */
+  highlight: { first: number; last: number } | null
 }
 
-/** Quick camera views: isometric, from the top, the front and the side of the machine. */
-export type ViewKind = 'iso' | 'top' | 'front' | 'side'
-
-// Camera direction of each view, in scene coordinates (scene Y is up on mills)
-const VIEW_DIRECTIONS: Record<ViewKind, [number, number, number]> = { iso: [0.58, 0.58, 0.58], top: [0, 1, 0.0001], front: [0, 0, 1], side: [1, 0, 0] }
+export type { ViewKind } from '../views'
 
 /** Machine coordinates to the scene: mills draw machine Z up (scene Y). */
 const toScene = (p: Vec3, lathe: boolean): Vec3 => (lathe ? p : [p[0], p[2], -p[1]])
 
-/** Moves the camera to a view preset and, when following, keeps the tool in the middle. */
-function CameraRig({ view, follow, center, extent, tip }: { view: { kind: ViewKind; n: number } | null; follow: boolean; center: Vec3; extent: number; tip: Vec3 | null }) {
-  const get = useThree((s) => s.get)
-  const [cx, cy, cz] = center
+/** Camera far from the part on its view line: the orthographic view zooms instead of moving closer. */
+const CAMERA_DISTANCE = 3000
+const scaled = ([x, y, z]: [number, number, number], k: number): Vec3 => [x * k, y * k, z * k]
+
+/**
+ * Turns the camera to a standard view and fits the part, with a short transition (camera-controls
+ * leaves no spin behind, so Top and Front end up exactly flat). Follow keeps the tool in the middle.
+ */
+function CameraRig({ view, lathe, box, follow, tip }: { view: { kind: ViewKind; n: number }; lathe: boolean; box: Box3 | null; follow: boolean; tip: Vec3 | null }) {
+  const controls = useThree((s) => s.controls) as unknown as CameraControlsImpl | null
+  /** The part has been framed once: a new path (an edit) does not move the camera again. */
+  const fitted = useRef(false)
+  const apply = useEffectEvent((animate: boolean) => {
+    if (!controls || !box) return
+    if (view.kind !== 'fit') {
+      const { azimuth, polar } = viewAngles(view.kind, lathe)
+      void controls.rotateTo(azimuth, polar, animate)
+    }
+    // fitToBox would snap the angle to the nearest cube face (an isometric view would turn into a side view)
+    void controls.fitToSphere(box.getBoundingSphere(new Sphere()), animate)
+    fitted.current = true
+  })
+  // A view asked for (toolbar, menu); a new camera (perspective or orthographic); the first part shown
+  useEffect(() => apply(true), [view, controls])
   useEffect(() => {
-    const { camera, controls } = get()
-    if (!view || !controls) return
-    const target = (controls as unknown as { target: Vector3; update: () => void })
-    const [dx, dy, dz] = VIEW_DIRECTIONS[view.kind]
-    camera.position.set(cx + dx * extent, cy + dy * extent, cz + dz * extent)
-    target.target.set(cx, cy, cz)
-    target.update()
-  }, [view, get, cx, cy, cz, extent])
-  useFrame((state) => {
-    const controls = state.controls as unknown as { target: Vector3; update: () => void } | null
-    if (!follow || !tip || !controls) return
-    const delta = new Vector3(tip[0], tip[1], tip[2]).sub(controls.target)
-    controls.target.add(delta)
-    state.camera.position.add(delta)
-    controls.update()
+    if (!fitted.current) apply(true)
+  }, [box])
+  useFrame(() => {
+    if (follow && tip && controls) void controls.moveTo(tip[0], tip[1], tip[2], false)
   })
   return null
 }
@@ -160,6 +172,7 @@ const COLORS = {
   cutter: '#d7dee5',
   holder: '#7d8894',
   collision: '#ff4d40',
+  highlight: '#ffffff',
   chuck: '#4b545e',
   jaw: '#8c96a1'
 }
@@ -399,8 +412,11 @@ export function Viewport3D({
   chuckHit,
   view,
   follow,
-  measuring
+  measuring,
+  ortho,
+  highlight
 }: Props) {
+  const { t } = useI18n()
   const lathe = isLathe(machine)
   const size = lathe ? (stock?.diameter ?? 60) : Math.max(stock?.x ?? 100, stock?.y ?? 80)
   // Lathe: far enough to see the chuck and a driven holder (about 150 mm over the tip) together
@@ -427,10 +443,27 @@ export function Viewport3D({
           lo[k] = Math.min(lo[k] ?? 0, q[k] ?? 0)
           hi[k] = Math.max(hi[k] ?? 0, q[k] ?? 0)
         }
-    if (!Number.isFinite(lo[0])) return { center: [0, 0, 0] as Vec3, span: 0 }
-    const c: Vec3 = [((lo[0] ?? 0) + (hi[0] ?? 0)) / 2, ((lo[1] ?? 0) + (hi[1] ?? 0)) / 2, ((lo[2] ?? 0) + (hi[2] ?? 0)) / 2]
-    return { center: c, span: Math.hypot((hi[0] ?? 0) - (lo[0] ?? 0), (hi[1] ?? 0) - (lo[1] ?? 0), (hi[2] ?? 0) - (lo[2] ?? 0)) }
-  }, [result])
+    if (!Number.isFinite(lo[0])) return null
+    // Lathe: the path is on one side of the spindle axis, the part is round: frame both sides
+    if (lathe)
+      for (const k of [0, 1]) {
+        const r = Math.max(Math.abs(lo[k] ?? 0), Math.abs(hi[k] ?? 0))
+        lo[k] = -r
+        hi[k] = r
+      }
+    // In scene coordinates: mills draw machine Z up
+    const a = toScene([lo[0] ?? 0, lo[1] ?? 0, lo[2] ?? 0], lathe)
+    const b = toScene([hi[0] ?? 0, hi[1] ?? 0, hi[2] ?? 0], lathe)
+    const box = new Box3().setFromPoints([new Vector3(...a), new Vector3(...b)])
+    // A program with almost no moves still gets a view the size of the stock
+    if (box.getSize(new Vector3()).length() < size) box.expandByScalar(size / 2)
+    return box
+  }, [result, lathe, size])
+  // The operation picked in the feature tree, drawn bright over the path
+  const highlighted = useMemo(
+    () => (highlight && result ? buildLayer(result.moves.slice(highlight.first, highlight.last + 1), (m) => m.points) : null),
+    [highlight, result]
+  )
   const [picks, setPicks] = useState<{ session: number; points: Vec3[] }>({ session: 0, points: [] })
   const measured = measuring && picks.session === measuring ? picks.points : []
   const part = useRef<Group>(null)
@@ -483,7 +516,13 @@ export function Viewport3D({
   }
 
   return (
-    <Canvas camera={{ position: lathe ? [dist * 0.85, dist * 0.55, dist * 0.8] : [dist, dist, dist], fov: 40, near: 0.5, far: 20000 }} dpr={[1, 2]}>
+    <Canvas dpr={[1, 2]}>
+      {/* CAD-like orthographic view by default; the camera stays far away and zooms */}
+      {ortho ? (
+        <OrthographicCamera makeDefault position={scaled(viewDirection(viewAngles('iso', lathe)), CAMERA_DISTANCE)} near={1} far={CAMERA_DISTANCE * 4} zoom={4} />
+      ) : (
+        <PerspectiveCamera makeDefault position={scaled(viewDirection(viewAngles('iso', lathe)), dist * 1.6)} fov={40} near={0.5} far={20000} />
+      )}
       <color attach="background" args={['#0e1215']} />
       <ambientLight intensity={0.55} />
       <directionalLight position={[120, 200, 160]} intensity={1.1} />
@@ -505,6 +544,14 @@ export function Viewport3D({
           <PathLayer layer={layers.feed} color={COLORS.feed} done={doneOf(layers.feed)} ghostOpacity={0.2} />
           <PathLayer layer={layers.center} color={COLORS.center} done={doneOf(layers.center)} ghostOpacity={0.2} />
           {showRapids && <PathLayer layer={layers.rapid} color={COLORS.rapid} done={doneOf(layers.rapid)} ghostOpacity={0.12} />}
+          {highlighted && (
+            <lineSegments frustumCulled={false} renderOrder={2}>
+              <bufferGeometry>
+                <bufferAttribute attach="attributes-position" args={[highlighted.positions, 3]} />
+              </bufferGeometry>
+              <lineBasicMaterial color={COLORS.highlight} depthTest={false} transparent opacity={0.95} />
+            </lineSegments>
+          )}
           {measured.length > 0 && <Measure points={measured} lathe={lathe} size={size} />}
         </group>
         {toolModel}
@@ -520,10 +567,18 @@ export function Viewport3D({
         fadeDistance={size * 8}
         infiniteGrid
       />
-      <OrbitControls makeDefault enableDamping />
-      <CameraRig view={view} follow={follow} center={toScene(bounds.center, lathe)} extent={Math.max(bounds.span * 1.3, dist * 0.8)} tip={tip ? toScene(tip, lathe) : null} />
-      <GizmoHelper alignment="bottom-right" margin={[64, 64]}>
-        <GizmoViewport labelColor="white" axisHeadScale={0.9} />
+      <CameraControls makeDefault smoothTime={0.25} />
+      <CameraRig view={view} lathe={lathe} box={bounds} follow={follow} tip={tip ? toScene(tip, lathe) : null} />
+      {/* View cube, as in CAD programs: click a face, an edge or a corner to look from there */}
+      <GizmoHelper alignment="top-right" margin={[72, 72]}>
+        <GizmoViewcube
+          faces={[t('cube.right'), t('cube.left'), t('cube.top'), t('cube.bottom'), t('cube.front'), t('cube.back')]}
+          color="#26303a"
+          textColor="#e2e7eb"
+          strokeColor="#6fd3ff"
+          hoverColor="#f0a51e"
+          opacity={0.92}
+        />
       </GizmoHelper>
     </Canvas>
   )
