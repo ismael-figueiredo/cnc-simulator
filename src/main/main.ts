@@ -65,6 +65,8 @@ function buildMenu(): void {
         {
           label: t('menu.views'),
           submenu: [
+            { label: t('view.fit'), accelerator: 'F', registerAccelerator: false, click: (_item, win) => sendCommand(win, 'view:fit') },
+            { type: 'separator' },
             { label: t('menu.viewIso'), click: (_item, win) => sendCommand(win, 'view:iso') },
             { label: t('menu.viewTop'), click: (_item, win) => sendCommand(win, 'view:top') },
             { label: t('menu.viewFront'), click: (_item, win) => sendCommand(win, 'view:front') },

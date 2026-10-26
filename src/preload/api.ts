@@ -46,6 +46,7 @@ export type MenuCommand =
   | 'view:top'
   | 'view:front'
   | 'view:side'
+  | 'view:fit'
 
 export interface CncApi {
   /** Shows the system dialog and returns the chosen program, or null if cancelled. */

@@ -58,6 +58,7 @@ export function ShortcutsDialog({ onClose }: { onClose: () => void }) {
     [t('keys.space'), 'CYCLE START / FEED HOLD'],
     ['Esc', 'RESET'],
     ['S', t('panel.singleBlock')],
+    ['F', t('view.fitHint')],
     [`${mod}+F`, t('keys.find')]
   ]
   return (

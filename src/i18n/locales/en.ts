@@ -61,7 +61,7 @@ export const en = {
 
   'view.title': '3D view',
   'view.editNote': 'EDIT: the path and messages follow your changes. Switch to MEM to run.',
-  'view.hint': 'drag: rotate · right button: pan · wheel: zoom',
+  'view.hint': 'Drag: rotate · right button: pan · wheel: zoom',
   'legend.programmed': 'Programmed path',
   'legend.center': 'Tool center (G41/G42)',
   'legend.rapid': 'Rapid',
@@ -565,7 +565,26 @@ export const en = {
   'tools.machineDefault': 'machine default',
   'tools.noLibrary': 'No library (tools from the program)',
   'tour.fileTitle': 'File and machine',
-  'tour.file': 'Whether this is a project or a program alone, and the machine, control and tools it runs on. Change the machine here.'
+  'tour.file': 'Whether this is a project or a program alone, and the machine, control and tools it runs on. Change the machine here.',
+  'alarm.goHint': 'Go to the block that raised the alarm; the full message is on the MESSAGE page',
+  'cube.right': 'Right',
+  'cube.left': 'Left',
+  'cube.top': 'Top',
+  'cube.bottom': 'Bottom',
+  'cube.front': 'Front',
+  'cube.back': 'Back',
+  'tree.editHint': 'Click to edit',
+  'tree.none': 'none',
+  'tree.opHint': 'Go to the start of this operation and highlight it in 3D (click again to clear)',
+  'tree.program': 'program',
+  'tree.title': 'Document',
+  'view.display': 'What is shown',
+  'view.fit': 'Fit',
+  'view.fitHint': 'Fit the part in the view (zoom to fit)',
+  'view.orthoHint': 'Orthographic view (as in CAD): click for perspective',
+  'view.perspHint': 'Perspective view: click for orthographic',
+  'view.projection': 'Projection',
+  'view.toolbar': 'View'
 } as const
 
 export type MessageKey = keyof typeof en

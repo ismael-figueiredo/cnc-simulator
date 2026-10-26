@@ -44,8 +44,8 @@ import { CodeView } from './components/CodeView'
 import { ProgramEditor, type EditorHandle } from './components/ProgramEditor'
 import { CncModal } from './components/CncModal'
 import { Player, type PanelState, type Strip } from './components/Player'
-import { Operations, toolColor } from './components/Operations'
-import { PositionAll, PositionPanel } from './components/PositionPanel'
+import { toolColor } from './toolColors'
+import { PositionAll } from './components/PositionPanel'
 import { SoftKeys, type Screen } from './components/SoftKeys'
 import { StatusHeader } from './components/StatusHeader'
 import { StockEditor } from './components/StockEditor'
@@ -53,6 +53,9 @@ import { ToolEditor } from './components/ToolEditor'
 import { ToolOffsetsEditor } from './components/ToolOffsetsEditor'
 import { WorkOffsetsEditor } from './components/WorkOffsetsEditor'
 import { PATH_COLORS, Viewport3D, type ViewKind } from './components/Viewport3D'
+import { ViewToolbar } from './components/ViewToolbar'
+import { FeatureTree } from './components/FeatureTree'
+import { AlarmLine } from './components/AlarmLine'
 import { useI18n } from './i18n'
 import { ExerciseCard, type ExerciseCheck } from './components/ExerciseCard'
 import { explainLine, helpForWord } from './help'
@@ -111,6 +114,15 @@ function simInput(
 }
 
 const FONT_KEY = 'cncsim.codeFontSize'
+const ORTHO_KEY = 'cncsim.ortho'
+const readFlag = (key: string, fallback: boolean) => {
+  try {
+    const v = localStorage.getItem(key)
+    return v === null ? fallback : v === '1'
+  } catch {
+    return fallback
+  }
+}
 const WIDTH_KEY = 'cncsim.codeWidth'
 const readNumber = (key: string, fallback: number) => {
   try {
@@ -152,21 +164,25 @@ interface MessagesProps {
   chuckCollisions: ReturnType<typeof findChuckCollisions>
   onDiagnostic: (d: Diagnostic) => void
   onMove: (moveIndex: number) => void
+  /** Without the block and its heading (inside another panel). */
+  bare?: boolean
 }
 
 /**
  * Messages and alarms of the run. Memoized: playback re-renders the app on every frame, and a CAM
  * program can bring thousands of messages that would all be drawn again each time.
  */
-const Messages = memo(function Messages({ issues, diagnostics, collisions, chuckCollisions, onDiagnostic, onMove }: MessagesProps) {
+const Messages = memo(function Messages({ issues, diagnostics, collisions, chuckCollisions, onDiagnostic, onMove, bare }: MessagesProps) {
   const { t } = useI18n()
   const count = diagnostics.length + issues.length + collisions.length + chuckCollisions.length
   return (
-    <div className="block">
-      <h2>
-        {t('messages.title')}
-        {count > 0 && <span className="count">{count}</span>}
-      </h2>
+    <div className={bare ? 'messages' : 'block'}>
+      {!bare && (
+        <h2>
+          {t('messages.title')}
+          {count > 0 && <span className="count">{count}</span>}
+        </h2>
+      )}
       {issues.map((i, k) => (
         <p key={`cfg${k}`} className="msg alarm">
           <b>{t('severity.alarm')}</b>
@@ -321,9 +337,11 @@ export function Workspace({ init, cfg, active, layout, learn, onLearn, onState, 
   const [codeWidth, setCodeWidth] = useState(() => readNumber(WIDTH_KEY, 300))
   /** Page of the machine layout picked with the soft keys. */
   const [screen, setScreen] = useState<Screen>('graph')
-  /** Tab of the CAM layout's side panel. */
-  const [tab, setTab] = useState<'ops' | 'setup' | 'machine' | 'messages'>('ops')
-  const [view, setView] = useState<{ kind: ViewKind; n: number } | null>(null)
+  const [view, setView] = useState<{ kind: ViewKind; n: number }>({ kind: 'iso', n: 0 })
+  /** Orthographic camera (as in CAD programs) or perspective; kept for the next documents. */
+  const [ortho, setOrtho] = useState(() => readFlag(ORTHO_KEY, true))
+  /** Operation picked in the feature tree (highlighted in 3D), -1 for none. */
+  const [selectedOp, setSelectedOp] = useState(-1)
   const [follow, setFollow] = useState(false)
   /** Measuring session in the 3D view, 0 when off (each new session starts with no points). */
   const [measuring, setMeasuring] = useState(0)
@@ -600,7 +618,7 @@ export function Workspace({ init, cfg, active, layout, learn, onLearn, onState, 
     command: (command: MenuCommand) => {
       if (command === 'save' || command === 'saveAs') void save(command === 'saveAs')
       else if (command === 'saveProject') void saveProject(false)
-      else if (command.startsWith('view:')) setView((v) => ({ kind: command.slice(5) as ViewKind, n: (v?.n ?? 0) + 1 }))
+      else if (command.startsWith('view:')) setView((v) => ({ kind: command.slice(5) as ViewKind, n: v.n + 1 }))
     },
     canClose: canDiscard
   }))
@@ -632,7 +650,6 @@ export function Workspace({ init, cfg, active, layout, learn, onLearn, onState, 
   }, [diagnostics])
   const hits = useMemo(() => new Set(tl?.movesByLine.keys() ?? []), [tl])
 
-  const diagText = (d: Diagnostic) => t(`diag.${d.code}`, d.params)
   /** A diagnostic on a line without moves (e.g. the alarm block) goes to where the machine stopped. */
   const jumpToDiagnostic = useCallback(
     (d: Diagnostic) => {
@@ -712,6 +729,7 @@ export function Workspace({ init, cfg, active, layout, learn, onLearn, onState, 
   const messageCount = diagnostics.length + cfg.issues.length + collisions.length + chuckCollisions.length
   const ops = useMemo(() => (tl ? operations(tl) : []), [tl])
   const currentOp = index < 0 ? -1 : ops.findIndex((o) => o.first <= index && index <= o.last)
+  const highlightOp = selectedOp >= 0 ? ops[selectedOp] : undefined
   const toolNames = useMemo(() => new Map(setup.tools?.tools.map((x) => [x.number, l(x.name)]) ?? []), [setup.tools, l])
   // Timeline under the slider: tools in color, and where the run stops, alarms or may collide
   const strip = useMemo<Strip | undefined>(() => {
@@ -739,6 +757,8 @@ export function Workspace({ init, cfg, active, layout, learn, onLearn, onState, 
       togglePlay()
     } else if (e.key === 'Escape') seek(0)
     else if (e.key.toLowerCase() === 's') changePanel({ singleBlock: !panel.singleBlock })
+    // F: zoom to fit, as in CAD programs
+    else if (e.key.toLowerCase() === 'f') setView((v) => ({ kind: 'fit', n: v.n + 1 }))
     else return
     e.preventDefault()
   })
@@ -812,48 +832,6 @@ export function Workspace({ init, cfg, active, layout, learn, onLearn, onState, 
         )}
       </section>
   )
-  const viewTitle = (
-    <div className="panel-title">
-      <span>{t('view.title')}</span>
-      <span className="layers">
-        <label>
-          <input id="layer-rapids" type="checkbox" checked={showRapids} onChange={(e) => setShowRapids(e.target.checked)} />
-          {t('layers.rapids')}
-        </label>
-        <label>
-          <input id="layer-stock" type="checkbox" checked={showStock} onChange={(e) => setShowStock(e.target.checked)} />
-          {t('layers.stock')}
-        </label>
-        <label title={t('layers.machiningHint')}>
-          <input id="layer-machining" type="checkbox" checked={machining} onChange={(e) => setMachining(e.target.checked)} />
-          {t('layers.machining')}
-        </label>
-        {lathe && (
-          <label title={t('layers.machineViewHint')}>
-            <input id="layer-machine-view" type="checkbox" checked={machineView} onChange={(e) => setMachineView(e.target.checked)} />
-            {t('layers.machineView')}
-          </label>
-        )}
-      </span>
-    </div>
-  )
-  const viewTools = (
-    <div className="view-tools">
-      <span className="group" role="group" title={t('view.viewHint')}>
-        {(['iso', 'top', 'front', 'side'] as const).map((k) => (
-          <button key={k} className="btn tiny" onClick={() => setView((v) => ({ kind: k, n: (v?.n ?? 0) + 1 }))}>
-            {t(`view.${k}`)}
-          </button>
-        ))}
-      </span>
-      <button className={`btn tiny ${follow ? 'on' : ''}`} aria-pressed={follow} title={t('view.followHint')} onClick={() => setFollow(!follow)}>
-        {t('view.follow')}
-      </button>
-      <button className={`btn tiny ${measuring ? 'on' : ''}`} aria-pressed={!!measuring} title={t('view.measureHint')} onClick={() => setMeasuring(measuring ? 0 : Date.now())}>
-        {t('view.measure')}
-      </button>
-    </div>
-  )
   const stage = (
     <div className={`stage ${measuring ? 'measuring' : ''}`}>
       {machine && (
@@ -880,14 +858,50 @@ export function Workspace({ init, cfg, active, layout, learn, onLearn, onState, 
           view={view}
           follow={follow}
           measuring={measuring}
+          ortho={ortho}
+          highlight={highlightOp ? { first: highlightOp.first, last: highlightOp.last } : null}
         />
+      )}
+      <ViewToolbar
+        lathe={lathe}
+        onView={(kind) => setView((v) => ({ kind, n: v.n + 1 }))}
+        display={{ rapids: showRapids, stock: showStock, machining, machineView }}
+        onDisplay={(c) => {
+          if (c.rapids !== undefined) setShowRapids(c.rapids)
+          if (c.stock !== undefined) setShowStock(c.stock)
+          if (c.machining !== undefined) setMachining(c.machining)
+          if (c.machineView !== undefined) setMachineView(c.machineView)
+        }}
+        ortho={ortho}
+        onOrtho={(on) => {
+          setOrtho(on)
+          try {
+            localStorage.setItem(ORTHO_KEY, on ? '1' : '0')
+          } catch {
+            // not kept
+          }
+        }}
+        follow={follow}
+        onFollow={setFollow}
+        measuring={!!measuring}
+        onMeasure={() => setMeasuring(measuring ? 0 : Date.now())}
+      />
+      {/* 3D model: the position stays in a corner of the view */}
+      {layout === 'model' && position && (
+        <div className="stage-dro">
+          {shownAxes.map((ax) => (
+            <span key={ax}>
+              <b>{ax}</b> {position[ax as keyof typeof position].toFixed(3)}
+            </span>
+          ))}
+          {move && <span className="muted">{t('position.blockValue', { line: move.line + 1, move: index + 1, total: moves.length })}</span>}
+        </div>
       )}
       <div className="legend">
         <span><i style={{ borderColor: PATH_COLORS.feed }} />{t('legend.programmed')}</span>
         <span><i style={{ borderColor: PATH_COLORS.center }} />{t('legend.center')}</span>
         <span><i style={{ borderColor: PATH_COLORS.rapid }} />{t('legend.rapid')}</span>
       </div>
-      <div className="hint">{t('view.hint')}</div>
       {mode === 'edit' && <div className="edit-note">{t('view.editNote')}</div>}
       {busy && <div className="busy-note">{t('sim.running')}</div>}
       {exercise && (
@@ -900,17 +914,6 @@ export function Workspace({ init, cfg, active, layout, learn, onLearn, onState, 
           onCheck={checkExercise}
           onClose={() => setExercise(null)}
         />
-      )}
-      {stoppedBy && (
-        <button className="alarm-banner" onClick={() => jumpToDiagnostic(stoppedBy)}>
-          <b>
-            {t('alarm.title')} {stoppedBy.alarm?.code}
-          </b>
-          {stoppedBy.alarm?.message && <span className="machine-msg">{stoppedBy.alarm.message}</span>}
-          <span>
-            {t('alarm.line', { line: stoppedBy.line + 1 })} · {diagText(stoppedBy)}
-          </span>
-        </button>
       )}
     </div>
   )
@@ -931,12 +934,6 @@ export function Workspace({ init, cfg, active, layout, learn, onLearn, onState, 
       strip={strip}
     />
   )
-  const opsBlock = (
-    <div className="block">
-      <h2>{t('ops.title')}</h2>
-      <Operations operations={ops} names={toolNames} current={currentOp} onPick={(op) => seek(op.start + 1e-6)} />
-    </div>
-  )
   const projectBlock = (
     <div className="block">
       <h2>{t('project.title')}</h2>
@@ -947,20 +944,20 @@ export function Workspace({ init, cfg, active, layout, learn, onLearn, onState, 
       <p className="muted small">{t('project.explain')}</p>
     </div>
   )
-  const positionBlock = (
-    <div className="block">
-      <h2>{t('position.title')}</h2>
-      <PositionPanel move={move} position={position} machinePosition={machinePosition} index={index} total={result?.moves.length ?? 0} axes={shownAxes} />
-      {result && (
-        <p className="muted">
-          {t('sim.summary', { moves: result.moves.length, time: formatTime(tl?.total ?? result.totalTimeS) })} ·{' '}
-          {result.finished ? t('sim.finished') : t('sim.stopped')}
-        </p>
-      )}
-    </div>
-  )
   const messagesBlock = (
     <Messages
+      issues={cfg.issues}
+      diagnostics={diagnostics}
+      collisions={collisions}
+      chuckCollisions={chuckCollisions}
+      onDiagnostic={jumpToDiagnostic}
+      onMove={seekMove}
+    />
+  )
+  /** The same messages without their heading, under the feature tree's Messages node. */
+  const messagesList = (
+    <Messages
+      bare
       issues={cfg.issues}
       diagnostics={diagnostics}
       collisions={collisions}
@@ -1103,49 +1100,46 @@ export function Workspace({ init, cfg, active, layout, learn, onLearn, onState, 
     <div className={`workspace ${active ? 'active' : ''}`} hidden={!active}>
       {
         layout === 'model' ? (
-          <main className="layout" style={{ '--code-w': `${codeWidth}px` } as CSSProperties}>
-            {programPanel(true)}
+          <main className="model-layout" style={{ '--code-w': `${codeWidth}px` } as CSSProperties}>
+            <aside className="model-left">
+              <FeatureTree
+                program={program.name}
+                machine={machine?.name ?? ''}
+                control={control?.name ?? ''}
+                stock={
+                  setup.stock
+                    ? setup.stock.shape === 'cylinder'
+                      ? t('stock.summaryCylinder', { diameter: setup.stock.diameter ?? 0, length: setup.stock.length ?? 0 })
+                      : t('stock.summaryBlock', { x: setup.stock.x ?? 0, y: setup.stock.y ?? 0, z: setup.stock.z ?? 0 })
+                    : t('stock.none')
+                }
+                offsets={Object.keys(setup.workOffsets)}
+                tools={setup.tools?.tools.map((x) => ({ number: x.number, name: l(x.name) })) ?? []}
+                operations={ops}
+                current={currentOp}
+                selected={selectedOp}
+                messages={messageCount}
+                alarm={!!stoppedBy || chuckCollisions.length > 0}
+                messageList={messagesList}
+                onStock={() => setEditingStock(true)}
+                onOffsets={() => setEditingOffsets(true)}
+                onTools={() => setEditingTools(true)}
+                onToolOffsets={() => setEditingToolOffsets(true)}
+                onOperation={(k) => {
+                  const op = ops[k]
+                  if (!op) return
+                  setSelectedOp(k === selectedOp ? -1 : k)
+                  seek(op.start + 1e-6)
+                }}
+              />
+              {programPanel(true)}
+            </aside>
             <div className="splitter" role="separator" aria-orientation="vertical" aria-label={t('layout.resize')} title={t('layout.resize')} onPointerDown={(e) => startResize(e, 1)} />
             <section className="panel view">
-              {viewTitle}
-              {viewTools}
+              <AlarmLine alarm={stoppedBy} onGo={jumpToDiagnostic} />
               {stage}
               {player}
             </section>
-            <aside className="panel sidebar">
-              {positionBlock}
-              <div className="side-tabs" role="tablist">
-                {(['ops', 'setup', 'machine', 'messages'] as const).map((k) => (
-                  <button
-                    key={k}
-                    role="tab"
-                    aria-selected={tab === k}
-                    className={[tab === k ? 'on' : '', k === 'messages' && (stoppedBy || chuckCollisions.length) ? 'alm' : ''].filter(Boolean).join(' ')}
-                    onClick={() => setTab(k)}
-                  >
-                    {t(`tab.${k}`)}
-                    {k === 'messages' && messageCount > 0 && <span className="count">{messageCount}</span>}
-                  </button>
-                ))}
-              </div>
-              {tab === 'ops' && opsBlock}
-              {tab === 'messages' && messagesBlock}
-              {tab === 'setup' && (
-                <>
-                  {stockBlock}
-                  {offsetsBlock}
-                  {toolOffsetsBlock}
-                  {toolsBlock}
-                </>
-              )}
-              {tab === 'machine' && (
-                <>
-                  {projectBlock}
-                  {machineBlock}
-                  {controlBlock}
-                </>
-              )}
-            </aside>
           </main>
         ) : (
           // Machine layout: one control screen (status, page picked by the soft keys, program) over the operator panel
@@ -1167,8 +1161,6 @@ export function Workspace({ init, cfg, active, layout, learn, onLearn, onState, 
                   <section className="panel mp-page">
                     {screen === 'graph' ? (
                       <>
-                        {viewTitle}
-                        {viewTools}
                         {stage}
                       </>
                     ) : (
