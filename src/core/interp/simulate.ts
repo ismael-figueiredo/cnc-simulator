@@ -1503,6 +1503,66 @@ export function simulate(input: SimulationInput): SimulationResult {
     if (lathe && rules.has('live-tool-on-while-cutting') && !st.liveToolOn) diag('warning', 'drill-with-live-tool-off', undefined, line)
   }
 
+  /** Macro statements: #n = …, IF, WHILE … DO, DO, END, GOTO. Sets pc and returns true when the block was one. */
+  function runMacroStatement(s: string): boolean {
+    if (s.startsWith('#')) {
+      assign(s)
+      pc++
+      return true
+    }
+    if (s.startsWith('IF[')) {
+      ex.at(s, 2)
+      const c = ex.bracket()
+      const rest = s.slice(ex.pos)
+      if (rest.startsWith('GOTO')) {
+        const n = Math.round(valueAt(rest, 4, 'GOTO').v ?? 0)
+        if ((c ?? 0) !== 0) {
+          pc = jumpTarget(n)
+          return true
+        }
+      } else if (rest.startsWith('THEN')) {
+        if ((c ?? 0) !== 0) {
+          const r2 = rest.slice(4)
+          if (!r2.startsWith('#')) ex.fail('format', 'THEN only accepts a variable assignment')
+          assign(r2)
+        }
+      } else ex.fail('format', 'IF without GOTO or THEN')
+      pc++
+      return true
+    }
+    if (s.startsWith('WHILE[')) {
+      ex.at(s, 5)
+      const c = ex.bracket()
+      const dm = /^DO(\d+)$/.exec(s.slice(ex.pos))
+      if (!dm?.[1]) ex.fail('format', 'WHILE without DOn')
+      checkLoopId(dm[1])
+      // The control checks the matching END when it runs the WHILE, whatever the condition
+      const k = findLoopEnd(blocks, pc, dm[1])
+      if (k < 0) fatal('macro-missing-end', { n: dm[1] })
+      pc = (c ?? 0) !== 0 ? pc + 1 : k + 1
+      return true
+    }
+    const doM = /^DO(\d+)$/.exec(s)
+    if (doM?.[1]) {
+      checkLoopId(doM[1])
+      pc++
+      return true
+    }
+    const endM = /^END(\d+)$/.exec(s)
+    if (endM?.[1]) {
+      checkLoopId(endM[1])
+      const k = findLoopStart(blocks, pc, endM[1])
+      if (k < 0) fatal('macro-missing-end', { n: endM[1] })
+      pc = k
+      return true
+    }
+    if (s.startsWith('GOTO')) {
+      pc = jumpTarget(Math.round(valueAt(s, 4, 'GOTO').v ?? 0))
+      return true
+    }
+    return false
+  }
+
   // ---------- run ----------
   let finished = false
   let steps = 0
@@ -1540,61 +1600,7 @@ export function simulate(input: SimulationInput): SimulationResult {
       const s = b.text
       if (dialect.macro === 'none' && usesMacro(s)) diag('warning', 'macro-not-in-dialect', undefined, 'macro')
       try {
-        if (s.startsWith('#')) {
-          assign(s)
-          pc++
-          continue
-        }
-        if (s.startsWith('IF[')) {
-          ex.at(s, 2)
-          const c = ex.bracket()
-          const rest = s.slice(ex.pos)
-          if (rest.startsWith('GOTO')) {
-            const n = Math.round(valueAt(rest, 4, 'GOTO').v ?? 0)
-            if ((c ?? 0) !== 0) {
-              pc = jumpTarget(n)
-              continue
-            }
-          } else if (rest.startsWith('THEN')) {
-            if ((c ?? 0) !== 0) {
-              const r2 = rest.slice(4)
-              if (!r2.startsWith('#')) ex.fail('format', 'THEN only accepts a variable assignment')
-              assign(r2)
-            }
-          } else ex.fail('format', 'IF without GOTO or THEN')
-          pc++
-          continue
-        }
-        if (s.startsWith('WHILE[')) {
-          ex.at(s, 5)
-          const c = ex.bracket()
-          const dm = /^DO(\d+)$/.exec(s.slice(ex.pos))
-          if (!dm?.[1]) ex.fail('format', 'WHILE without DOn')
-          checkLoopId(dm[1])
-          // The control checks the matching END when it runs the WHILE, whatever the condition
-          const k = findLoopEnd(blocks, pc, dm[1])
-          if (k < 0) fatal('macro-missing-end', { n: dm[1] })
-          pc = (c ?? 0) !== 0 ? pc + 1 : k + 1
-          continue
-        }
-        const doM = /^DO(\d+)$/.exec(s)
-        if (doM?.[1]) {
-          checkLoopId(doM[1])
-          pc++
-          continue
-        }
-        const endM = /^END(\d+)$/.exec(s)
-        if (endM?.[1]) {
-          checkLoopId(endM[1])
-          const k = findLoopStart(blocks, pc, endM[1])
-          if (k < 0) fatal('macro-missing-end', { n: endM[1] })
-          pc = k
-          continue
-        }
-        if (s.startsWith('GOTO')) {
-          pc = jumpTarget(Math.round(valueAt(s, 4, 'GOTO').v ?? 0))
-          continue
-        }
+        if (runMacroStatement(s)) continue
         const flow = execWords(b)
         if (flow === 'jump') continue
         if (flow === 'end') {
