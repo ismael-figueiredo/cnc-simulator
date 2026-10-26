@@ -17,5 +17,11 @@
   "toolChangePosition": { "X": 300, "Z": 200 },
   "defaultControl": "fanuc-0i-tf-system-b",
   "defaultTools": "sample-library",
-  "defaultStock": { "shape": "cylinder", "diameter": 67.37, "length": 30 }
+  "defaultStock": { "shape": "cylinder", "diameter": 67.37, "length": 30 },
+  "notes": {
+    "en": "Chuck: 8\" hydraulic three-jaw chuck with hard jaws, catalog sizes; check against the chuck on the machine.",
+    "pt-BR": "Placa: hidráulica de 8\" com três castanhas duras, medidas de catálogo; conferir com a placa da máquina.",
+    "es": "Plato: hidráulico de 8\" con tres garras duras, medidas de catálogo; verificar con el plato de la máquina."
+  },
+  "chuck": { "diameter": 210, "length": 95, "jaws": 3, "jawHeight": 50, "jawWidth": 26, "jawLength": 25, "bore": 66 }
 }

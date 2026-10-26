@@ -51,14 +51,15 @@
   "defaultControl": "fanuc-0i-mf-romi-d",
   "defaultTools": "machining-center",
   "notes": {
-    "en": "Manual PA09403B — Fanuc 0i-MF Plus. Rapid 30 m/min is from the manual. Travels, maximum spindle speed and magazine size are reference values not given in the programming manual: check them on the machine plate. The optional 4th axis (A) is not included.",
-    "pt-BR": "Manual PA09403B — Fanuc 0i-MF Plus. O rápido de 30 m/min está no manual. Cursos, rotação máxima e tamanho do magazine são valores de referência que o manual de programação não traz: conferir na placa da máquina. O 4º eixo (A), opcional, não está incluído.",
-    "es": "Manual PA09403B — Fanuc 0i-MF Plus. El rápido de 30 m/min está en el manual. Recorridos, velocidad máxima y tamaño del almacén son valores de referencia que el manual de programación no trae: verificar en la placa de la máquina. El 4º eje (A), opcional, no está incluido."
+    "en": "Manual PA09403B — Fanuc 0i-MF Plus. Rapid 30 m/min is from the manual. Travels, maximum spindle speed and magazine size are reference values not given in the programming manual: check them on the machine plate. The optional 4th axis (A) is not included. Table: catalog length, width and T-slots; top (machine Z of the table face) and center (machine X/Y over its middle) are estimates in the frame of the example work offsets, to be checked on the machine.",
+    "pt-BR": "Manual PA09403B — Fanuc 0i-MF Plus. O rápido de 30 m/min está no manual. Cursos, rotação máxima e tamanho do magazine são valores de referência que o manual de programação não traz: conferir na placa da máquina. O 4º eixo (A), opcional, não está incluído. Mesa: comprimento, largura e ranhuras T de catálogo; top (Z de máquina da face da mesa) e center (X/Y de máquina sobre o meio dela) são estimativas no referencial dos zeros de peça dos exemplos, a conferir na máquina.",
+    "es": "Manual PA09403B — Fanuc 0i-MF Plus. El rápido de 30 m/min está en el manual. Recorridos, velocidad máxima y tamaño del almacén son valores de referencia que el manual de programación no trae: verificar en la placa de la máquina. El 4º eje (A), opcional, no está incluido. Mesa: largo, ancho y ranuras T de catálogo; top (Z de máquina de la cara de la mesa) y center (X/Y de máquina sobre su centro) son estimaciones en el sistema de los ceros de pieza de los ejemplos, a verificar en la máquina."
   },
   "defaultStock": {
     "shape": "block",
     "x": 200,
     "y": 150,
     "z": 50
-  }
+  },
+  "table": { "length": 840, "width": 500, "height": 80, "slots": 5, "slotWidth": 18, "slotPitch": 80, "top": -560, "center": { "X": 300, "Y": 265 } }
 }

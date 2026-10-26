@@ -2,7 +2,7 @@
 // Pure functions: the renderer draws what they return and the tests check it.
 import type { Stock, ToolOffsets } from './config/project'
 import { stockOrigin } from './removal'
-import type { Holder, Tool, ToolLibrary } from './config/schema'
+import type { Holder, Machine, Tool, ToolLibrary } from './config/schema'
 import type { Move, Vec3 } from './types'
 
 /** How the tool sits: along Z (mill spindle, lathe axial), along X (lathe radial), or a turning tool. */
@@ -196,25 +196,49 @@ function intrusion(p: Vec3, mount: ToolMount, length: number, hr: number, s: Sto
   return r < R + hr ? o[2] - (z + length) : 0
 }
 
-/** Three-jaw chuck around the bar: jaws grip the last part of the stock, the body sits behind them. */
+/** Chuck around the bar: jaws grip the last part of the stock, the body sits behind them. */
 export interface ChuckGeometry {
   /** Z of the chuck face (jaws start here and reach `grip` mm toward the part face). */
   face: number
   grip: number
   barRadius: number
-  /** Outer radius of the jaws and of the chuck body. */
+  /** Outer radius of the jaws and of the chuck body. Stepped jaws: the gripping step is `grip` long and
+   * reaches `jawStep`; the rest of the jaw, out to `jawOuter`, is `JAW_BASE` × `grip` long. */
+  jawStep: number
   jawOuter: number
   bodyRadius: number
+  /** Body depth behind the face, along the spindle axis. */
+  bodyLength: number
+  jaws: number
+  jawWidth: number
+  boreRadius: number
 }
 
-export function chuckGeometry(s: Stock, zero: Vec3): ChuckGeometry {
+/** Axial length of the jaws' outer step, as a fraction of the grip. */
+export const JAW_BASE = 0.65
+
+/** The machine's chuck (`chuck` in its JSON) around the stock, or one sized from the bar without it. */
+export function chuckGeometry(s: Stock, zero: Vec3, chuck?: Machine['chuck']): ChuckGeometry {
   const o = stockOrigin(s, zero)
   const R = (s.diameter ?? 50) / 2
   const L = s.length ?? 30
-  const grip = Math.min(L * 0.4, 25)
-  const jaw = Math.min(30, Math.max(12, R * 0.6))
+  const grip = Math.min(L * 0.4, chuck?.jawLength ?? 25)
+  const jaw = chuck?.jawHeight ?? Math.min(30, Math.max(12, R * 0.6))
+  // A bar wider than the chuck still gets a body a little wider than itself
+  const bodyRadius = chuck ? Math.max(chuck.diameter / 2, R + 10) : R + jaw + 18
   // The bar ends at the chuck face; the jaws hold its last `grip` mm
-  return { face: o[2] - L, grip, barRadius: R, jawOuter: R + jaw, bodyRadius: R + jaw + 18 }
+  return {
+    face: o[2] - L,
+    grip,
+    barRadius: R,
+    jawStep: R + jaw * 0.35,
+    jawOuter: R + jaw,
+    bodyRadius,
+    bodyLength: chuck?.length ?? Math.max(50, bodyRadius * 0.8),
+    jaws: chuck?.jaws ?? 3,
+    jawWidth: chuck?.jawWidth ?? Math.max(16, bodyRadius * 0.24),
+    boreRadius: (chuck?.bore ?? bodyRadius * 0.45) / 2
+  }
 }
 
 export interface ChuckCollision {
@@ -229,9 +253,9 @@ export interface ChuckCollision {
  * Tool tip against the chuck: inside the jaws' reach over the gripped length, or past the chuck face.
  * Jaw angles are not followed, so these are possible collisions, one per tool and block.
  */
-export function findChuckCollisions(moves: readonly Move[], s: Stock | null, zero: Vec3): ChuckCollision[] {
+export function findChuckCollisions(moves: readonly Move[], s: Stock | null, zero: Vec3, chuck?: Machine['chuck']): ChuckCollision[] {
   if (s?.shape !== 'cylinder') return []
-  const c = chuckGeometry(s, zero)
+  const c = chuckGeometry(s, zero, chuck)
   const out: ChuckCollision[] = []
   const seen = new Set<string>()
   moves.forEach((m, k) => {
@@ -239,7 +263,10 @@ export function findChuckCollisions(moves: readonly Move[], s: Stock | null, zer
     for (const [x, y, z] of m.points.slice(1)) {
       const r = Math.hypot(x, y)
       // Near the axis (drills, bores) the tool works inside the bar, clear of the jaws
-      const jaws = z < c.face + c.grip && r < c.jawOuter + m.toolRadius && r + m.toolRadius > c.barRadius * 0.5
+      const reach = r - m.toolRadius
+      const jaws =
+        r + m.toolRadius > c.barRadius * 0.5 &&
+        ((z < c.face + c.grip && reach < c.jawStep) || (z < c.face + c.grip * JAW_BASE && reach < c.jawOuter))
       const body = z < c.face && r < c.bodyRadius + m.toolRadius
       if (!jaws && !body) continue
       const key = `${m.state.tool}|${m.line}`

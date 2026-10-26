@@ -38,6 +38,38 @@ export const StockShapeSchema = z.object({
   z: z.number().optional()
 })
 
+/** Lathe chuck, drawn on the spindle and checked against the tools. Sizes in mm. */
+export const ChuckSchema = z.object({
+  /** Body diameter (an 8" chuck is about 210 mm). */
+  diameter: z.number().positive(),
+  /** Body depth along the spindle axis. */
+  length: z.number().positive().optional(),
+  jaws: z.number().int().min(2).max(6).optional(),
+  /** Radial length of a jaw, from the gripped diameter out. */
+  jawHeight: z.number().positive().optional(),
+  jawWidth: z.number().positive().optional(),
+  /** Length of bar the jaws hold, along the spindle axis. */
+  jawLength: z.number().positive().optional(),
+  /** Spindle bore (bar capacity). */
+  bore: z.number().positive().optional()
+})
+
+/** Machining center table with its T-slots along X. Sizes in mm. */
+export const TableSchema = z.object({
+  length: z.number().positive(),
+  width: z.number().positive(),
+  /** Thickness drawn under the top. */
+  height: z.number().positive().optional(),
+  slots: z.number().int().min(0).optional(),
+  slotWidth: z.number().positive().optional(),
+  /** Distance between slots (centered on the table). */
+  slotPitch: z.number().positive().optional(),
+  /** Machine Z of the table top, in the same frame as the work offsets. */
+  top: z.number().optional(),
+  /** Machine X/Y with the spindle over the table center. */
+  center: z.object({ X: z.number(), Y: z.number() }).optional()
+})
+
 export const MachineSchema = z.object({
   id: z.string(),
   name: z.string(),
@@ -59,7 +91,9 @@ export const MachineSchema = z.object({
   defaultTools: z.string().optional(),
   /** Remarks for whoever maintains the file, e.g. data still to be checked on the machine plate. */
   notes: LocalizedTextSchema.optional(),
-  defaultStock: StockShapeSchema.optional()
+  defaultStock: StockShapeSchema.optional(),
+  chuck: ChuckSchema.optional(),
+  table: TableSchema.optional()
 })
 
 /** Functions the interpreter understands. Each control maps its own codes to them. */

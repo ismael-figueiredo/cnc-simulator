@@ -101,4 +101,13 @@ describe('chuck', () => {
     // The cut down to Z-50 and the move out at Z-50: both blocks are inside the jaws' reach
     expect(hits.map((h) => h.z)).toEqual([-50, -50])
   })
+
+  it('takes its size from the machine', () => {
+    const chuck = { diameter: 254, jawHeight: 60, jawLength: 30, jaws: 3 }
+    expect(chuckGeometry(bar, [0, 0, 0], chuck)).toMatchObject({ grip: 24, bodyRadius: 127, jawStep: 46, jawOuter: 85, jaws: 3 })
+    // Past the gripping step, over the lower outer step of the long jaws
+    const run = latheRun(['G0 X120 Z2', 'G1 Z-50 F0.2'])
+    expect(findChuckCollisions(run, bar, [0, 0, 0])).toEqual([])
+    expect(findChuckCollisions(run, bar, [0, 0, 0], chuck).map((h) => h.z)).toEqual([-50])
+  })
 })

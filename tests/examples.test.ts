@@ -39,7 +39,7 @@ function runExample(file: string) {
   const stock = project.stock ?? (machine.defaultStock ? { ...machine.defaultStock } : null)
   const s = workShift(project.workOffsets ?? {}, stock?.workOffset ?? 'G54')
   const collisions = findHolderCollisions({ moves: result.moves, tools, stock, stockZero: lathe ? [0, 0, s.Z] : [s.X, s.Y, s.Z], lathe })
-  const chuck = lathe ? findChuckCollisions(result.moves, stock, [0, 0, s.Z]) : []
+  const chuck = lathe ? findChuckCollisions(result.moves, stock, [0, 0, s.Z], machine.chuck) : []
   return { result, collisions, chuck }
 }
 

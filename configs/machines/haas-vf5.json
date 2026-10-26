@@ -51,14 +51,15 @@
   "defaultControl": "haas-ngc-mill",
   "defaultTools": "machining-center",
   "notes": {
-    "en": "Catalog values for the Haas VF-5/40 (1270 × 660 × 635 mm); machine zero at the top right, travels negative as on Haas. Check spindle speed, rapids and magazine on the machine plate.",
-    "pt-BR": "Valores de catálogo da Haas VF-5/40 (1270 × 660 × 635 mm); zero de máquina no canto superior direito, cursos negativos como na Haas. Conferir rotação, rápidos e magazine na placa da máquina.",
-    "es": "Valores de catálogo de la Haas VF-5/40 (1270 × 660 × 635 mm); cero de máquina arriba a la derecha, recorridos negativos como en Haas. Verificar husillo, rápidos y almacén en la placa de la máquina."
+    "en": "Catalog values for the Haas VF-5/40 (1270 × 660 × 635 mm); machine zero at the top right, travels negative as on Haas. Check spindle speed, rapids and magazine on the machine plate. Table: catalog length, width and T-slots; top (machine Z of the table face) and center (machine X/Y over its middle) are estimates in the frame of the example work offsets, to be checked on the machine.",
+    "pt-BR": "Valores de catálogo da Haas VF-5/40 (1270 × 660 × 635 mm); zero de máquina no canto superior direito, cursos negativos como na Haas. Conferir rotação, rápidos e magazine na placa da máquina. Mesa: comprimento, largura e ranhuras T de catálogo; top (Z de máquina da face da mesa) e center (X/Y de máquina sobre o meio dela) são estimativas no referencial dos zeros de peça dos exemplos, a conferir na máquina.",
+    "es": "Valores de catálogo de la Haas VF-5/40 (1270 × 660 × 635 mm); cero de máquina arriba a la derecha, recorridos negativos como en Haas. Verificar husillo, rápidos y almacén en la placa de la máquina. Mesa: largo, ancho y ranuras T de catálogo; top (Z de máquina de la cara de la mesa) y center (X/Y de máquina sobre su centro) son estimaciones en el sistema de los ceros de pieza de los ejemplos, a verificar en la máquina."
   },
   "defaultStock": {
     "shape": "block",
     "x": 150,
     "y": 100,
     "z": 40
-  }
+  },
+  "table": { "length": 1321, "width": 635, "height": 85, "slots": 5, "slotWidth": 16, "slotPitch": 125, "top": -560, "center": { "X": -635, "Y": -330 } }
 }
