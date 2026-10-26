@@ -3,6 +3,7 @@
 import { AmbientLight, Box3, BufferAttribute, BufferGeometry, Color, DirectionalLight, Group, Mesh, MeshStandardMaterial, OrthographicCamera, Scene, Sphere, Vector3, WebGLRenderer } from 'three'
 import { createHeightfield, createProfile, cutHeightfield, cutProfile, type Heightfield, type Move, type Stock, type Vec3 } from '@core/index'
 import { barGeometry } from './components/Machining'
+import { storage } from './platform/storage'
 
 export interface PartSource {
   moves: readonly Move[]
@@ -144,17 +145,6 @@ export function thumbKey(...parts: string[]): string {
   }
   return (h >>> 0).toString(36)
 }
-export function readThumb(key: string): string | null {
-  try {
-    return localStorage.getItem(PREFIX + key)
-  } catch {
-    return null
-  }
-}
-export function writeThumb(key: string, url: string): void {
-  try {
-    localStorage.setItem(PREFIX + key, url)
-  } catch {
-    // storage full: the picture is just drawn again next time
-  }
-}
+export const readThumb = (key: string): string | null => storage.get(PREFIX + key)
+// When the storage is full the picture is just drawn again next time
+export const writeThumb = (key: string, url: string): void => storage.set(PREFIX + key, url)

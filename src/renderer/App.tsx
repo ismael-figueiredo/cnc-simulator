@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useEffectEvent, useMemo, useRef, useState, type ChangeEvent } from 'react'
+import { useCallback, useEffect, useEffectEvent, useMemo, useRef, useState } from 'react'
 import { loadProject, suggestSetup, workShift, type ConfigIssue, type LastChoice, type Machine, type ProgramKind, type Stock, type WorkOffsets } from '@core/index'
 import { LANGUAGES, isLanguage } from '@i18n/index'
 import type { MenuCommand, OpenedFile, RecentItem } from '../preload/api'
@@ -11,6 +11,7 @@ import { FileIcon, StartScreen, type StartSection } from './components/StartScre
 import { Tour } from './components/Tour'
 import { useI18n } from './i18n'
 import { useLibraries } from './libraries'
+import { readJson, storage, usePlatform } from './platform'
 import { defaultSetup, setupFromProject } from './project'
 import { useRecent } from './recent'
 import { readThumb, thumbKey } from './thumbnail'
@@ -24,30 +25,11 @@ const LAST_KEY = 'cncsim.lastSetup'
 /** Open documents at most: each keeps its program, simulation and 3D data in memory. */
 const MAX_TABS = 8
 
-const read = (key: string): string | null => {
-  try {
-    return localStorage.getItem(key)
-  } catch {
-    return null
-  }
-}
-const write = (key: string, value: string) => {
-  try {
-    localStorage.setItem(key, value)
-  } catch {
-    // not kept
-  }
-}
+const read = storage.get
+const write = storage.set
 // "cam" was the 3D model layout's former name
 const readLayout = (): Layout => (read(LAYOUT_KEY) === 'cam' || read(LAYOUT_KEY) === 'model' ? 'model' : 'machine')
-const readLast = (): LastChoice => {
-  try {
-    const v: unknown = JSON.parse(read(LAST_KEY) ?? '{}')
-    return v && typeof v === 'object' ? v : {}
-  } catch {
-    return {}
-  }
-}
+const readLast = (): LastChoice => readJson(storage, LAST_KEY, {}, (v): v is LastChoice => typeof v === 'object' && v !== null)
 
 /** A tab: the start screen, or an open document. */
 type Tab = { id: number; kind: 'start' } | { id: number; kind: 'doc'; init: DocInit; state: DocState }
@@ -57,6 +39,7 @@ let nextId = 1
 /** The window: document tabs, the start screen, the File menu's dialogs and app-wide settings. */
 export function App() {
   const { lang, setLang, t, l } = useI18n()
+  const platform = usePlatform()
   // Re-validated on language change so schema messages come out in the new language
   const cfg = useMemo(() => loadBundled(lang), [lang])
   const recent = useRecent()
@@ -73,7 +56,6 @@ export function App() {
   /** A program waiting for its machine and control (Open program dialog). */
   const [pending, setPending] = useState<OpenedFile | null>(null)
   const [creating, setCreating] = useState(false)
-  const fileInput = useRef<HTMLInputElement>(null)
 
   const changeLayout = (next: Layout) => {
     setLayout(next)
@@ -138,8 +120,8 @@ export function App() {
   const anyDirty = tabs.some((x) => x.kind === 'doc' && x.state.dirty)
   // The main process asks before closing the window with unsaved edits in any tab
   useEffect(() => {
-    void window.api?.setDirty(anyDirty)
-  }, [anyDirty])
+    platform.setDirty(anyDirty)
+  }, [platform, anyDirty])
 
   // ---- opening files ----
   const issueText = (i: ConfigIssue) =>
@@ -158,7 +140,7 @@ export function App() {
     const pr = r.value
     if (!cfg.machines.some((m) => m.id === pr.machine) || !cfg.controls.some((c) => c.id === pr.control))
       window.alert(t('project.unknownConfig', { machine: pr.machine, control: pr.control }))
-    if (window.api && f.project.programMissing) window.alert(t('project.programMissing', { program: pr.program }))
+    if (platform.desktop && f.project.programMissing) window.alert(t('project.programMissing', { program: pr.program }))
     // Desktop and examples: the program file read with it; browser files: the copy inside the project
     const text = f.text || (pr.programText ?? '')
     addDoc({ kind: 'project', program: { name: pr.program.slice(pr.program.lastIndexOf('/') + 1), path: f.path || pr.program, text }, project: pr, projectPath: f.project.path })
@@ -187,19 +169,8 @@ export function App() {
     openFile({ name: ex.project.program, path: `example:${ex.project.program}`, text: ex.programText, project: { path: `example:${ex.id}`, text: ex.projectText, programMissing: false } })
   }
   async function pickFile() {
-    // Electron uses the native dialog; the browser (server mode) falls back to <input type=file>
-    if (window.api) {
-      const r = await window.api.openFile()
-      if (r) openFile(r)
-    } else fileInput.current?.click()
-  }
-  function readInput(e: ChangeEvent<HTMLInputElement>) {
-    const f = e.target.files?.[0]
-    if (!f) return
-    void f.text().then((text) =>
-      openFile(f.name.toLowerCase().endsWith('.cncsim') ? { name: f.name, path: '', text: '', project: { path: f.name, text, programMissing: false } } : { name: f.name, path: f.name, text })
-    )
-    e.target.value = ''
+    const r = await platform.openFile()
+    if (r) openFile(r)
   }
   function openRecent(item: RecentItem) {
     void recent.open(item).then((f) => {
@@ -227,14 +198,14 @@ export function App() {
     else if (command === 'shortcuts') setShortcuts(true)
     else handles.current.get(activeId)?.command(command)
   })
-  useEffect(() => window.api?.onMenuCommand(onCommand), [])
+  useEffect(() => platform.onMenuCommand(onCommand), [platform])
   const onMenuOpen = useEffectEvent((f: OpenedFile) => openFile(f))
-  useEffect(() => window.api?.onFileOpened(onMenuOpen), [])
+  useEffect(() => platform.onFileOpened(onMenuOpen), [platform])
   const onMenuHome = useEffectEvent(() => newTab())
-  useEffect(() => window.api?.onShowStart(onMenuHome), [])
+  useEffect(() => platform.onShowStart(onMenuHome), [platform])
   // Browser mode has no native menu: the same shortcuts from the keyboard
   useEffect(() => {
-    if (window.api) return
+    if (platform.desktop) return
     const key = (e: KeyboardEvent) => {
       if (!(e.ctrlKey || e.metaKey)) return
       const k = e.key.toLowerCase()
@@ -246,7 +217,7 @@ export function App() {
     }
     window.addEventListener('keydown', key)
     return () => window.removeEventListener('keydown', key)
-  }, [])
+  }, [platform])
 
   // Pictures of the finished parts: the examples, and what each exercise should become
   const thumbJobs = useMemo(() => {
@@ -298,7 +269,7 @@ export function App() {
         </nav>
         <div className="titlebar-right">
           {/* Browser mode has no menu bar: the File menu's main actions and the language are here */}
-          {!window.api && (
+          {!platform.desktop && (
             <span className="browser-file">
               <button className="btn tiny" onClick={() => setCreating(true)}>{t('action.newProgram')}</button>
               <button className="btn tiny" onClick={() => void pickFile()}>{t('action.open')}</button>
@@ -329,7 +300,6 @@ export function App() {
           )}
           <HelpMenu learn={learn} onLearn={changeLearn} onTour={() => setTour(0)} onShortcuts={() => setShortcuts(true)} />
         </div>
-        <input ref={fileInput} type="file" hidden onChange={readInput} />
       </header>
 
       {tabs.map((tab) =>
@@ -348,7 +318,6 @@ export function App() {
             onLearn={changeLearn}
             onHelp={() => setTour(0)}
             onState={(s) => onDocState(tab.id, s)}
-            onRecord={recent.record}
           />
         ) : tab.id === activeId ? (
           <StartScreen

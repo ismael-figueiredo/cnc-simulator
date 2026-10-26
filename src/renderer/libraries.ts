@@ -1,29 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { loadToolLibrary, type ToolLibrary } from '@core/index'
-
-// The user's tool libraries. Desktop: JSON files in the user data folder; browser: localStorage.
-const KEY = 'cncsim.toolLibraries'
-
-function readBrowser(): Record<string, string> {
-  try {
-    const v: unknown = JSON.parse(localStorage.getItem(KEY) ?? '{}')
-    return v && typeof v === 'object' ? (v as Record<string, string>) : {}
-  } catch {
-    return {}
-  }
-}
-
-function writeBrowser(all: Record<string, string>): void {
-  try {
-    localStorage.setItem(KEY, JSON.stringify(all))
-  } catch {
-    // storage full or blocked
-  }
-}
-
-async function readAll(): Promise<string[]> {
-  return window.api ? window.api.listLibraries() : Object.values(readBrowser())
-}
+import { usePlatform } from './platform'
 
 /** Files that no longer match the schema are skipped rather than breaking the list. */
 const parseAll = (texts: string[]) =>
@@ -32,34 +9,30 @@ const parseAll = (texts: string[]) =>
     return r.ok ? [r.value] : []
   })
 
+/** The user's tool libraries, wherever the platform keeps them. */
 export function useLibraries() {
+  const platform = usePlatform()
   const [user, setUser] = useState<ToolLibrary[]>([])
 
-  const refresh = useCallback(async () => setUser(parseAll(await readAll())), [])
+  const refresh = useCallback(async () => setUser(parseAll(await platform.libraries.list())), [platform])
   useEffect(() => {
-    void readAll().then((texts) => setUser(parseAll(texts)))
-  }, [])
+    void platform.libraries.list().then((texts) => setUser(parseAll(texts)))
+  }, [platform])
 
   const save = useCallback(
     async (lib: ToolLibrary) => {
-      const json = `${JSON.stringify(lib, null, 2)}\n`
-      if (window.api) await window.api.saveLibrary(lib.id, json)
-      else writeBrowser({ ...readBrowser(), [lib.id]: json })
+      await platform.libraries.save(lib.id, `${JSON.stringify(lib, null, 2)}\n`)
       await refresh()
     },
-    [refresh]
+    [platform, refresh]
   )
 
   const remove = useCallback(
     async (id: string) => {
-      if (window.api) await window.api.deleteLibrary(id)
-      else {
-        const { [id]: _removed, ...rest } = readBrowser()
-        writeBrowser(rest)
-      }
+      await platform.libraries.remove(id)
       await refresh()
     },
-    [refresh]
+    [platform, refresh]
   )
 
   return { user, save, remove }

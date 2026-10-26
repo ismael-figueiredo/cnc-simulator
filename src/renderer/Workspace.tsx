@@ -64,6 +64,7 @@ import { useI18n } from './i18n'
 import { ExerciseCard, type ExerciseCheck } from './components/ExerciseCard'
 import { explainLine, helpForWord } from './help'
 import { useLibraries } from './libraries'
+import { readFlag, readNumber, storage, usePlatform, writeFlag } from './platform'
 import { defaultSetup, offsetsFor, projectData, setupFromProject, STOCK_COLOR, type Setup } from './project'
 import { createSimulator } from './simulation'
 import { renderPart, thumbKey, writeThumb } from './thumbnail'
@@ -130,39 +131,7 @@ const PAGE_TITLES: Record<Screen, string> = {
 }
 const FONT_KEY = 'cncsim.codeFontSize'
 const ORTHO_KEY = 'cncsim.ortho'
-const readFlag = (key: string, fallback: boolean) => {
-  try {
-    const v = localStorage.getItem(key)
-    return v === null ? fallback : v === '1'
-  } catch {
-    return fallback
-  }
-}
 const WIDTH_KEY = 'cncsim.codeWidth'
-const readNumber = (key: string, fallback: number) => {
-  try {
-    const v = Number(localStorage.getItem(key))
-    return Number.isFinite(v) && v > 0 ? v : fallback
-  } catch {
-    return fallback
-  }
-}
-const writeNumber = (key: string, v: number) => {
-  try {
-    localStorage.setItem(key, String(v))
-  } catch {
-    // not persisted
-  }
-}
-
-/** Browser mode: hands a file to the downloads folder. */
-function download(name: string, text: string, type: string) {
-  const a = document.createElement('a')
-  a.href = URL.createObjectURL(new Blob([text], { type }))
-  a.download = name
-  a.click()
-  URL.revokeObjectURL(a.href)
-}
 
 const SEVERITY_ORDER: Record<Severity, number> = { alarm: 0, warning: 1, info: 2 }
 
@@ -270,14 +239,13 @@ interface Props {
   /** HELP key: the shell shows the tour. */
   onHelp: () => void
   onState: (state: DocState) => void
-  /** Browser mode keeps recent files itself. */
-  onRecord: (program: Program) => void
   ref?: Ref<WorkspaceHandle>
 }
 
 /** One open document: its program, machine, setup and simulation, shown in the machine or 3D model layout. */
-export function Workspace({ init, cfg, active, layout, learn, onLearn, onHelp, onState, onRecord, ref }: Props) {
+export function Workspace({ init, cfg, active, layout, learn, onLearn, onHelp, onState, ref }: Props) {
   const { t, l } = useI18n()
+  const platform = usePlatform()
   // Everything the document starts with comes from what was opened
   const [start] = useState(() => {
     if (init.kind === 'project') {
@@ -350,13 +318,13 @@ export function Workspace({ init, cfg, active, layout, learn, onLearn, onHelp, o
   const [panel, setPanel] = useState<PanelState>({ singleBlock: false, optionalStop: false, blockSkip: false, feed: 100, rapid: 100, spindle: 100 })
   /** Lines where playback stops before running them. */
   const [breakpoints, setBreakpoints] = useState<ReadonlySet<number>>(() => new Set())
-  const [fontSize, setFontSize] = useState(() => readNumber(FONT_KEY, 11.5))
-  const [codeWidth, setCodeWidth] = useState(() => readNumber(WIDTH_KEY, 300))
+  const [fontSize, setFontSize] = useState(() => readNumber(storage, FONT_KEY, 11.5))
+  const [codeWidth, setCodeWidth] = useState(() => readNumber(storage, WIDTH_KEY, 300))
   /** Page of the machine layout picked with the soft keys. */
   const [screen, setScreen] = useState<Screen>('graph')
   const [view, setView] = useState<{ kind: ViewKind; n: number }>({ kind: 'iso', n: 0 })
   /** Orthographic camera (as in CAD programs) or perspective; kept for the next documents. */
-  const [ortho, setOrtho] = useState(() => readFlag(ORTHO_KEY, true))
+  const [ortho, setOrtho] = useState(() => readFlag(storage, ORTHO_KEY, true))
   /** Operation picked in the feature tree (highlighted in 3D), -1 for none. */
   const [selectedOp, setSelectedOp] = useState(-1)
   /** An MDI key was pressed outside EDIT: the title bar says to switch mode. */
@@ -422,7 +390,7 @@ export function Workspace({ init, cfg, active, layout, learn, onLearn, onHelp, o
   const changeFont = useCallback((delta: number) => {
     setFontSize((f) => {
       const next = Math.min(22, Math.max(8, Math.round((f + delta) * 2) / 2))
-      writeNumber(FONT_KEY, next)
+      storage.set(FONT_KEY, String(next))
       return next
     })
   }, [])
@@ -440,7 +408,7 @@ export function Workspace({ init, cfg, active, layout, learn, onLearn, onHelp, o
     const up = () => {
       el.removeEventListener('pointermove', move)
       el.removeEventListener('pointerup', up)
-      writeNumber(WIDTH_KEY, Math.round(w))
+      storage.set(WIDTH_KEY, String(Math.round(w)))
     }
     el.addEventListener('pointermove', move)
     el.addEventListener('pointerup', up)
@@ -459,34 +427,20 @@ export function Workspace({ init, cfg, active, layout, learn, onLearn, onHelp, o
     if (!machine || !control) return
     const data = projectData(machine.id, control.id, setup)
     let p = current
-    if (!window.api) {
-      const name = projectPath ?? `${p.name.replace(/\.[^.]+$/, '')}.cncsim`
-      download(name, JSON.stringify({ ...data, program: p.name, programText: p.text }, null, 2), 'application/json')
-      setProjectPath(name)
-      return
-    }
-    // The project points to the program file, so a new or edited program is saved first
-    if (dirty || !p.path || p.path.startsWith('example:')) {
+    // On the desktop the project points to the program file, so a new or edited program is saved first
+    if (platform.projectNeedsProgramFile && (dirty || !p.path || p.path.startsWith('example:'))) {
       const saved = await save(false)
       if (!saved) return
       p = saved
     }
-    const path = await window.api.saveProject({ project: data, projectPath: saveAs ? '' : (projectPath ?? ''), programPath: p.path }, saveAs)
+    const path = await platform.saveProject({ project: data, projectPath, program: p }, saveAs)
     if (path) setProjectPath(path)
   }
   /** Saves the program; returns it with its new name and path, or null if cancelled. */
   async function save(saveAs: boolean): Promise<Program | null> {
-    let p = currentProgram()
-    if (window.api) {
-      // The example and new programs have no file yet: always ask where to save
-      const r = await window.api.saveFile(p, saveAs || !p.path || p.path.startsWith('example:'))
-      if (!r) return null
-      p = { name: r.name, path: r.path, text: r.text }
-    } else {
-      // Browser: the file goes to the downloads folder
-      download(p.name, p.text, 'text/plain')
-      onRecord(p)
-    }
+    const r = await platform.saveProgram(currentProgram(), saveAs)
+    if (!r) return null
+    const p = { name: r.name, path: r.path, text: r.text }
     setProgram(p)
     setDirty(false)
     return p
@@ -944,11 +898,7 @@ export function Workspace({ init, cfg, active, layout, learn, onLearn, onHelp, o
         ortho={ortho}
         onOrtho={(on) => {
           setOrtho(on)
-          try {
-            localStorage.setItem(ORTHO_KEY, on ? '1' : '0')
-          } catch {
-            // not kept
-          }
+          writeFlag(storage, ORTHO_KEY, on)
         }}
         follow={follow}
         onFollow={setFollow}

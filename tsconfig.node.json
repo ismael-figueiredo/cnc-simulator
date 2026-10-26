@@ -18,6 +18,10 @@
     "src/renderer/help.ts",
     "src/renderer/views.ts",
     "src/renderer/editing.ts",
+    "src/renderer/platform/browser.ts",
+    "src/renderer/platform/electron.ts",
+    "src/renderer/platform/storage.ts",
+    "src/renderer/platform/types.ts",
     "tests/**/*"
   ]
 }

@@ -11,6 +11,7 @@ import {
   type MessageKey,
   type Params
 } from '@i18n/index'
+import { storage, usePlatform } from './platform'
 
 const STORAGE_KEY = 'cncsim.language'
 
@@ -25,16 +26,12 @@ interface I18n {
 const I18nContext = createContext<I18n | null>(null)
 
 function storedLanguage(): Language {
-  try {
-    const v = localStorage.getItem(STORAGE_KEY)
-    if (v) return resolveLanguage(v)
-  } catch {
-    // storage blocked: fall back to the default
-  }
-  return DEFAULT_LANGUAGE
+  const v = storage.get(STORAGE_KEY)
+  return v ? resolveLanguage(v) : DEFAULT_LANGUAGE
 }
 
 export function I18nProvider({ children }: { children: ReactNode }) {
+  const platform = usePlatform()
   const [lang, setLangState] = useState<Language>(storedLanguage)
 
   // Validation messages must follow the language before the first render that validates.
@@ -42,25 +39,21 @@ export function I18nProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     document.documentElement.lang = lang
-    void window.api?.setLanguage(lang)
-  }, [lang])
+    platform.setLanguage(lang)
+  }, [platform, lang])
 
   const setLang = useCallback((next: Language) => {
     setLangState(next)
-    try {
-      localStorage.setItem(STORAGE_KEY, next)
-    } catch {
-      // not persisted; the choice still applies to this session
-    }
+    storage.set(STORAGE_KEY, next)
   }, [])
 
   // Desktop: the language is picked in the native Language menu.
   useEffect(
     () =>
-      window.api?.onLanguageChanged((next) => {
+      platform.onLanguageChanged((next) => {
         if (isLanguage(next)) setLang(next)
       }),
-    [setLang]
+    [platform, setLang]
   )
 
   const value = useMemo<I18n>(

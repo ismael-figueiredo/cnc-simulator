@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useI18n } from '../i18n'
+import { usePlatform } from '../platform'
 
 interface Props {
   learn: boolean
@@ -48,7 +49,8 @@ export function HelpMenu({ learn, onLearn, onTour, onShortcuts }: Props) {
 /** Keyboard shortcuts, as a small dialog. */
 export function ShortcutsDialog({ onClose }: { onClose: () => void }) {
   const { t } = useI18n()
-  const mod = window.api?.platform === 'darwin' ? '⌘' : 'Ctrl'
+  const platform = usePlatform()
+  const mod = platform.os === 'darwin' ? '⌘' : 'Ctrl'
   const rows: [string, string][] = [
     [`${mod}+N`, t('action.newProgram')],
     [`${mod}+O`, t('action.open')],

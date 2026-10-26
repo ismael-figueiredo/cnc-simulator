@@ -1,5 +1,6 @@
 import type { RecentItem } from '../../preload/api'
 import { useI18n } from '../i18n'
+import { usePlatform } from '../platform'
 
 /** Lists of the start screen, one per tab. */
 export type StartSection = 'recent' | 'examples' | 'exercises'
@@ -58,6 +59,7 @@ function Preview({ url, kind }: { url: string | undefined; kind: 'project' | 'pr
 export function StartScreen(props: Props) {
   const { section, onSection, recent, examples, exercises, recentThumb, onNew, onOpen, onOpenRecent, onRemoveRecent, onOpenExample, onOpenExercise } = props
   const { t, lang } = useI18n()
+  const platform = usePlatform()
   const when = (ms: number) => new Date(ms).toLocaleString(lang, { dateStyle: 'short', timeStyle: 'short' })
   const tabs: { id: StartSection; label: string; count: number }[] = [
     { id: 'recent', label: t('start.recent'), count: recent.length },
@@ -99,7 +101,7 @@ export function StartScreen(props: Props) {
                   <span className="file-text">
                     <span className="file-name">{item.name}</span>
                     <span className="muted">
-                      {t(item.kind === 'project' ? 'file.project' : 'file.program')} · {item.missing ? t('start.missing') : window.api ? item.path : t('start.browserCopy')}
+                      {t(item.kind === 'project' ? 'file.project' : 'file.program')} · {item.missing ? t('start.missing') : platform.desktop ? item.path : t('start.browserCopy')}
                     </span>
                   </span>
                   <span className="muted when">{when(item.openedAt)}</span>
