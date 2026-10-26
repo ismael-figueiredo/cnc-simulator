@@ -11,11 +11,14 @@ const svg = readFileSync(resolve(root, 'build/icon.svg'), 'utf8')
 const logo = `data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}`
 
 const FONT = `font-family:-apple-system,'Segoe UI',Roboto,sans-serif`
-const DARK = 'background:linear-gradient(#1f2a37,#0b1117)'
+// The brand's condensed face, from the installed font package
+const barlow = (weight) => pathToFileURL(resolve(root, `node_modules/@fontsource/barlow-condensed/files/barlow-condensed-latin-${weight}-normal.woff2`)).href
+const BRAND_FONT = `<style>@font-face{font-family:'Barlow Condensed';font-weight:600;src:url(${barlow(600)})}@font-face{font-family:'Barlow Condensed';font-weight:700;src:url(${barlow(700)})}.brand{font-family:'Barlow Condensed',sans-serif;text-transform:uppercase}</style>`
+const DARK = 'background:#0e1215'
 const GRID = (color) =>
   `background-image:linear-gradient(${color} 1px,transparent 1px),linear-gradient(90deg,${color} 1px,transparent 1px);background-size:20px 20px`
 
-const page = (body, style = '') => `<html><head><meta charset="utf-8"></head><body style="margin:0;overflow:hidden;${FONT};${style}">${body}</body></html>`
+const page = (body, style = '') => `<html><head><meta charset="utf-8">${BRAND_FONT}</head><body style="margin:0;overflow:hidden;${FONT};${style}">${body}</body></html>`
 
 const iconPage = (size) => page(`<img src="${logo}" width="${size}" height="${size}">`, 'background:transparent')
 
@@ -24,8 +27,8 @@ const sidebar = page(
   `<div style="position:absolute;inset:0;${GRID('rgba(245,184,0,.06)')}"></div>
    <div style="position:relative;text-align:center;padding-top:44px;color:#e6edf3">
      <img src="${logo}" width="112" height="112">
-     <div style="font-size:19px;font-weight:700;margin-top:10px">CNC Simulator</div>
-     <div style="font-size:11px;color:#F5B800;margin-top:6px;letter-spacing:.5px">G-code · 3D</div>
+     <div class="brand" style="font-size:26px;font-weight:700;margin-top:10px;letter-spacing:.02em">CNC Simulator</div>
+     <div class="brand" style="font-size:13px;font-weight:600;color:#F5B800;margin-top:4px;letter-spacing:.18em">G-code · Lathe · Mill</div>
    </div>
    <svg style="position:absolute;left:0;bottom:30px" width="164" height="60" viewBox="0 0 164 60">
      <path d="M14 20H52Q60 20 64 28L70 40H100" fill="none" stroke="#F5B800" stroke-width="4" stroke-linecap="round"/>
@@ -37,8 +40,8 @@ const sidebar = page(
 
 // Windows installer, inner pages: 150x57 on the right of the white header band
 const header = page(
-  `<div style="display:flex;align-items:center;justify-content:flex-end;gap:8px;height:57px;padding-right:6px;color:#1f2a37">
-     <div style="font-size:13px;font-weight:700;line-height:1.1;text-align:right">CNC<br>Simulator</div>
+  `<div style="display:flex;align-items:center;justify-content:flex-end;gap:8px;height:57px;padding-right:6px;color:#15181b">
+     <div class="brand" style="font-size:17px;font-weight:700;line-height:1;text-align:right">CNC<br>Simulator</div>
      <img src="${logo}" width="48" height="48">
    </div>`,
   'background:#ffffff'
@@ -47,9 +50,9 @@ const header = page(
 // macOS disk image window: app icon on the left, Applications link on the right (positions in electron-builder.yml)
 const dmg = page(
   `<div style="position:absolute;inset:0;${GRID('rgba(31,42,55,.05)')}"></div>
-   <div style="position:relative;display:flex;align-items:center;justify-content:center;gap:10px;padding-top:26px;color:#1f2a37">
+   <div style="position:relative;display:flex;align-items:center;justify-content:center;gap:10px;padding-top:26px;color:#15181b">
      <img src="${logo}" width="40" height="40">
-     <div style="font-size:22px;font-weight:700">CNC Simulator</div>
+     <div class="brand" style="font-size:30px;font-weight:700;letter-spacing:.02em">CNC Simulator</div>
    </div>
    <svg style="position:absolute;left:0;top:0" width="540" height="380" viewBox="0 0 540 380">
      <path d="M214 190H312" fill="none" stroke="#C99300" stroke-width="5" stroke-linecap="round" stroke-dasharray="2 12"/>
@@ -71,7 +74,7 @@ const social = page(
    <div style="position:absolute;left:64px;top:70px;width:520px;color:#e6edf3">
      <div style="display:flex;align-items:center;gap:18px">
        <img src="${logo}" width="96" height="96">
-       <div style="font-size:52px;font-weight:800;line-height:1">CNC Simulator</div>
+       <div><div class="brand" style="font-size:66px;font-weight:700;line-height:.95;letter-spacing:.02em">CNC Simulator</div><div class="brand" style="font-size:20px;font-weight:600;color:#F5B800;letter-spacing:.22em;margin-top:6px">G-code · Lathe · Mill</div></div>
      </div>
      <div style="font-size:30px;font-weight:600;margin-top:34px;line-height:1.25">Learn and test G-code<br>without a machine</div>
      <div style="font-size:20px;color:#9fb0c0;margin-top:16px;line-height:1.4">Free and open source · lathe and machining center · alarms and collisions in 3D</div>
@@ -79,7 +82,7 @@ const social = page(
        ${['Fanuc', 'Mitsubishi', 'Haas', 'Macro B', 'Windows · macOS · Linux'].map(chip).join('')}
      </div>
    </div>
-   <div style="position:absolute;right:48px;top:80px;width:600px;height:480px;border-radius:14px;overflow:hidden;border:1px solid #2b3a4a;box-shadow:0 20px 60px rgba(0,0,0,.5);background:#0b1117">
+   <div style="position:absolute;right:48px;top:80px;width:600px;height:480px;border-radius:14px;overflow:hidden;border:1px solid #233142;box-shadow:0 20px 60px rgba(0,0,0,.5);background:#0b1117">
      <img src="${demo}" style="width:100%;height:100%;object-fit:cover;object-position:left top">
    </div>`,
   DARK
@@ -88,6 +91,7 @@ const social = page(
 const outputs = [
   { file: 'build/icon.png', html: iconPage(1024), width: 1024, height: 1024 }, // installers, dock, taskbar, Linux window
   { file: 'src/renderer/public/favicon.png', html: iconPage(64), width: 64, height: 64 }, // browser tab and server mode
+  { file: 'src/renderer/public/icon.png', html: iconPage(256), width: 256, height: 256 }, // the app's own brand lockups
   { file: 'build/installerSidebar.bmp', html: sidebar, width: 164, height: 314 },
   { file: 'build/uninstallerSidebar.bmp', html: sidebar, width: 164, height: 314 },
   { file: 'build/installerHeader.bmp', html: header, width: 150, height: 57 },
