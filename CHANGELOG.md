@@ -4,6 +4,28 @@ Cada versão em português e inglês. · Each version in Portuguese and English.
 
 Downloads: https://github.com/ismael-figueiredo/cnc-simulator/releases
 
+## 0.19.2 · 2026-10-26
+
+### Português
+**Placa, overrides e face do blank.**
+- **Face do blank piscando:** o blank torneado era desenhado semitransparente e "brigava" com a placa ao girar a vista. Agora é opaco, e o percurso continua visível sobre ele.
+- **A placa continua girando** no FEED HOLD e na parada do bloco a bloco, como na máquina; ela só para no M05. A velocidade do giro segue a rotação programada e o **override da árvore**.
+- **Override da árvore** agora age no programa:
+  - no **avanço por rotação (G95)**, o comum no torno, mais rotação é mais avanço por minuto, então o corte e o tempo de ciclo ficam mais rápidos;
+  - nas **roscas**, o tempo segue só a árvore.
+
+  O **override de avanço** não age durante a rosca, como no comando. Exemplo: o O1002 vai de 1:53 para 1:43 com a árvore em 120 %, e para 1:35 com o avanço em 150 %.
+
+### English
+**Chuck, overrides and the bar's face.**
+- **Flickering bar face:** the turned bar was drawn see-through and fought with the chuck as the view turned. It is opaque now, and the path stays visible on it.
+- **The chuck keeps turning** in FEED HOLD and at single block stops, as on the machine; it only stops at M05. It turns faster with the programmed speed and the **spindle override**.
+- **The spindle override** now acts on the program:
+  - with **feed per revolution (G95)**, the lathe's usual mode, more speed means more feed per minute, so the cut and the cycle time get faster;
+  - on **threads**, the time follows the spindle only.
+
+  The **feed override** does not act while threading, as on the control. Example: O1002 goes from 1:53 to 1:43 with the spindle at 120 %, and to 1:35 with the feed at 150 %.
+
 ## 0.19.1 · 2026-10-26
 
 ### Português
