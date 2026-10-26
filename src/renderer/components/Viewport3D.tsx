@@ -5,6 +5,7 @@ import type CameraControlsImpl from 'camera-controls'
 import { Box3, BufferAttribute, Sphere, BufferGeometry, ExtrudeGeometry, LatheGeometry, Shape, Vector2, Vector3, type Group } from 'three'
 import {
   chuckGeometry,
+  stockOrigin,
   holderOutline,
   insertOutline,
   toolOutline,
@@ -446,6 +447,19 @@ export function Viewport3D({
           lo[k] = Math.min(lo[k] ?? 0, q[k] ?? 0)
           hi[k] = Math.max(hi[k] ?? 0, q[k] ?? 0)
         }
+    // The whole stock is in the picture too, not only the path
+    if (stock) {
+      const o = stockOrigin(stock, zeroOf(workOffsets, stock.workOffset ?? 'G54', lathe))
+      const r = (stock.diameter ?? 0) / 2
+      const corners: Vec3[] = lathe
+        ? [[-r, -r, o[2]], [r, r, o[2] - (stock.length ?? 0)]]
+        : [o, [o[0] + (stock.x ?? 0), o[1] + (stock.y ?? 0), o[2] - (stock.z ?? 0)]]
+      for (const q of corners)
+        for (let k = 0; k < 3; k++) {
+          lo[k] = Math.min(lo[k] ?? 0, q[k] ?? 0)
+          hi[k] = Math.max(hi[k] ?? 0, q[k] ?? 0)
+        }
+    }
     if (!Number.isFinite(lo[0])) return null
     // Lathe: the path is on one side of the spindle axis, the part is round: frame both sides
     if (lathe)
@@ -461,7 +475,7 @@ export function Viewport3D({
     // A program with almost no moves still gets a view the size of the stock
     if (box.getSize(new Vector3()).length() < size) box.expandByScalar(size / 2)
     return box
-  }, [result, lathe, size])
+  }, [result, lathe, size, stock, workOffsets])
   // The operation picked in the feature tree, drawn bright over the path
   const highlighted = useMemo(
     () => (highlight && result ? buildLayer(result.moves.slice(highlight.first, highlight.last + 1), (m) => m.points) : null),
