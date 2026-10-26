@@ -4,6 +4,28 @@ Cada versão em português e inglês. · Each version in Portuguese and English.
 
 Downloads: https://github.com/ismael-figueiredo/cnc-simulator/releases
 
+## 0.20.0 · 2026-10-26
+
+### Português
+**Placa, mesa e morsa em 3D, furos redondos.**
+- **Placa do torno:** placa hidráulica de três castanhas, desenhada a partir de fotos de referência: corpo chanfrado sobre um flange quadrado, ranhuras radiais, castanhas-base com serrilhado e castanhas duras escalonadas com dois parafusos cada. O tamanho vem do arquivo da máquina (`chuck`: 8" na GL 250 M, 10" na GL 300), e a verificação de colisão segue os degraus das castanhas.
+- **Mesa do centro de usinagem:** mesa com ranhuras T e furos de pino, do tamanho de cada máquina (`table`: Romi D600/D1000/D1250, Haas VF-2 e VF-5). Ela fica onde o G54 põe a peça na máquina, ou logo abaixo do blank sem zeros de peça. Uma **morsa** segura o blank quando ele cabe nela e não está apoiado na mesa. Sem `table` no arquivo, a mesa é dimensionada pelos cursos.
+- **Placa** / **Mesa e morsa** na barra de vistas ("O que mostrar") liga e desliga.
+- **Furos redondos:** os furos dos ciclos de furação (G81–G89, G73, G83…) agora são desenhados redondos, com parede reta, em vez do contorno serrilhado do mapa de alturas. A superfície usinada também escolhe a diagonal de cada quadradinho pela borda, o que deixa contornos e bolsões mais limpos, e a resolução subiu de 220 para 260 células por lado (medido: +15 % no tempo de recalcular o O60010, de 10 mil movimentos).
+- **Correções:**
+  - a peça torneada era desenhada "do avesso" (faces para dentro), o que deixava a silhueta serrilhada e os degraus apagados; agora aparece como sólido, e as miniaturas são refeitas;
+  - o blank original, esmaecido sobre a peça usinada no centro de usinagem, ficava opaco depois de simular e escondia a usinagem.
+
+### English
+**Chuck, table and vise in 3D, round holes.**
+- **Lathe chuck:** a hydraulic three-jaw chuck, modeled from reference photos: chamfered body on a square flange, radial slots, serrated master jaws and stepped hard jaws with two bolts each. Its size comes from the machine file (`chuck`: 8" on the GL 250 M, 10" on the GL 300), and the collision check follows the jaw steps.
+- **Machining center table:** a table with T-slots and dowel holes, sized for each machine (`table`: Romi D600/D1000/D1250, Haas VF-2 and VF-5). It sits where G54 puts the part on the machine, or right under the stock without work offsets. A **vise** holds the stock when it fits one and does not rest on the table. Without `table` in the file, the table is sized from the travels.
+- **Chuck** / **Table and vise** in the view toolbar ("What to show") turns them on and off.
+- **Round holes:** holes from the drilling cycles (G81–G89, G73, G83…) are now drawn round, with a straight wall, instead of the heightfield's jagged outline. The machined surface also picks each cell's diagonal along the edge, so contours and pockets look cleaner, and the resolution went from 220 to 260 cells per side (measured: +15 % in the time to replay O60010, 10 thousand moves).
+- **Fixes:**
+  - the turned part was drawn inside out (faces pointing inward), which made its outline jagged and its shoulders faint; it now shows as a solid, and the part pictures are redrawn;
+  - the original stock, faded over the machined part on machining centers, turned opaque after simulating and hid the machining.
+
 ## 0.19.4 · 2026-10-26
 
 ### Português
