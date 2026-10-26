@@ -8,7 +8,7 @@ Português (Brasil) · [English](README.md)
 
 **Simulador CNC gratuito e de código aberto para aprender e testar G-code** sem precisar de uma máquina: tornos e centros de usinagem, comandos Fanuc, Mitsubishi e Haas, programas parametrizados em Macro B, os alarmes do próprio comando e a verificação de colisões. Para Windows, macOS e Linux.
 
-Site: **[ismael-figueiredo.github.io/cnc-simulator](https://ismael-figueiredo.github.io/cnc-simulator/)**
+Site: **[ismael-figueiredo.github.io/cnc-simulator/pt](https://ismael-figueiredo.github.io/cnc-simulator/pt/)** · [Códigos G e M explicados](https://ismael-figueiredo.github.io/cnc-simulator/pt/codigos-g/)
 
 Lê G-code, usa a **máquina** e o **comando** descritos em JSON (um pós-processador às avessas) e mostra o percurso e a peça usinada em 3D.
 

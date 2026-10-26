@@ -8,7 +8,7 @@
 
 **Free, open-source CNC simulator to learn and test G-code**, with no machine needed: lathes and machining centers, Fanuc, Mitsubishi and Haas controls, Macro B parametric programs, the control's own alarms and collision checks. For Windows, macOS and Linux.
 
-Website: **[ismael-figueiredo.github.io/cnc-simulator](https://ismael-figueiredo.github.io/cnc-simulator/)**
+Website: **[ismael-figueiredo.github.io/cnc-simulator](https://ismael-figueiredo.github.io/cnc-simulator/)** · [G-code reference](https://ismael-figueiredo.github.io/cnc-simulator/g-codes/)
 
 It reads G-code, takes the **machine** and the **control** from JSON files (a post-processor in reverse) and shows the toolpath and the machined part in 3D.
 
@@ -173,7 +173,7 @@ After a visible UI change, run `npm run demo` and commit the new `docs/demo.gif`
 - **Release notes:** each version is described in [CHANGELOG.md](CHANGELOG.md) (Portuguese and English). Tag a release with that text as an annotated tag message (`git tag -a vX.Y.Z --cleanup=verbatim -F notes.md`, so the `###` headings are kept); the Release workflow puts it on the release page.
 - **Release:** pushing a `v*` tag (`git tag v0.1.0 && git push origin v0.1.0`) builds the Windows, macOS and Linux installers and publishes them on the GitHub Releases page. Running the workflow by hand from the Actions tab only keeps them as run artifacts.
 - **Installer screens:** the Windows installer shows the license and the artwork in `build/` (sidebar and header BMPs); the macOS disk image shows a background with the drag-to-Applications arrow. `npm run icons` renders all of them from `build/icon.svg`.
-- **Website and social preview:** `docs/index.html` is the GitHub Pages site (branch `main`, folder `/docs`); it links the installers of the latest release. `docs/social.png` is the image for **Settings → Social preview**.
+- **Website:** the GitHub Pages site (branch `main`, folder `/docs`) is generated: `npm run screens` takes the app's screenshots (`docs/img`, in English and Portuguese) and `npm run site` writes the English and Portuguese home pages, the G and M code reference (made from the control files and the learning help) and `sitemap.xml`, with canonical and hreflang links, Open Graph and schema.org data (SoftwareApplication, FAQPage). Run both after a release with visible changes. `docs/social.png` is the image for **Settings → Social preview**.
 
 ### Updates
 
