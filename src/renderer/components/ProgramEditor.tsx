@@ -6,9 +6,23 @@ import { EditorState } from '@codemirror/state'
 import { drawSelection, EditorView, highlightActiveLine, highlightActiveLineGutter, hoverTooltip, keymap, lineNumbers } from '@codemirror/view'
 import { tags } from '@lezer/highlight'
 import { HELP_TOKEN } from '../help'
+import { upperOutsideComments } from '../editing'
 
 export interface EditorHandle {
   getText: () => string
+  /** MDI keys: type at the cursor, CAN erases the character before it, DELETE the block (line). */
+  insert: (text: string) => void
+  backspace: () => void
+  deleteLine: () => void
+  /** Text of the line up to the cursor (to know whether a new word needs a space). */
+  textBeforeCursor: () => string
+}
+
+/** Whether position `pos` of the document is inside a comment, on its own line. */
+function inCommentAt(state: EditorState, pos: number): boolean {
+  const line = state.doc.lineAt(pos)
+  const before = line.text.slice(0, pos - line.from)
+  return before.lastIndexOf('(') > before.lastIndexOf(')')
 }
 
 interface Props {
@@ -87,7 +101,41 @@ export function ProgramEditor({ text, fontSize, onEdit, ref, help }: Props) {
     helpRef.current = help
   }, [help])
 
-  useImperativeHandle(ref, () => ({ getText: () => view.current?.state.doc.toString() ?? text }), [text])
+  useImperativeHandle(
+    ref,
+    () => ({
+      getText: () => view.current?.state.doc.toString() ?? text,
+      insert: (s: string) => {
+        const v = view.current
+        if (!v) return
+        v.dispatch(v.state.replaceSelection(s))
+        v.focus()
+      },
+      backspace: () => {
+        const v = view.current
+        if (!v) return
+        const { from, to } = v.state.selection.main
+        if (from === to && from > 0) v.dispatch({ changes: { from: from - 1, to: from } })
+        else if (from !== to) v.dispatch(v.state.replaceSelection(''))
+        v.focus()
+      },
+      textBeforeCursor: () => {
+        const v = view.current
+        if (!v) return ''
+        const head = v.state.selection.main.head
+        const line = v.state.doc.lineAt(head)
+        return line.text.slice(0, head - line.from)
+      },
+      deleteLine: () => {
+        const v = view.current
+        if (!v) return
+        const line = v.state.doc.lineAt(v.state.selection.main.head)
+        v.dispatch({ changes: { from: line.from, to: Math.min(v.state.doc.length, line.to + 1) } })
+        v.focus()
+      }
+    }),
+    [text]
+  )
 
   // Created once per program (the parent remounts it with a new key); edits stay inside CodeMirror
   useEffect(() => {
@@ -106,6 +154,14 @@ export function ProgramEditor({ text, fontSize, onEdit, ref, help }: Props) {
           highlightSelectionMatches(),
           gcode,
           syntaxHighlighting(highlight),
+          // Typed and pasted letters become capitals (comments keep their case)
+          EditorView.inputHandler.of((v, from, to, typed) => {
+            const upper = upperOutsideComments(typed, inCommentAt(v.state, from))
+            if (upper === typed) return false
+            v.dispatch({ changes: { from, to, insert: upper }, selection: { anchor: from + upper.length }, userEvent: 'input.type' })
+            return true
+          }),
+          EditorView.clipboardInputFilter.of((pasted, state) => upperOutsideComments(pasted, inCommentAt(state, state.selection.main.from))),
           hoverTooltip((v, pos) => {
             const help = helpRef.current
             if (!help) return null

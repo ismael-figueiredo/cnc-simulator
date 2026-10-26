@@ -16,6 +16,7 @@
     "src/renderer/playback.ts",
     "src/renderer/help.ts",
     "src/renderer/views.ts",
+    "src/renderer/editing.ts",
     "tests/**/*"
   ]
 }
