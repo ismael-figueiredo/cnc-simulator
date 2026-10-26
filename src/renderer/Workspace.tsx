@@ -311,8 +311,9 @@ export function Workspace({ init, cfg, active, layout, learn, onLearn, onHelp, o
   const [projectPath, setProjectPath] = useState<string | null>(start.projectPath)
   // Simulated in the worker as soon as the tab opens (below)
   const [sim, setSim] = useState<Simulation>(NO_SIMULATION)
-  // One worker for the window's lifetime
+  // One worker for the tab's lifetime: closing the tab stops it
   const [simulator] = useState(createSimulator)
+  useEffect(() => simulator.dispose, [simulator])
   const [busy, setBusy] = useState(false)
   // Operator panel: single block, M01, block delete and overrides, as on the machine
   const [panel, setPanel] = useState<PanelState>({ singleBlock: false, optionalStop: false, blockSkip: false, feed: 100, rapid: 100, spindle: 100 })

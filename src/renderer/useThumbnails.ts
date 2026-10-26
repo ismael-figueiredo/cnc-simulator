@@ -51,7 +51,7 @@ export function usePartThumbnails(jobs: readonly ThumbJob[]): Record<string, str
     })()
     return () => {
       run.stopped = true
-      simulator.cancel()
+      simulator.dispose()
     }
   }, [jobs])
   return thumbs
