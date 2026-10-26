@@ -4,6 +4,18 @@ Cada versão em português e inglês. · Each version in Portuguese and English.
 
 Downloads: https://github.com/ismael-figueiredo/cnc-simulator/releases
 
+## 0.18.1 · 2026-10-26
+
+### Português
+**Logo novo.**
+- O ícone agora é uma **pastilha de torno triangular**, com o furo de fixação e o fio de corte, que é ao mesmo tempo o **▶ de "rodar"** a simulação, no amarelo de máquina sobre grafite.
+- Ícone do app, instaladores (Windows, macOS e Linux), favicon, imagem social e site atualizados; as telas do instalador e do disco do macOS passaram para o amarelo.
+
+### English
+**New logo.**
+- The icon is now a **triangular turning insert**, with its clamping hole and cutting edge, that is also the **▶ "run"** of the simulation, in machine yellow on graphite.
+- App icon, installers (Windows, macOS and Linux), favicon, social image and website updated; the installer and macOS disk image screens are now yellow too.
+
 ## 0.18.0 · 2026-10-26
 
 ### Português
