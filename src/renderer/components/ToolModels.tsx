@@ -77,29 +77,15 @@ export function RotaryTool({ tool, holder, colliding, spindleNose }: { tool: Too
     const from = tool.type === 'drill' ? tool.diameter * 0.3 : tool.type === 'ball-endmill' ? tool.diameter / 2 : 0
     return fluteLines(tool, from, parts.top)
   }, [tool, faceMill, parts.top])
-  const inserts = useMemo(() => {
-    if (!faceMill) return null
-    const R = tool.diameter / 2
-    const n = Math.max(3, tool.flutes ?? 5)
-    const s = Math.min(10, R * 0.35)
-    return mergeGeometries(
-      Array.from({ length: n }, (_, k) =>
-        new BoxGeometry(s * 0.35, s, s)
-          .translate(R - s * 0.35, s / 2, 0)
-          .rotateY((k / n) * 2 * Math.PI)
-      )
-    )
-  }, [faceMill, tool])
-  useDispose(inserts)
-
   return (
     <>
-      <Revolved outline={parts.cut} color={faceMill ? COLORS.holder : COLORS.carbide} metalness={0.25} roughness={0.35} />
-      {parts.shank && <Revolved outline={parts.shank} color={COLORS.shank} />}
-      {inserts && (
-        <mesh geometry={inserts}>
-          <meshStandardMaterial color={COLORS.insert} metalness={0.5} roughness={0.4} />
-        </mesh>
+      {faceMill ? (
+        <FaceMill tool={tool} />
+      ) : (
+        <>
+          <Revolved outline={parts.cut} color={COLORS.carbide} metalness={0.25} roughness={0.35} />
+          {parts.shank && <Revolved outline={parts.shank} color={COLORS.shank} />}
+        </>
       )}
       {lines.map((pts, k) => (
         <Line key={k} points={pts} color={COLORS.flute} lineWidth={1.5} />
@@ -112,6 +98,68 @@ export function RotaryTool({ tool, holder, colliding, spindleNose }: { tool: Too
           <meshStandardMaterial color={COLORS.spindle} transparent opacity={0.25} depthWrite={false} />
         </mesh>
       )}
+    </>
+  )
+}
+
+/**
+ * Face mill (shell mill), as in catalog photos: a steel body with a chip pocket in front of each
+ * insert, the inserts standing on the pocket faces with their screws, a plain collar above the pockets
+ * and the hub that sits on the arbor. Built in the tool's frame (+Y up from the cutting face).
+ */
+function FaceMill({ tool }: { tool: Tool }) {
+  const parts = useMemo(() => {
+    const R = tool.diameter / 2
+    const n = Math.max(3, tool.flutes ?? 5)
+    const s = Math.min(12, R * 0.42)
+    const t = s * 0.38
+    const rb = R - s * 0.3
+    const top = Math.max(tool.length * 0.8, s * 2.4)
+    const pocket = s * 1.9
+    // Cross-section of the pocketed part: the body circle with a notch behind each insert
+    const section = new Shape()
+    const steps = 96
+    const notch = (Math.PI * 2) / n
+    for (let i = 0; i <= steps; i++) {
+      const a = (i / steps) * 2 * Math.PI
+      // Angle into the current pitch (0 at an insert face, growing behind it): the pocket fills the first 45%
+      const u = (a % notch) / notch
+      const r = u > 0.02 && u < 0.45 ? rb - s * (1.2 - Math.abs(u - 0.2) * 2.2) : rb
+      if (i) section.lineTo(Math.cos(a) * r, Math.sin(a) * r)
+      else section.moveTo(Math.cos(a) * r, Math.sin(a) * r)
+    }
+    // Extruded along shape Z; −90° about X takes it to +Y (up the tool), shape Y to scene −Z
+    const pockets = new ExtrudeGeometry(section, { depth: pocket, bevelEnabled: false, curveSegments: 1 }).rotateX(-Math.PI / 2)
+    const body = merge([
+      pockets,
+      new CylinderGeometry(rb, rb, top - pocket, 64).translate(0, (pocket + top) / 2, 0),
+      new CylinderGeometry(R * 0.62, rb, 3, 64).translate(0, top + 1.5, 0),
+      new CylinderGeometry(R * 0.55, R * 0.55, tool.length - top, 48).translate(0, (top + tool.length) / 2, 0)
+    ])
+    // Insert on the pocket face at shape angle a: rotateY(a) turns +X to it; the pocket is on local −Z
+    const inserts: BufferGeometry[] = []
+    const screws: BufferGeometry[] = []
+    for (let k = 0; k < n; k++) {
+      const a = k * notch + notch * 0.02
+      inserts.push(new BoxGeometry(s, s, t).translate(R - s / 2, s / 2, -t / 2).rotateY(a))
+      screws.push(new CylinderGeometry(s * 0.16, s * 0.16, 0.6, 16).rotateX(Math.PI / 2).translate(R - s * 0.55, s * 0.55, -t - 0.2).rotateY(a))
+    }
+    // Arbor bolt seen from below, in the middle of the cutting face
+    screws.push(new CylinderGeometry(R * 0.22, R * 0.22, 0.4, 32).translate(0, -0.1, 0))
+    return { body, inserts: merge(inserts), screws: merge(screws) }
+  }, [tool])
+  useDispose(parts.body, parts.inserts, parts.screws)
+  return (
+    <>
+      <mesh geometry={parts.body}>
+        <meshStandardMaterial color={COLORS.shank} metalness={0.25} roughness={0.4} />
+      </mesh>
+      <mesh geometry={parts.inserts}>
+        <meshStandardMaterial color={COLORS.insert} metalness={0.4} roughness={0.4} />
+      </mesh>
+      <mesh geometry={parts.screws}>
+        <meshStandardMaterial color={COLORS.screw} metalness={0.3} roughness={0.6} />
+      </mesh>
     </>
   )
 }
