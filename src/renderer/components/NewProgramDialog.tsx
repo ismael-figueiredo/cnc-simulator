@@ -1,22 +1,27 @@
 import { useState } from 'react'
-import type { ProgramKind } from '@core/index'
+import { supportsMacro, type Control, type Machine, type ProgramKind } from '@core/index'
 import { useI18n } from '../i18n'
+import { SetupPicker, type SetupChoice } from './SetupPicker'
 
 interface Props {
-  machine: string
-  control: string
-  /** The control runs Macro B (variables, IF/WHILE, G65): the parametric option is offered. */
-  macro: boolean
-  onCreate: (kind: ProgramKind, number: number) => void
+  machines: Machine[]
+  controls: Control[]
+  /** Machine and control offered first (the last ones used). */
+  initial: SetupChoice
+  onCreate: (kind: ProgramKind, number: number, choice: SetupChoice) => void
   onClose: () => void
 }
 
-/** File > New program: plain G-code or parametric, with a header written in the selected control's codes. */
-export function NewProgramDialog({ machine, control, macro, onCreate, onClose }: Props) {
+/** File > New program: machine and control, then plain G-code or parametric, with a header in that control's codes. */
+export function NewProgramDialog({ machines, controls, initial, onCreate, onClose }: Props) {
   const { t } = useI18n()
   const [kind, setKind] = useState<ProgramKind>('plain')
   const [number, setNumber] = useState(1)
-  const valid = Number.isInteger(number) && number >= 1 && number <= 9999
+  const [choice, setChoice] = useState<SetupChoice>(initial)
+  const control = controls.find((c) => c.id === choice.controlId)
+  // The control runs Macro B (variables, IF/WHILE, G65): the parametric option is offered
+  const macro = !!control && supportsMacro(control)
+  const valid = Number.isInteger(number) && number >= 1 && number <= 9999 && !!control
 
   return (
     <div className="modal-backdrop" role="dialog" aria-modal aria-label={t('newProgram.title')}>
@@ -25,7 +30,8 @@ export function NewProgramDialog({ machine, control, macro, onCreate, onClose }:
           <h2>{t('newProgram.title')}</h2>
         </header>
         <div className="new-program-body">
-          <p className="muted">{t('newProgram.for', { machine, control })}</p>
+          <SetupPicker machines={machines} controls={controls} value={choice} onChange={setChoice} />
+          <p className="muted">{t('newProgram.forControl')}</p>
           <div className="kinds" role="radiogroup">
             <button role="radio" aria-checked={kind === 'plain'} className={`kind ${kind === 'plain' ? 'on' : ''}`} onClick={() => setKind('plain')}>
               <b>{t('newProgram.plain')}</b>
@@ -33,8 +39,8 @@ export function NewProgramDialog({ machine, control, macro, onCreate, onClose }:
             </button>
             <button
               role="radio"
-              aria-checked={kind === 'parametric'}
-              className={`kind ${kind === 'parametric' ? 'on' : ''}`}
+              aria-checked={kind === 'parametric' && macro}
+              className={`kind ${kind === 'parametric' && macro ? 'on' : ''}`}
               disabled={!macro}
               onClick={() => setKind('parametric')}
             >
@@ -49,7 +55,7 @@ export function NewProgramDialog({ machine, control, macro, onCreate, onClose }:
         </div>
         <footer>
           <button className="btn" onClick={onClose}>{t('common.cancel')}</button>
-          <button className="btn primary" disabled={!valid} onClick={() => onCreate(kind, number)}>{t('newProgram.create')}</button>
+          <button className="btn primary" disabled={!valid} onClick={() => onCreate(macro ? kind : 'plain', number, choice)}>{t('newProgram.create')}</button>
         </footer>
       </div>
     </div>

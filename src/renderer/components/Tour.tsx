@@ -9,12 +9,15 @@ interface Step {
   text: MessageKey
 }
 
+// Scoped to the tab in front: the other tabs are in the page too, hidden
+const W = '.workspace.active'
 const STEPS: Step[] = [
-  { target: '.mp-status, .sidebar .dro', title: 'tour.statusTitle', text: 'tour.status' },
-  { target: '.cnc-screen', title: 'tour.programTitle', text: 'tour.program' },
-  { target: '.mp-softkeys, .side-tabs', title: 'tour.pagesTitle', text: 'tour.pages' },
-  { target: '.player', title: 'tour.panelTitle', text: 'tour.panel' },
-  { target: '.layout-switch', title: 'tour.layoutTitle', text: 'tour.layout' }
+  { target: `${W} .mp-status, ${W} .sidebar .dro`, title: 'tour.statusTitle', text: 'tour.status' },
+  { target: `${W} .cnc-screen`, title: 'tour.programTitle', text: 'tour.program' },
+  { target: `${W} .mp-softkeys, ${W} .side-tabs`, title: 'tour.pagesTitle', text: 'tour.pages' },
+  { target: `${W} .player`, title: 'tour.panelTitle', text: 'tour.panel' },
+  { target: `${W} .status-bar`, title: 'tour.fileTitle', text: 'tour.file' },
+  { target: '.titlebar', title: 'tour.layoutTitle', text: 'tour.layout' }
 ]
 
 interface Props {
