@@ -1,44 +1,45 @@
-import type { MessageKey } from '@i18n/index'
 import { useI18n } from '../i18n'
 
-/** Screens of the machine layout, picked with the soft keys under the display. */
-export type Screen = 'pos' | 'prog' | 'offset' | 'graph' | 'msg' | 'setting'
+/** Pages of the machine screen, picked with the MDI function keys and the soft keys. */
+export type Screen = 'pos' | 'prog' | 'graph' | 'offset' | 'work' | 'msg' | 'setting'
 
-const KEYS: { screen: Screen; label: MessageKey; hint: MessageKey }[] = [
-  { screen: 'pos', label: 'softkey.pos', hint: 'softkey.posHint' },
-  { screen: 'prog', label: 'softkey.prog', hint: 'softkey.progHint' },
-  { screen: 'offset', label: 'softkey.offset', hint: 'softkey.offsetHint' },
-  { screen: 'graph', label: 'softkey.graph', hint: 'softkey.graphHint' },
-  { screen: 'msg', label: 'softkey.msg', hint: 'softkey.msgHint' },
-  { screen: 'setting', label: 'softkey.setting', hint: 'softkey.settingHint' }
-]
+/** Function keys of the MDI panel, each opening a group of pages. */
+export type FunctionKey = 'POS' | 'PROG' | 'OFS/SET' | 'SYSTEM' | 'MESSAGE' | 'GRAPH'
 
-interface Props {
-  screen: Screen
-  onScreen: (screen: Screen) => void
-  /** Messages waiting, and whether one of them is an alarm: the MSG key lights up. */
-  messages: number
-  alarm: boolean
+/** The page a function key opens first, and the soft keys of its group (labels as on the control). */
+export const GROUPS: Record<FunctionKey, { page: Screen; keys: { label: string; page: Screen }[] }> = {
+  POS: { page: 'pos', keys: [{ label: 'ALL', page: 'pos' }] },
+  PROG: { page: 'prog', keys: [{ label: 'PROGRM', page: 'prog' }, { label: 'CHECK', page: 'graph' }] },
+  'OFS/SET': { page: 'offset', keys: [{ label: 'OFFSET', page: 'offset' }, { label: 'WORK', page: 'work' }] },
+  SYSTEM: { page: 'setting', keys: [{ label: 'SYSTEM', page: 'setting' }] },
+  MESSAGE: { page: 'msg', keys: [{ label: 'ALARM', page: 'msg' }] },
+  GRAPH: { page: 'graph', keys: [{ label: 'GRAPH', page: 'graph' }, { label: 'PROGRM', page: 'prog' }] }
 }
 
-/** The row of keys under the control's display that switch screens. */
-export function SoftKeys({ screen, onScreen, messages, alarm }: Props) {
+/** Which function key a page belongs to. */
+export const groupOf = (page: Screen): FunctionKey =>
+  page === 'pos' ? 'POS' : page === 'prog' ? 'PROG' : page === 'offset' || page === 'work' ? 'OFS/SET' : page === 'setting' ? 'SYSTEM' : page === 'msg' ? 'MESSAGE' : 'GRAPH'
+
+/** Soft keys: 10 under the display plus the return and continue keys, labels drawn on the screen's last row. */
+export function SoftKeys({ group, screen, onScreen }: { group: FunctionKey; screen: Screen; onScreen: (screen: Screen) => void }) {
   const { t } = useI18n()
+  const keys = GROUPS[group].keys
+  const slots = Array.from({ length: 10 }, (_, i) => keys[i])
   return (
-    <div className="mp-softkeys" role="tablist">
-      {KEYS.map((k) => (
-        <button
-          key={k.screen}
-          role="tab"
-          aria-selected={screen === k.screen}
-          className={['softkey', screen === k.screen ? 'on' : '', k.screen === 'msg' && alarm ? 'alm' : ''].filter(Boolean).join(' ')}
-          title={t(k.hint)}
-          onClick={() => onScreen(k.screen)}
-        >
-          {t(k.label)}
-          {k.screen === 'msg' && messages > 0 && <span className="count">{messages}</span>}
-        </button>
-      ))}
+    <div className="softkeys" role="toolbar" aria-label={t('softkey.label')}>
+      <button className="sk edge" disabled aria-hidden tabIndex={-1}>◁</button>
+      {slots.map((k, i) =>
+        k ? (
+          <button key={i} className={`sk ${k.page === screen ? 'on' : ''}`} aria-pressed={k.page === screen} onClick={() => onScreen(k.page)}>
+            <span>{k.label}</span>
+          </button>
+        ) : (
+          <button key={i} className="sk" disabled aria-hidden tabIndex={-1}>
+            <span />
+          </button>
+        )
+      )}
+      <button className="sk edge" disabled aria-hidden tabIndex={-1}>▷</button>
     </div>
   )
 }
