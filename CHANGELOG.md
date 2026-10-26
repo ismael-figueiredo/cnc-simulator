@@ -4,6 +4,46 @@ Cada versão em português e inglês. · Each version in Portuguese and English.
 
 Downloads: https://github.com/ismael-figueiredo/cnc-simulator/releases
 
+## 0.15.0 · 2026-10-26
+
+### Português
+**Arquivos em abas e tela inicial nova.**
+- **Abas de documento:** cada programa ou projeto abre na sua aba, como num navegador, com máquina, simulação e tela próprias. **+** abre a tela inicial e Ctrl/⌘+W fecha a aba (pergunta se houver alterações).
+- **Tela inicial:**
+  - **Novo programa…** e **Abrir…** à esquerda;
+  - abas **Recentes**, **Exemplos** e **Exercícios**, com ícones diferentes para projeto e programa.
+- **Abrir um programa (.nc) pergunta a máquina, o comando e a biblioteca de ferramentas**, com sugestão pelos próprios códigos:
+  - G18 e T0101 → torno; C ou G12.1 → torno com eixo C; G154 → Haas;
+  - a última escolha é lembrada.
+
+  Assim o programa não abre mais cheio de alarmes na máquina errada. Um projeto (.cncsim) abre como foi salvo.
+- **Barra de status** embaixo: tipo de arquivo (Projeto .cncsim ou Programa .nc), máquina, comando e ferramentas; a máquina e o comando trocam por ali.
+- **Topo limpo:**
+  - só as abas, a escolha de tela **Máquina | Modelo 3D** (o antigo "CAM") e um **?** discreto com tour, modo aprender e atalhos de teclado;
+  - "Início" e "Abrir programa" saíram do topo e estão no menu **Arquivo**, com Exemplos, Exercícios e Fechar aba;
+  - o menu **Exibir** troca a tela (Ctrl/⌘+1 e 2) e as vistas 3D;
+  - o menu **Ajuda** tem o Tour e os Atalhos.
+- **Programa novo:** a máquina e o comando passam a ser escolhidos no próprio diálogo.
+
+### English
+**Files in tabs and a new start screen.**
+- **Document tabs:** each program or project opens in its own tab, like a browser, with its own machine, simulation and screen. **+** opens the start screen and Ctrl/⌘+W closes the tab (it asks when there are unsaved changes).
+- **Start screen:**
+  - **New program…** and **Open…** on the left;
+  - **Recent**, **Examples** and **Exercises** tabs, with different icons for projects and programs.
+- **Opening a program (.nc) asks for the machine, control and tool library**, with a guess from its own codes:
+  - G18 and T0101 → lathe; C or G12.1 → lathe with a C axis; G154 → Haas;
+  - the last choice is remembered.
+
+  A program no longer opens full of alarms on the wrong machine. A project (.cncsim) opens as saved.
+- **Status bar** at the bottom: file kind (Project .cncsim or Program .nc), machine, control and tools; the machine and control are changed there.
+- **Clean title bar:**
+  - only the tabs, the **Machine | 3D model** screen switch (formerly "CAM") and a discreet **?** with the tour, learning mode and keyboard shortcuts;
+  - "Home" and "Open program" left the top and are in the **File** menu, with Examples, Exercises and Close tab;
+  - the **View** menu switches screens (Ctrl/⌘+1 and 2) and 3D views;
+  - the **Help** menu has the Tour and the Shortcuts.
+- **New program:** the machine and control are now chosen in the dialog itself.
+
 ## 0.14.0 · 2026-10-24
 
 ### Português
