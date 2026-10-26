@@ -23,7 +23,7 @@ import {
 } from '@core/index'
 import { Machining } from './Machining'
 import { useI18n } from '../i18n'
-import { viewAngles, viewDirection, type ViewKind } from '../views'
+import { latheToolAngle, viewAngles, viewDirection, type ViewKind } from '../views'
 
 interface Props {
   machine: Machine
@@ -502,7 +502,7 @@ export function Viewport3D({
   const turn = lathe && machineView ? -spindleAngle : 0
   const tip = toolTip ? rotateZ(toolTip, turn) : null
   /** Radial tools point at the spindle axis from where the tip is. */
-  const radialAngle = tip ? Math.atan2(tip[1], tip[0]) : 0
+  const radialAngle = tip ? latheToolAngle(tip) : 0
   // Memoized: the machining view keys its cut model on this array, and a new array on every
   // playback frame made it throw the cut stock away and replay the whole program each frame.
   const stockOffset = stock ? (stock.workOffset ?? 'G54') : null

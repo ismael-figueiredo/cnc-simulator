@@ -25,6 +25,15 @@ export function viewAngles(kind: Exclude<ViewKind, 'fit'>, lathe: boolean): View
   return { azimuth: Math.PI / 4, polar: ISO_POLAR }
 }
 
+/**
+ * Angle of a lathe tool around the spindle axis, from its tip. In the X/Z plane the tool stays on the
+ * turret's side even when the tip goes past the center (facing to X-1): it does not jump to the other
+ * side. Only a tip really around the axis (polar interpolation, the part standing still) turns it.
+ */
+export function latheToolAngle(tip: readonly [number, number, number]): number {
+  return Math.abs(tip[1]) > 1e-6 ? Math.atan2(tip[1], tip[0]) : 0
+}
+
 /** Direction from the target to the camera for those angles (unit vector, scene coordinates). */
 export function viewDirection({ azimuth, polar }: ViewAngles): [number, number, number] {
   return [Math.sin(polar) * Math.sin(azimuth), Math.cos(polar), Math.sin(polar) * Math.cos(azimuth)]
