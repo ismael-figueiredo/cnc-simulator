@@ -5,9 +5,11 @@ import { app, BrowserWindow, dialog, ipcMain, Menu, shell, type MenuItemConstruc
 import { DEFAULT_LANGUAGE, LANGUAGES, isLanguage, translate, type Language, type MessageKey, type Params } from '../i18n'
 import { CHANNELS, type MenuCommand, type OpenedFile, type SaveProjectRequest } from '../preload/api'
 import appIcon from '../../build/icon.png?asset'
+import { parseOpenedFile, parseSaveProjectRequest } from './ipcInput'
 import { deleteLibrary, listLibraries, saveLibrary } from './libraries'
-import { addRecent, listRecent, loadRecent, removeRecent } from './recent'
+import { addRecent, hasRecent, listRecent, loadRecent, removeRecent } from './recent'
 import { ISSUES_URL, reportProblem } from './report'
+import { createTrustedPaths } from './trustedPaths'
 import { checkForUpdates, setupUpdates } from './updater'
 
 const PROJECT_EXTENSION = 'cncsim'
@@ -18,6 +20,7 @@ const isMac = process.platform === 'darwin'
 let language: Language = DEFAULT_LANGUAGE
 /** The window reports unsaved program changes, so closing it can ask first. */
 let dirty = false
+const trusted = createTrustedPaths(hasRecent)
 
 const t = (key: MessageKey, params?: Params) => translate(language, key, params)
 
@@ -136,7 +139,7 @@ function sendCommand(win: Electron.BaseWindow | undefined, command: MenuCommand)
 
 async function saveProgram(win: BrowserWindow | undefined, file: OpenedFile, saveAs: boolean): Promise<OpenedFile | null> {
   let path = file.path
-  if (saveAs || !isAbsolute(path) || !existsSync(dirname(path))) {
+  if (saveAs || !trusted.has(path) || !existsSync(dirname(path))) {
     const opts = {
       title: t('dialog.saveProgram'),
       defaultPath: isAbsolute(path) ? path : join(app.getPath('documents'), file.name),
@@ -151,6 +154,7 @@ async function saveProgram(win: BrowserWindow | undefined, file: OpenedFile, sav
   }
   // Same encoding as reading, so accents in old comments survive a round trip
   await writeFile(path, file.text, 'latin1')
+  trusted.grant(path)
   addRecent(path)
   recentChanged()
   return { name: basename(path), path, text: file.text }
@@ -188,12 +192,16 @@ function clearRecent(): void {
   recentChanged()
 }
 
-/** Reads a program (or a project and its program) from disk and records it as recent; null if it is gone. */
+/**
+ * Reads a program (or a project and its program) from disk and records it as recent; null if it is gone.
+ * Only for paths the user chose (dialog, recent list): they become trusted for saving.
+ */
 async function readProgram(path: string): Promise<OpenedFile | null> {
   if (!existsSync(path)) {
     recentChanged()
     return null
   }
+  trusted.grant(path)
   addRecent(path)
   recentChanged()
   // CNC programs are usually ASCII; latin1 keeps accents in old comments.
@@ -209,6 +217,7 @@ async function readProgram(path: string): Promise<OpenedFile | null> {
     // invalid JSON: reported by the renderer's validation
   }
   const found = program !== '' && existsSync(program)
+  if (found) trusted.grant(program)
   return {
     name: program ? basename(program) : basename(path),
     path: program,
@@ -219,7 +228,7 @@ async function readProgram(path: string): Promise<OpenedFile | null> {
 
 async function saveProject(win: BrowserWindow | undefined, req: SaveProjectRequest, saveAs: boolean): Promise<string | null> {
   let path = req.projectPath
-  if (saveAs || !isAbsolute(path)) {
+  if (saveAs || !trusted.has(path)) {
     const opts = {
       title: t('dialog.saveProject'),
       defaultPath: join(dirname(req.programPath), `${basename(req.programPath, extname(req.programPath))}.${PROJECT_EXTENSION}`),
@@ -232,6 +241,7 @@ async function saveProject(win: BrowserWindow | undefined, req: SaveProjectReque
   // Relative with "/" so the project keeps working when the folder moves or opens on another OS
   const program = relative(dirname(path), req.programPath).split(sep).join('/')
   await writeFile(path, `${JSON.stringify({ ...req.project, program }, null, 2)}\n`, 'utf8')
+  trusted.grant(path)
   addRecent(path)
   recentChanged()
   return path
@@ -282,8 +292,17 @@ function createWindow(): BrowserWindow {
     webPreferences: {
       preload: join(__dirname, '../preload/preload.js'),
       contextIsolation: true,
-      sandbox: false
+      sandbox: true
     }
+  })
+  // The window never opens other windows or leaves the app's page: web links go to the browser
+  win.webContents.setWindowOpenHandler(({ url }) => {
+    if (/^https?:\/\//.test(url)) void shell.openExternal(url)
+    return { action: 'deny' }
+  })
+  win.webContents.on('will-navigate', (e, url) => {
+    const page = (u: string) => u.split('#')[0]
+    if (page(url) !== page(win.webContents.getURL())) e.preventDefault()
   })
   win.once('ready-to-show', () => win.show())
   win.on('close', (e) => {
@@ -313,12 +332,14 @@ ipcMain.handle(CHANNELS.setLanguage, (_e, lang: unknown) => {
 })
 
 ipcMain.handle(CHANNELS.openFile, (e) => chooseProgram(BrowserWindow.fromWebContents(e.sender) ?? undefined))
-ipcMain.handle(CHANNELS.saveFile, (e, file: OpenedFile, saveAs: unknown) =>
-  saveProgram(BrowserWindow.fromWebContents(e.sender) ?? undefined, file, saveAs === true)
-)
-ipcMain.handle(CHANNELS.saveProject, (e, req: SaveProjectRequest, saveAs: unknown) =>
-  saveProject(BrowserWindow.fromWebContents(e.sender) ?? undefined, req, saveAs === true)
-)
+ipcMain.handle(CHANNELS.saveFile, (e, value: unknown, saveAs: unknown) => {
+  const file = parseOpenedFile(value)
+  return file ? saveProgram(BrowserWindow.fromWebContents(e.sender) ?? undefined, file, saveAs === true) : null
+})
+ipcMain.handle(CHANNELS.saveProject, (e, value: unknown, saveAs: unknown) => {
+  const req = parseSaveProjectRequest(value)
+  return req ? saveProject(BrowserWindow.fromWebContents(e.sender) ?? undefined, req, saveAs === true) : null
+})
 ipcMain.handle(CHANNELS.listLibraries, () => listLibraries())
 ipcMain.handle(CHANNELS.saveLibrary, (_e, id: unknown, json: unknown) => {
   if (typeof id === 'string' && typeof json === 'string') return saveLibrary(id, json)
@@ -330,7 +351,8 @@ ipcMain.handle(CHANNELS.setDirty, (_e, value: unknown) => {
   dirty = value === true
 })
 ipcMain.handle(CHANNELS.listRecent, () => listRecent())
-ipcMain.handle(CHANNELS.openRecent, (_e, path: unknown) => (typeof path === 'string' ? readProgram(path) : null))
+// Only files on the recent list: any other path would let the window read the whole disk
+ipcMain.handle(CHANNELS.openRecent, (_e, path: unknown) => (typeof path === 'string' && hasRecent(path) ? readProgram(path) : null))
 ipcMain.handle(CHANNELS.removeRecent, (_e, path: unknown) => {
   if (typeof path === 'string') removeRecent(path)
   recentChanged()

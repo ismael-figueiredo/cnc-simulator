@@ -1,6 +1,6 @@
 import { existsSync } from 'node:fs'
 import { readFile, writeFile } from 'node:fs/promises'
-import { basename, extname, join } from 'node:path'
+import { basename, extname, join, resolve } from 'node:path'
 import { app } from 'electron'
 import type { RecentItem } from '../preload/api'
 
@@ -24,6 +24,10 @@ const save = () => writeFile(storePath(), JSON.stringify(items, null, 2)).catch(
 /** The list with `missing` set for files that were moved or deleted since. */
 export function listRecent(): RecentItem[] {
   return items.map((i) => ({ ...i, missing: !existsSync(i.path) }))
+}
+
+export function hasRecent(path: string): boolean {
+  return items.some((i) => resolve(i.path) === resolve(path))
 }
 
 export function addRecent(path: string): void {
