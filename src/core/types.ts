@@ -94,6 +94,8 @@ export interface Move {
   element?: PlaneElement
   compStart?: 41 | 42
   compCancel?: boolean
+  /** Thread cutting, tied to the spindle: the feed override does not apply, the spindle override does. */
+  thread?: boolean
 }
 
 export interface ToolUse {

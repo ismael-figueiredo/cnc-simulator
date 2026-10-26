@@ -114,6 +114,13 @@ describe('other lathe cycles', () => {
     expect(threads.length).toBeGreaterThan(5)
     // 25 mm at 1.5 mm/rev and 1000 rpm: 1 s
     expect(threads[0]?.durationS).toBeCloseTo(1, 6)
+    // Marked as threads, so the feed override leaves them alone
+    expect(threads.every((m) => m.thread)).toBe(true)
+  })
+
+  it('marks only thread passes as threads', () => {
+    const r = run(['G00 X42. Z2.', 'G01 Z-20. F0.25', 'G00 X100.'])
+    expect(r.moves.some((m) => m.thread)).toBe(false)
   })
 
   it('G32 cuts a thread at the lead per revolution', () => {

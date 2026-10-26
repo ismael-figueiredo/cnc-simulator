@@ -504,7 +504,7 @@ export function simulate(input: SimulationInput): SimulationResult {
     // Cutting on a machining center without G43: the tip would be a whole tool length lower
     if (kind === 'feed' && !latheControl && hasLengthComp && st.tool > 0 && st.lengthComp === null)
       diag('warning', 'length-comp-off', { tool: st.tool, length: Math.round((gaugeOf(st.tool) ?? 0) * 1000) / 1000 }, `lc${st.tool}`)
-    const m: Move = { kind, line, points: applyTipShift(points), toolRadius: toolRadius(), durationS, ...snapshot(), ...extra }
+    const m: Move = { kind, line, points: applyTipShift(points), toolRadius: toolRadius(), durationS, ...snapshot(), ...extra, ...(threadMove && kind === 'feed' ? { thread: true } : {}) }
     moves.push(m)
     if (moves.length > maxMoves) fatal('too-many-moves', { max: maxMoves })
     return m
@@ -1382,6 +1382,8 @@ export function simulate(input: SimulationInput): SimulationResult {
   }
 
   // ---------- lathe cycles ----------
+  /** Set while a thread is being cut: its moves are marked, the feed override does not apply to them. */
+  let threadMove = false
   /** Where the tool is, as a lathe point (radius, Z). */
   const here = (): P2 => ({ x: pos.X / xDia, z: pos.Z })
 
@@ -1389,10 +1391,12 @@ export function simulate(input: SimulationInput): SimulationResult {
   function asThread<T>(f: () => T): T {
     const saved = st.feedPerMinute
     st.feedPerMinute = false
+    threadMove = true
     try {
       return f()
     } finally {
       st.feedPerMinute = saved
+      threadMove = false
     }
   }
 
