@@ -30,7 +30,9 @@
     "dist:mac": "npm run build && electron-builder --mac",
     "dist:linux": "npm run build && electron-builder --linux",
     "icons": "electron scripts/icons.mjs",
-    "demo": "electron-vite build && electron scripts/demo.mjs"
+    "demo": "electron-vite build && electron scripts/demo.mjs",
+    "screens": "electron-vite build && electron scripts/screens.mjs",
+    "site": "tsx scripts/site.ts"
   },
   "dependencies": {
     "@codemirror/commands": "^6.11.1",
