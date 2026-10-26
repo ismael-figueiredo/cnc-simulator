@@ -19,12 +19,13 @@ import type {
   SimulationResult,
   ToolUse,
   VariableChange,
-  Vec2,
   Vec3
 } from '../types'
 import { machineAlarm as catalogAlarm } from './alarms'
 import { AXES, D2R, isAxis, lerpPosition, positionOf, type Axis, type Position } from './axes'
 import { buildCodeTable, formatCode, type GFn } from './codes'
+import { cutCorner, type Corner } from './corner'
+import { toolOffsetSetting, workOffsetName, writeWorkOffset } from './dataSetting'
 import { applyCutterComp } from './cutterComp'
 import { patternRepeat, roughFace, roughTurn, singleCycle, threadPasses, type P2, type Step } from './latheCycles'
 import type { DiagnosticCode } from './diagnostics'
@@ -219,13 +220,6 @@ export function simulate(input: SimulationInput): SimulationResult {
   // ---------- state ----------
   const pos: Position = { ...machineZero }
   /** A ",C"/",R" block waits for the next move to know the corner it rounds or chamfers. */
-  interface Corner {
-    kind: 'C' | 'R'
-    size: number
-    move: Move
-    /** C/R without comma (lathe option): the next move must be at 90°. */
-    perpendicular: boolean
-  }
   let corner: Corner | null = null
   const st = {
     motion: 0 as 0 | 1 | 2 | 3,
@@ -1417,126 +1411,39 @@ export function simulate(input: SimulationInput): SimulationResult {
     return null
   }
 
-  /**
-   * Chamfer or corner R between the corner block's line and the next line: both are shortened and the
-   * chamfer line or tangent arc goes between them, in the plane of the two lines. Corners next to an
-   * arc are reported as not simulated and stay sharp.
-   */
+  /** Chamfer or corner R between the corner block's line and the next line (see corner.ts). */
   function makeCorner(c: Corner, next: Move): void {
-    const prev = c.move
-    if (prev.element?.type === 'arc' || next.element?.type === 'arc' || prev.points.length !== 2 || next.points.length !== 2) {
-      diag('warning', 'direct-corner-not-simulated', { word: `,${c.kind}` }, `corner-arc|${line}`)
-      return
+    const r = cutCorner(c, next)
+    if (r.kind === 'not-simulated') diag('warning', 'direct-corner-not-simulated', { word: `,${c.kind}` }, `corner-arc|${line}`)
+    else if (r.kind === 'error') fatal(r.code, r.params)
+    else if (r.kind === 'cut') {
+      Object.assign(c.move, r.prev)
+      Object.assign(next, r.next)
+      moves.splice(moves.indexOf(next), 0, r.corner)
     }
-    const sub = (a: Vec3, b: Vec3): Vec3 => [a[0] - b[0], a[1] - b[1], a[2] - b[2]]
-    const add = (a: Vec3, b: Vec3): Vec3 => [a[0] + b[0], a[1] + b[1], a[2] + b[2]]
-    const mul = (a: Vec3, k: number): Vec3 => [a[0] * k, a[1] * k, a[2] * k]
-    const norm = (a: Vec3) => Math.hypot(a[0], a[1], a[2])
-    const A0 = prev.points[0] as Vec3
-    const P = prev.points[1] as Vec3
-    const B1 = next.points[1] as Vec3
-    const L1 = norm(sub(P, A0))
-    const L2 = norm(sub(B1, P))
-    if (L1 < 1e-9 || L2 < 1e-9) fatal('corner-without-move')
-    const d1 = mul(sub(P, A0), 1 / L1)
-    const d2 = mul(sub(B1, P), 1 / L2)
-    const cos = Math.min(1, Math.max(-1, d1[0] * d2[0] + d1[1] * d2[1] + d1[2] * d2[2]))
-    if (c.perpendicular && Math.abs(cos) > 1e-6) fatal('corner-taper')
-    const phi = Math.acos(cos)
-    if (phi < 1e-9) return // straight on: no corner to cut
-    // How far the corner starts from the programmed intersection, along each line
-    const t = c.kind === 'C' ? c.size : c.size * Math.tan(phi / 2)
-    if (t > L1 + 1e-9 || t > L2 + 1e-9) fatal('corner-too-large', { size: c.size })
-    const A = add(P, mul(d1, -t))
-    const B = add(P, mul(d2, t))
-    const flat = (q: Vec3): Vec2 => [q[0], q[1]]
-    const inPlane = !!prev.element && !!next.element
-    let points: Vec3[] = [A, B]
-    let element: PlaneElement | undefined = inPlane ? { type: 'line', p0: flat(A), p1: flat(B) } : undefined
-    if (c.kind === 'R') {
-      // Tangent arc: its center is R from A toward the inside of the turn
-      const inward = sub(d2, mul(d1, cos))
-      const n = mul(inward, 1 / norm(inward))
-      const center = add(A, mul(n, c.size))
-      const steps = Math.max(4, Math.ceil(phi / (Math.PI / 24)))
-      points = Array.from({ length: steps + 1 }, (_, i) => {
-        const a = (phi * i) / steps
-        return add(center, add(mul(n, -c.size * Math.cos(a)), mul(d1, c.size * Math.sin(a))))
-      })
-      const cross = d1[0] * d2[1] - d1[1] * d2[0]
-      if (inPlane) element = { type: 'arc', center: flat(center), radius: c.size, cw: cross < 0, p0: flat(A), p1: flat(B), sweep: phi }
-    }
-    // Shorten both lines; times scale with length at the same feed
-    const rate1 = prev.durationS / L1
-    const rate2 = next.durationS / L2
-    prev.points = [A0, A]
-    prev.durationS = rate1 * (L1 - t)
-    if (prev.element?.type === 'line') prev.element = { ...prev.element, p1: flat(A) }
-    next.points = [B, B1]
-    next.durationS = rate2 * (L2 - t)
-    if (next.element?.type === 'line') next.element = { ...next.element, p0: flat(B) }
-    let length = 0
-    for (let i = 1; i < points.length; i++) length += norm(sub(points[i] as Vec3, points[i - 1] as Vec3))
-    const { compStart: _start, compCancel: _cancel, element: _element, ...base } = prev
-    const cornerMove: Move = { ...base, points, durationS: rate2 * length, inCompPlane: inPlane, ...(element ? { element } : {}) }
-    moves.splice(moves.indexOf(next), 0, cornerMove)
   }
 
-  /**
-   * G10 tool offsets. Machining centers: L10/L11 length geometry/wear, L12/L13 radius geometry/wear,
-   * value in R. Lathes: G10 P n (wear) or P 10000+n (geometry) with X Z R Q, or U W C incremental.
-   */
-  function setToolOffset(L: number | undefined, P: number | undefined, W: Partial<Record<string, number>>): boolean {
-    if (P === undefined) return false
-    let n: number
-    const set: [keyof ToolOffset, string, string | null][] = []
-    if (!latheControl && L !== undefined && L >= 10 && L <= 13) {
-      n = P
-      set.push([L === 10 ? 'length' : L === 11 ? 'lengthWear' : L === 12 ? 'radius' : 'radiusWear', 'R', null])
-    } else if (latheControl && (L === undefined || L === 1) && P >= 1) {
-      const geometry = P >= 10000
-      n = geometry ? P - 10000 : P
-      set.push([geometry ? 'x' : 'xWear', 'X', 'U'], [geometry ? 'z' : 'zWear', 'Z', 'W'], [geometry ? 'nose' : 'noseWear', 'R', 'C'], ['tip', 'Q', null])
-    } else return false
-    const e = { ...offsetOf(n) }
-    for (const [field, abs, inc] of set) {
-      const a = W[abs]
-      const i = inc ? W[inc] : undefined
-      // Lathes: X Z R absolute, U W C incremental. Machining centers: R follows G90/G91.
-      if (a !== undefined) e[field] = field === 'tip' ? Math.round(a) : latheControl || st.absolute ? a : (e[field] ?? 0) + a
-      if (i !== undefined) e[field] = (e[field] ?? 0) + i
-    }
-    offsetTable.set(n, e)
-    updateOffsets()
-    const values = Object.entries(e)
-      .map(([k, v]) => `${k} ${v}`)
-      .join(', ')
-    diag('info', 'tool-offset-set', { n, values })
-    return true
-  }
-
-  /** G10 L2 P1–P6 (G54–G59) and L20 P n (G54.1 P n): writes the work offset table, as the program runs. */
+  /** G10: tool offsets, or work offsets G54–G59 and G54.1 P n (see dataSetting.ts). */
   function dataSetting(code: string, W: Partial<Record<string, number>>): void {
     const L = W['L']
     const P = W['P']
-    let name: string | null = null
-    if (L === 2 && P !== undefined && P >= 1 && P <= 6) name = `G${53 + P}`
-    else if (L === 20 && P !== undefined && P >= 1) name = `G54.1 P${P}`
-    if (!name && setToolOffset(L, P, W)) return
+    const name = workOffsetName(L, P)
     if (!name) {
+      const tool = toolOffsetSetting(offsetOf, L, P, W, { lathe: latheControl, absolute: st.absolute })
+      if (tool) {
+        offsetTable.set(tool.n, tool.entry)
+        updateOffsets()
+        const values = Object.entries(tool.entry)
+          .map(([k, v]) => `${k} ${v}`)
+          .join(', ')
+        diag('info', 'tool-offset-set', { n: tool.n, values })
+        return
+      }
       // L2 P0 (external shift) and other data are not drawn
       diag('warning', 'function-not-simulated', { code: `${code} L${L ?? '-'} P${P ?? '-'}` }, `g10:${L}:${P}`)
       return
     }
-    const o = { ...table.get(name) }
-    for (const ax of AXES) {
-      const w = W[ax]
-      if (w !== undefined) o[ax] = st.absolute ? w : (o[ax] ?? 0) + w
-    }
-    for (const [addr, ax] of incremental) {
-      const w = W[addr]
-      if (w !== undefined) o[ax] = (o[ax] ?? 0) + w
-    }
+    const o = writeWorkOffset(table.get(name) ?? {}, W, st.absolute, incremental)
     table.set(name, o)
     if (name === st.workOffset) shift = shiftOf(name)
     const values = AXES.filter((ax) => o[ax] !== undefined)
