@@ -83,9 +83,10 @@ export function ChuckModel({ chuck: c, hit }: { chuck: ChuckGeometry; hit: boole
 
     // Master jaw in its slot, out past the hard jaw, with the serrations the hard jaw locks into
     const outer = Math.min(c.jawOuter + 14, Rb - ch - 4)
-    const masterParts = [box(c.barRadius + c.jawOuter * 0.2, outer, -w * 0.45, w * 0.45, -0.2, 5)]
-    for (let r = c.jawOuter + 2; r < outer - 1; r += 3) masterParts.push(box(r, r + 1.4, -w * 0.45, w * 0.45, 5, 6.2))
-    const master = mergeGeometries(around(mergeGeometries(masterParts), c.jaws, Math.PI / 2))
+    const master = mergeGeometries(around(box(c.barRadius + c.jawOuter * 0.2, outer, -w * 0.45, w * 0.45, -0.2, 5), c.jaws, Math.PI / 2))
+    const ridges: BufferGeometry[] = []
+    for (let r = c.jawOuter + 2; r < outer - 1; r += 3) ridges.push(box(r, r + 1.4, -w * 0.45, w * 0.45, 5, 6.2))
+    const serrations = ridges.length ? mergeGeometries(around(mergeGeometries(ridges), c.jaws, Math.PI / 2)) : new BufferGeometry()
 
     // Stepped hard jaw: the gripping step on the bar, then the lower outer step with its two bolts
     const r0 = c.barRadius + GAP / 2
@@ -99,7 +100,7 @@ export function ChuckModel({ chuck: c, hit }: { chuck: ChuckGeometry; hit: boole
     shape.lineTo(c.jawOuter, 0)
     shape.closePath()
     // Shape (radius, axial) extruded across the jaw width: shape Y → axial (Z), extrusion → -Y
-    const jaw = new ExtrudeGeometry(shape, { depth: w, bevelEnabled: true, bevelSize: 0.6, bevelThickness: 0.6, bevelSegments: 1, curveSegments: 1 })
+    const jaw = new ExtrudeGeometry(shape, { depth: w, bevelEnabled: false })
       .rotateX(Math.PI / 2)
       .translate(0, w / 2, 0)
     const jaws = mergeGeometries(around(jaw, c.jaws, Math.PI / 2))
@@ -111,9 +112,9 @@ export function ChuckModel({ chuck: c, hit }: { chuck: ChuckGeometry; hit: boole
         Math.PI / 2
       )
     )
-    return { body, flange, holes: mergeGeometries(holes), master, jaws, bolts }
+    return { body, flange, holes: mergeGeometries(holes), master, serrations, jaws, bolts }
   }, [c])
-  useDispose(parts.body, parts.flange, parts.holes, parts.master, parts.jaws, parts.bolts)
+  useDispose(parts.body, parts.flange, parts.holes, parts.master, parts.serrations, parts.jaws, parts.bolts)
 
   const jawColor = hit ? COLORS.collision : COLORS.jaw
   return (
@@ -121,7 +122,7 @@ export function ChuckModel({ chuck: c, hit }: { chuck: ChuckGeometry; hit: boole
       {/* Body and everything on its face stand a hair behind the bar's end */}
       <group position={[0, 0, -GAP]}>
         <mesh geometry={parts.body}>
-          <meshStandardMaterial color={COLORS.body} metalness={0.3} roughness={0.45} />
+          <meshStandardMaterial color={COLORS.body} metalness={0.25} roughness={0.6} />
         </mesh>
         <mesh geometry={parts.flange}>
           <meshStandardMaterial color={COLORS.flange} metalness={0.3} roughness={0.55} />
@@ -130,11 +131,14 @@ export function ChuckModel({ chuck: c, hit }: { chuck: ChuckGeometry; hit: boole
           <meshStandardMaterial color={COLORS.hole} metalness={0.2} roughness={0.8} polygonOffset polygonOffsetFactor={-1} polygonOffsetUnits={-1} />
         </mesh>
         <mesh geometry={parts.master}>
-          <meshStandardMaterial color={COLORS.master} metalness={0.35} roughness={0.4} />
+          <meshStandardMaterial color={COLORS.master} metalness={0.25} roughness={0.65} />
+        </mesh>
+        <mesh geometry={parts.serrations}>
+          <meshStandardMaterial color={COLORS.flange} metalness={0.2} roughness={0.7} />
         </mesh>
       </group>
       <mesh geometry={parts.jaws}>
-        <meshStandardMaterial color={jawColor} metalness={0.35} roughness={0.4} />
+        <meshStandardMaterial color={jawColor} metalness={0.25} roughness={0.65} />
       </mesh>
       <mesh geometry={parts.bolts}>
         <meshStandardMaterial color={COLORS.hole} metalness={0.3} roughness={0.7} />
