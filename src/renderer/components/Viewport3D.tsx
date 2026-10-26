@@ -356,9 +356,13 @@ function Chuck({ stock, zero, hit }: { stock: StockData; zero: Vec3; hit: boolea
   const c = chuckGeometry(stock, zero)
   const jaw = c.jawOuter - c.barRadius
   const jawColor = hit ? COLORS.collision : COLORS.jaw
+  // Drawn a hair away from the bar: the bar's end on the chuck face and the jaws on the bar's surface
+  // were in the same planes, and the screen flickered between them as the view turned
+  const GAP = 0.6
+  const grip = jaw * 0.6 - GAP / 2
   return (
     <group>
-      <mesh position={[0, 0, c.face - 25]} rotation={[Math.PI / 2, 0, 0]}>
+      <mesh position={[0, 0, c.face - 25 - GAP]} rotation={[Math.PI / 2, 0, 0]}>
         <cylinderGeometry args={[c.bodyRadius, c.bodyRadius, 50, 72]} />
         <meshStandardMaterial color={COLORS.chuck} metalness={0.55} roughness={0.35} />
       </mesh>
@@ -367,8 +371,8 @@ function Chuck({ stock, zero, hit }: { stock: StockData; zero: Vec3; hit: boolea
         return (
           <group key={deg} rotation={[0, 0, a]}>
             {/* Gripping step on the bar, and the base step bolted to the chuck face */}
-            <mesh position={[c.barRadius + jaw * 0.3, 0, c.face + c.grip / 2]}>
-              <boxGeometry args={[jaw * 0.6, 16, c.grip]} />
+            <mesh position={[c.barRadius + GAP / 2 + grip / 2, 0, c.face + c.grip / 2]}>
+              <boxGeometry args={[grip, 16, c.grip]} />
               <meshStandardMaterial color={jawColor} metalness={0.6} roughness={0.35} />
             </mesh>
             <mesh position={[c.barRadius + jaw * 0.8, 0, c.face + c.grip * 0.3]}>
@@ -382,7 +386,6 @@ function Chuck({ stock, zero, hit }: { stock: StockData; zero: Vec3; hit: boolea
   )
 }
 
-/** Turns its children around Z while `on` (spindle running): a visual cue, not the real speed. */
 /** Turns its children around the spindle axis at `rate` radians per second (0: stopped). */
 function Spin({ rate, children }: { rate: number; children: ReactNode }) {
   const ref = useRef<Group>(null)
