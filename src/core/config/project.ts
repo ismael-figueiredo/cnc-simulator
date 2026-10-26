@@ -79,6 +79,28 @@ export function workShift(offsets: WorkOffsets, name: string): Record<'X' | 'Y' 
   return { X: (o.X ?? 0) - (base.X ?? 0), Y: (o.Y ?? 0) - (base.Y ?? 0), Z: (o.Z ?? 0) - (base.Z ?? 0) }
 }
 
+/**
+ * The stock stays clamped on the table when its work offset changes in the table: what moves is the
+ * zero, so the program cuts somewhere else on the part (or in the air), as on the machine. The stock's
+ * offset from that zero changes by as much the other way. An axis set for the first time is the zero
+ * being defined, not moved, so it leaves the stock where it is drawn.
+ */
+export function keepStockOnTable(stock: Stock, before: WorkOffsets, after: WorkOffsets): Stock {
+  const name = stock.workOffset ?? 'G54'
+  const was = before[name] ?? {}
+  const now = after[name] ?? {}
+  const offset = { ...stock.offset }
+  let moved = false
+  for (const ax of ['X', 'Y', 'Z'] as const) {
+    const a = was[ax]
+    const b = now[ax]
+    if (a === undefined || b === undefined || a === b) continue
+    offset[ax] = (offset[ax] ?? 0) - (b - a)
+    moved = true
+  }
+  return moved ? { ...stock, offset } : stock
+}
+
 export function loadProject(data: unknown, source = 'project'): LoadResult<Project> {
   const j = parse(data, source)
   return j.ok ? validate(ProjectSchema, j.value, source) : j
