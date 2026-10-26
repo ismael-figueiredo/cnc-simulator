@@ -1,0 +1,334 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>G-code list with explanations: Fanuc lathe, Fanuc mill and Haas | CNC Simulator</title>
+<meta name="description" content="Every G and M code of the Fanuc 0i-TF lathe, Fanuc 0i-MF machining center and Haas NGC mill, with what it does: G71, G76, G41, G43, G154, M97 and more.">
+<link rel="canonical" href="https://ismael-figueiredo.github.io/cnc-simulator/g-codes/">
+<link rel="alternate" hreflang="en" href="https://ismael-figueiredo.github.io/cnc-simulator/g-codes/">
+<link rel="alternate" hreflang="pt-BR" href="https://ismael-figueiredo.github.io/cnc-simulator/pt/codigos-g/">
+<link rel="alternate" hreflang="x-default" href="https://ismael-figueiredo.github.io/cnc-simulator/g-codes/">
+<meta name="robots" content="index, follow">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="CNC Simulator">
+<meta property="og:locale" content="en_US">
+<meta property="og:locale:alternate" content="pt_BR">
+<meta property="og:title" content="G-code list with explanations: Fanuc lathe, Fanuc mill and Haas | CNC Simulator">
+<meta property="og:description" content="Every G and M code of the Fanuc 0i-TF lathe, Fanuc 0i-MF machining center and Haas NGC mill, with what it does: G71, G76, G41, G43, G154, M97 and more.">
+<meta property="og:url" content="https://ismael-figueiredo.github.io/cnc-simulator/g-codes/">
+<meta property="og:image" content="https://ismael-figueiredo.github.io/cnc-simulator/social.png">
+<meta property="og:image:width" content="1280">
+<meta property="og:image:height" content="640">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://ismael-figueiredo.github.io/cnc-simulator/social.png">
+<link rel="icon" type="image/png" href="../img/favicon.png">
+<link rel="apple-touch-icon" href="../img/icon.png">
+<link rel="preload" as="image" href="../img/machine-mill-en.jpg">
+<style>:root{--bg:#0b1117;--panel:#121a23;--line:#233142;--text:#e6edf3;--muted:#9fb0c0;--accent:#22d3ee;--warm:#ffb547}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:17px/1.6 -apple-system,'Segoe UI',Roboto,sans-serif}a{color:var(--accent)}img{max-width:100%;height:auto}.wrap{max-width:1100px;margin:0 auto;padding:0 16px}header{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:16px 0;flex-wrap:wrap}.brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:20px;color:var(--text);text-decoration:none}nav{display:flex;gap:16px;font-size:15px;flex-wrap:wrap}.hero{padding:36px 0 20px;text-align:center}h1{font-size:clamp(30px,5vw,48px);line-height:1.15;margin:0 0 14px}h2{font-size:28px;margin:52px 0 14px}h3{margin:0 0 6px;font-size:18px}.lead{color:var(--muted);font-size:19px;max-width:780px;margin:0 auto 26px}.downloads{display:flex;flex-wrap:wrap;justify-content:center;gap:10px}.btn{display:inline-block;text-decoration:none;background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:11px 18px;font-weight:600}.btn.primary{background:var(--warm);color:#111;border-color:var(--warm)}.small{font-size:14px;color:var(--muted)}figure{margin:28px 0}figure img{display:block;border:1px solid var(--line);border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,.45)}figcaption{color:var(--muted);font-size:14px;margin-top:8px;text-align:center}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:18px}.card p{margin:0;color:var(--muted);font-size:15px}ul.features{columns:2 320px;padding-left:18px;color:var(--muted)}ul.features li{margin-bottom:8px;break-inside:avoid}ul.features b{color:var(--text)}.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:18px}details{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px 16px;margin-bottom:8px}summary{cursor:pointer;font-weight:600}table{width:100%;border-collapse:collapse;font-size:15px;margin:10px 0 30px}th,td{text-align:left;vertical-align:top;padding:7px 10px;border-bottom:1px solid var(--line)}th{color:var(--muted);font-weight:600}td.code{font:600 15px ui-monospace,Menlo,Consolas,monospace;white-space:nowrap;color:var(--warm)}.toc{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0 20px}footer{border-top:1px solid var(--line);margin-top:56px;padding:20px 0 40px;color:var(--muted);font-size:14px}</style>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"G-code and M-code reference: Fanuc lathe and mill, Haas","inLanguage":"en","dateModified":"2026-10-26","url":"https://ismael-figueiredo.github.io/cnc-simulator/g-codes/","author":{"@type":"Person","name":"Ismael Figueiredo"},"isPartOf":{"@type":"WebSite","name":"CNC Simulator","url":"https://ismael-figueiredo.github.io/cnc-simulator/"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"CNC Simulator","item":"https://ismael-figueiredo.github.io/cnc-simulator/"},{"@type":"ListItem","position":2,"name":"G-code reference","item":"https://ismael-figueiredo.github.io/cnc-simulator/g-codes/"}]}</script>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <a class="brand" href="../"><img src="../img/icon.png" width="36" height="36" alt="">CNC Simulator</a>
+  <nav>
+    <a href="../#download">Download</a>
+    <a href="../g-codes/">G-code reference</a>
+    <a href="https://github.com/ismael-figueiredo/cnc-simulator">GitHub</a>
+    <a href="../pt/codigos-g/" hreflang="pt-BR" lang="pt-BR">Português</a>
+  </nav>
+</header>
+
+<section>
+  <h1>G-code and M-code reference: Fanuc lathe and mill, Haas</h1>
+  <p class="lead" style="margin-left:0">What each G and M code does on each control, as CNC Simulator runs it. The same explanations appear in the app’s learning mode when you hover a code in the program.</p>
+  <div class="toc"><a class="btn" href="#fanuc-lathe">Fanuc 0i-TF lathe (G-code system B, Romi GL)</a><a class="btn" href="#fanuc-mill">Fanuc 0i-MF machining center</a><a class="btn" href="#haas-mill">Haas NGC mill</a></div>
+  <p><a class="btn primary" href="../#download">Try the codes in the free simulator</a></p>
+</section>
+<h2 id="fanuc-lathe">Fanuc 0i-TF lathe (G-code system B, Romi GL)</h2>
+<h3>G codes</h3>
+<table><thead><tr><th>Code</th><th>What it does</th></tr></thead><tbody>
+<tr id="fanuc-lathe-G00"><td class="code">G00</td><td>Rapid positioning at the machine's top speed, not cutting. Use it only in free air: a rapid into the stock is a crash.</td></tr>
+<tr id="fanuc-lathe-G01"><td class="code">G01</td><td>Straight cut at feed F to the programmed point.</td></tr>
+<tr id="fanuc-lathe-G02"><td class="code">G02</td><td>Clockwise arc to the end point, seen from the plane's positive axis. Center with I/J/K (from the start point) or radius R.</td></tr>
+<tr id="fanuc-lathe-G03"><td class="code">G03</td><td>Counterclockwise arc to the end point. Center with I/J/K (from the start point) or radius R.</td></tr>
+<tr id="fanuc-lathe-G04"><td class="code">G04</td><td>Dwell: waits P (milliseconds, no decimal point) or X/U (seconds) without moving.</td></tr>
+<tr id="fanuc-lathe-G07-1"><td class="code">G07.1</td><td><b>Cylindrical interpolation.</b> Cylindrical interpolation: C is unrolled on the diameter, for slots around a shaft.</td></tr>
+<tr id="fanuc-lathe-G10"><td class="code">G10</td><td><b>Programmable data input (work offsets L2/L20).</b> Writes offsets from the program: L2/L20 work offsets, L10–L13 tool offsets (lathe: P n wear, P 10000+n geometry).</td></tr>
+<tr id="fanuc-lathe-G12-1"><td class="code">G12.1</td><td><b>Polar coordinate interpolation X/C.</b> Polar interpolation on: X (diameter) and C become a flat XC plane, for milling the face of a part with a live tool.</td></tr>
+<tr id="fanuc-lathe-G13-1"><td class="code">G13.1</td><td>Polar interpolation off.</td></tr>
+<tr id="fanuc-lathe-G17"><td class="code">G17</td><td>Plane XY for arcs and cutter compensation (machining centers).</td></tr>
+<tr id="fanuc-lathe-G18"><td class="code">G18</td><td>Plane ZX for arcs and compensation (the turning plane on lathes).</td></tr>
+<tr id="fanuc-lathe-G19"><td class="code">G19</td><td>Plane YZ for arcs and compensation.</td></tr>
+<tr id="fanuc-lathe-G20"><td class="code">G20</td><td>Units in inches.</td></tr>
+<tr id="fanuc-lathe-G21"><td class="code">G21</td><td>Units in millimeters.</td></tr>
+<tr id="fanuc-lathe-G28"><td class="code">G28</td><td>Return to the machine reference point through the programmed point (G91 G28 Z0 goes straight up from where it is).</td></tr>
+<tr id="fanuc-lathe-G32"><td class="code">G32</td><td><b>Thread cutting.</b> Thread cutting move: a straight cut synchronized with the spindle, F = lead.</td></tr>
+<tr id="fanuc-lathe-G40"><td class="code">G40</td><td>Cancels cutter (or nose) radius compensation. Cancel with a move away from the part.</td></tr>
+<tr id="fanuc-lathe-G41"><td class="code">G41</td><td>Cutter radius compensation to the left of the path (climb milling on outside contours). Radius from D (lathe: nose radius of the T offset). Start it with a straight move.</td></tr>
+<tr id="fanuc-lathe-G42"><td class="code">G42</td><td>Cutter radius compensation to the right of the path. Radius from D (lathe: nose radius). Start it with a straight move.</td></tr>
+<tr id="fanuc-lathe-G53"><td class="code">G53</td><td>Move in machine coordinates for this block only, ignoring work offsets and tool length.</td></tr>
+<tr id="fanuc-lathe-G54"><td class="code">G54</td><td>Selects a work offset (part zero) from the OFFSET table: G54–G59, G54.1 P n (Haas G154 P n).</td></tr>
+<tr id="fanuc-lathe-G55"><td class="code">G55</td><td>Selects a work offset (part zero) from the OFFSET table: G54–G59, G54.1 P n (Haas G154 P n).</td></tr>
+<tr id="fanuc-lathe-G56"><td class="code">G56</td><td>Selects a work offset (part zero) from the OFFSET table: G54–G59, G54.1 P n (Haas G154 P n).</td></tr>
+<tr id="fanuc-lathe-G57"><td class="code">G57</td><td>Selects a work offset (part zero) from the OFFSET table: G54–G59, G54.1 P n (Haas G154 P n).</td></tr>
+<tr id="fanuc-lathe-G58"><td class="code">G58</td><td>Selects a work offset (part zero) from the OFFSET table: G54–G59, G54.1 P n (Haas G154 P n).</td></tr>
+<tr id="fanuc-lathe-G59"><td class="code">G59</td><td>Selects a work offset (part zero) from the OFFSET table: G54–G59, G54.1 P n (Haas G154 P n).</td></tr>
+<tr id="fanuc-lathe-G65"><td class="code">G65</td><td>Macro call (G65 P n): runs program O n once, with the letters as arguments (A → #1, B → #2, …).</td></tr>
+<tr id="fanuc-lathe-G66"><td class="code">G66</td><td>Modal macro call: the macro runs after every move until it is cancelled.</td></tr>
+<tr id="fanuc-lathe-G67"><td class="code">G67</td><td>Cancels the modal macro call.</td></tr>
+<tr id="fanuc-lathe-G70"><td class="code">G70</td><td>Finishing cycle (G70 P Q): runs the shape between blocks N P and N Q once, with the finishing feed, after G71/G72/G73.</td></tr>
+<tr id="fanuc-lathe-G71"><td class="code">G71</td><td><b>Longitudinal roughing.</b> Stock removal in turning (G71). First block: U depth of cut (radius) and R retract. Second block: P and Q are the N numbers of the first and last block of the finished shape, U/W the finishing allowance in X (diameter) and Z, F the roughing feed.</td></tr>
+<tr id="fanuc-lathe-G72"><td class="code">G72</td><td><b>Face roughing.</b> Stock removal in facing (G72): like G71, but the passes run along X, stepping in Z (W depth).</td></tr>
+<tr id="fanuc-lathe-G73"><td class="code">G73</td><td><b>Pattern repeating.</b> Pattern repeating (G73): the finished shape is followed several times, closer each time; for forged or cast parts. U/W relief, R number of passes.</td></tr>
+<tr id="fanuc-lathe-G74"><td class="code">G74</td><td><b>Face peck drilling / turning with peck.</b> Peck cycle along Z (face grooving or deep drilling on the axis).</td></tr>
+<tr id="fanuc-lathe-G75"><td class="code">G75</td><td><b>Grooving / facing.</b> Peck grooving along X.</td></tr>
+<tr id="fanuc-lathe-G76"><td class="code">G76</td><td>Multiple threading (G76). First block: P (passes of finish, chamfer, angle, as 6 digits), Q minimum depth, R finishing allowance. Second block: X Z thread root at the end, P thread height, Q first depth (microns), F lead.</td></tr>
+<tr id="fanuc-lathe-G77"><td class="code">G77</td><td>Single turning cycle: rapid in, cut to X Z, out and back, in one block. R makes a taper. Repeat with only the next X.</td></tr>
+<tr id="fanuc-lathe-G78"><td class="code">G78</td><td>Single threading cycle: one pass per block, F = lead. Program the next diameter for each pass.</td></tr>
+<tr id="fanuc-lathe-G79"><td class="code">G79</td><td>Single facing cycle: like the turning cycle, but cutting along X. R makes a taper in Z.</td></tr>
+<tr id="fanuc-lathe-G80"><td class="code">G80</td><td>Cancels the active drilling cycle: the next X/Y no longer drills.</td></tr>
+<tr id="fanuc-lathe-G83"><td class="code">G83</td><td><b>Face drilling.</b> Drilling cycle: rapid to R, feed to Z, rapid out (G82 with a dwell P at the bottom). Repeats at each X/Y until G80.</td></tr>
+<tr id="fanuc-lathe-G84"><td class="code">G84</td><td><b>Face tapping.</b> Tapping cycle: feed F must be the pitch × rpm (or the pitch with feed per revolution); the spindle reverses at the bottom.</td></tr>
+<tr id="fanuc-lathe-G85"><td class="code">G85</td><td>Boring cycle: feed in to Z and out (how it comes out, feed or rapid, stopped or turning, depends on the code).</td></tr>
+<tr id="fanuc-lathe-G87"><td class="code">G87</td><td>Radial drilling with a live tool, along X toward the axis.</td></tr>
+<tr id="fanuc-lathe-G88"><td class="code">G88</td><td>Radial tapping with a live tool.</td></tr>
+<tr id="fanuc-lathe-G90"><td class="code">G90</td><td>Absolute coordinates: every value is a position from the work zero.</td></tr>
+<tr id="fanuc-lathe-G91"><td class="code">G91</td><td>Incremental coordinates: every value is a distance from where the tool is.</td></tr>
+<tr id="fanuc-lathe-G92"><td class="code">G92</td><td><b>Set origin or max spindle speed.</b> Sets the current position as the given coordinates (G92 on mills, G50 on system A lathes); on lathes it also limits the spindle speed with S.</td></tr>
+<tr id="fanuc-lathe-G94"><td class="code">G94</td><td>Feed F in mm/min.</td></tr>
+<tr id="fanuc-lathe-G95"><td class="code">G95</td><td>Feed F in mm per spindle revolution (the usual on lathes).</td></tr>
+<tr id="fanuc-lathe-G96"><td class="code">G96</td><td>Constant cutting speed: S is in m/min and the rpm rises as the diameter gets smaller. Limit it with G50/G92 S.</td></tr>
+<tr id="fanuc-lathe-G97"><td class="code">G97</td><td>Constant spindle speed: S in rpm.</td></tr>
+<tr id="fanuc-lathe-G98"><td class="code">G98</td><td>After each hole the tool returns to the initial level (where the cycle started): safe over clamps.</td></tr>
+<tr id="fanuc-lathe-G99"><td class="code">G99</td><td>After each hole the tool returns to the R level: faster, for a flat part without obstacles.</td></tr>
+</tbody></table>
+<h3>M codes</h3>
+<table><thead><tr><th>Code</th><th>What it does</th></tr></thead><tbody>
+<tr id="fanuc-lathe-M00"><td class="code">M00</td><td>Program stop: the machine stops until cycle start (to measure, clean chips, turn the part).</td></tr>
+<tr id="fanuc-lathe-M01"><td class="code">M01</td><td>Optional stop: stops only with the M01 key on.</td></tr>
+<tr id="fanuc-lathe-M02"><td class="code">M02</td><td>End of program.</td></tr>
+<tr id="fanuc-lathe-M03"><td class="code">M03</td><td><b>Spindle, or live tool when S2= is given, clockwise.</b> Spindle on, clockwise (S sets the speed).</td></tr>
+<tr id="fanuc-lathe-M04"><td class="code">M04</td><td>Spindle on, counterclockwise.</td></tr>
+<tr id="fanuc-lathe-M05"><td class="code">M05</td><td><b>Also releases the M85 brake.</b> Spindle stop.</td></tr>
+<tr id="fanuc-lathe-M08"><td class="code">M08</td><td>Coolant on.</td></tr>
+<tr id="fanuc-lathe-M09"><td class="code">M09</td><td>Coolant off.</td></tr>
+<tr id="fanuc-lathe-M15"><td class="code">M15</td><td><b>Reverse coupling shaft rotation (counter-clockwise).</b> Machine function with no effect on the path.</td></tr>
+<tr id="fanuc-lathe-M16"><td class="code">M16</td><td><b>Reverse coupling shaft rotation (clockwise).</b> Machine function with no effect on the path.</td></tr>
+<tr id="fanuc-lathe-M19"><td class="code">M19</td><td><b>Spindle orientation / enable C axis.</b> C axis mode: the spindle becomes a positioning axis.</td></tr>
+<tr id="fanuc-lathe-M30"><td class="code">M30</td><td>End of program and back to the start.</td></tr>
+<tr id="fanuc-lathe-M85"><td class="code">M85</td><td><b>High-torque brake; G0 C or M5 release it.</b> Clamps the axis (brake) to cut without it turning.</td></tr>
+<tr id="fanuc-lathe-M98"><td class="code">M98</td><td>Calls subprogram P (O number); L or the leading digits of P repeat it.</td></tr>
+<tr id="fanuc-lathe-M99"><td class="code">M99</td><td>End of subprogram: returns to the block after the call.</td></tr>
+</tbody></table>
+<h2 id="fanuc-mill">Fanuc 0i-MF machining center</h2>
+<h3>G codes</h3>
+<table><thead><tr><th>Code</th><th>What it does</th></tr></thead><tbody>
+<tr id="fanuc-mill-G00"><td class="code">G00</td><td>Rapid positioning at the machine's top speed, not cutting. Use it only in free air: a rapid into the stock is a crash.</td></tr>
+<tr id="fanuc-mill-G01"><td class="code">G01</td><td>Straight cut at feed F to the programmed point.</td></tr>
+<tr id="fanuc-mill-G02"><td class="code">G02</td><td>Clockwise arc to the end point, seen from the plane's positive axis. Center with I/J/K (from the start point) or radius R.</td></tr>
+<tr id="fanuc-mill-G03"><td class="code">G03</td><td>Counterclockwise arc to the end point. Center with I/J/K (from the start point) or radius R.</td></tr>
+<tr id="fanuc-mill-G04"><td class="code">G04</td><td>Dwell: waits P (milliseconds, no decimal point) or X/U (seconds) without moving.</td></tr>
+<tr id="fanuc-mill-G10"><td class="code">G10</td><td><b>Programmable data input (work offsets L2/L20).</b> Writes offsets from the program: L2/L20 work offsets, L10–L13 tool offsets (lathe: P n wear, P 10000+n geometry).</td></tr>
+<tr id="fanuc-mill-G17"><td class="code">G17</td><td>Plane XY for arcs and cutter compensation (machining centers).</td></tr>
+<tr id="fanuc-mill-G18"><td class="code">G18</td><td>Plane ZX for arcs and compensation (the turning plane on lathes).</td></tr>
+<tr id="fanuc-mill-G19"><td class="code">G19</td><td>Plane YZ for arcs and compensation.</td></tr>
+<tr id="fanuc-mill-G20"><td class="code">G20</td><td>Units in inches.</td></tr>
+<tr id="fanuc-mill-G21"><td class="code">G21</td><td>Units in millimeters.</td></tr>
+<tr id="fanuc-mill-G28"><td class="code">G28</td><td>Return to the machine reference point through the programmed point (G91 G28 Z0 goes straight up from where it is).</td></tr>
+<tr id="fanuc-mill-G40"><td class="code">G40</td><td>Cancels cutter (or nose) radius compensation. Cancel with a move away from the part.</td></tr>
+<tr id="fanuc-mill-G41"><td class="code">G41</td><td>Cutter radius compensation to the left of the path (climb milling on outside contours). Radius from D (lathe: nose radius of the T offset). Start it with a straight move.</td></tr>
+<tr id="fanuc-mill-G42"><td class="code">G42</td><td>Cutter radius compensation to the right of the path. Radius from D (lathe: nose radius). Start it with a straight move.</td></tr>
+<tr id="fanuc-mill-G43"><td class="code">G43</td><td>Tool length compensation with offset H: Z positions are measured at the tool tip. A wrong H puts the tip too high or into the part.</td></tr>
+<tr id="fanuc-mill-G49"><td class="code">G49</td><td>Cancels tool length compensation.</td></tr>
+<tr id="fanuc-mill-G53"><td class="code">G53</td><td>Move in machine coordinates for this block only, ignoring work offsets and tool length.</td></tr>
+<tr id="fanuc-mill-G54"><td class="code">G54</td><td>Selects a work offset (part zero) from the OFFSET table: G54–G59, G54.1 P n (Haas G154 P n).</td></tr>
+<tr id="fanuc-mill-G54-1"><td class="code">G54.1</td><td><b>Additional work offset (P1–P48).</b> Selects a work offset (part zero) from the OFFSET table: G54–G59, G54.1 P n (Haas G154 P n).</td></tr>
+<tr id="fanuc-mill-G55"><td class="code">G55</td><td><b>Work offset 2.</b> Selects a work offset (part zero) from the OFFSET table: G54–G59, G54.1 P n (Haas G154 P n).</td></tr>
+<tr id="fanuc-mill-G56"><td class="code">G56</td><td><b>Work offset 3.</b> Selects a work offset (part zero) from the OFFSET table: G54–G59, G54.1 P n (Haas G154 P n).</td></tr>
+<tr id="fanuc-mill-G57"><td class="code">G57</td><td><b>Work offset 4.</b> Selects a work offset (part zero) from the OFFSET table: G54–G59, G54.1 P n (Haas G154 P n).</td></tr>
+<tr id="fanuc-mill-G58"><td class="code">G58</td><td><b>Work offset 5.</b> Selects a work offset (part zero) from the OFFSET table: G54–G59, G54.1 P n (Haas G154 P n).</td></tr>
+<tr id="fanuc-mill-G59"><td class="code">G59</td><td><b>Work offset 6.</b> Selects a work offset (part zero) from the OFFSET table: G54–G59, G54.1 P n (Haas G154 P n).</td></tr>
+<tr id="fanuc-mill-G65"><td class="code">G65</td><td>Macro call (G65 P n): runs program O n once, with the letters as arguments (A → #1, B → #2, …).</td></tr>
+<tr id="fanuc-mill-G80"><td class="code">G80</td><td>Cancels the active drilling cycle: the next X/Y no longer drills.</td></tr>
+<tr id="fanuc-mill-G81"><td class="code">G81</td><td>Drilling cycle: rapid to R, feed to Z, rapid out (G82 with a dwell P at the bottom). Repeats at each X/Y until G80.</td></tr>
+<tr id="fanuc-mill-G83"><td class="code">G83</td><td>Peck drilling: drills Q at a time and backs out to break or clear the chip, down to Z.</td></tr>
+<tr id="fanuc-mill-G84"><td class="code">G84</td><td>Tapping cycle: feed F must be the pitch × rpm (or the pitch with feed per revolution); the spindle reverses at the bottom.</td></tr>
+<tr id="fanuc-mill-G85"><td class="code">G85</td><td>Boring cycle: feed in to Z and out (how it comes out, feed or rapid, stopped or turning, depends on the code).</td></tr>
+<tr id="fanuc-mill-G90"><td class="code">G90</td><td>Absolute coordinates: every value is a position from the work zero.</td></tr>
+<tr id="fanuc-mill-G91"><td class="code">G91</td><td>Incremental coordinates: every value is a distance from where the tool is.</td></tr>
+<tr id="fanuc-mill-G94"><td class="code">G94</td><td>Feed F in mm/min.</td></tr>
+<tr id="fanuc-mill-G95"><td class="code">G95</td><td>Feed F in mm per spindle revolution (the usual on lathes).</td></tr>
+<tr id="fanuc-mill-G98"><td class="code">G98</td><td>After each hole the tool returns to the initial level (where the cycle started): safe over clamps.</td></tr>
+<tr id="fanuc-mill-G99"><td class="code">G99</td><td>After each hole the tool returns to the R level: faster, for a flat part without obstacles.</td></tr>
+</tbody></table>
+<h3>M codes</h3>
+<table><thead><tr><th>Code</th><th>What it does</th></tr></thead><tbody>
+<tr id="fanuc-mill-M00"><td class="code">M00</td><td>Program stop: the machine stops until cycle start (to measure, clean chips, turn the part).</td></tr>
+<tr id="fanuc-mill-M01"><td class="code">M01</td><td>Optional stop: stops only with the M01 key on.</td></tr>
+<tr id="fanuc-mill-M03"><td class="code">M03</td><td>Spindle on, clockwise (S sets the speed).</td></tr>
+<tr id="fanuc-mill-M04"><td class="code">M04</td><td>Spindle on, counterclockwise.</td></tr>
+<tr id="fanuc-mill-M05"><td class="code">M05</td><td>Spindle stop.</td></tr>
+<tr id="fanuc-mill-M06"><td class="code">M06</td><td>Tool change to the tool T. Go to a safe place first (G28 or the change position).</td></tr>
+<tr id="fanuc-mill-M08"><td class="code">M08</td><td>Coolant on.</td></tr>
+<tr id="fanuc-mill-M09"><td class="code">M09</td><td>Coolant off.</td></tr>
+<tr id="fanuc-mill-M30"><td class="code">M30</td><td>End of program and back to the start.</td></tr>
+<tr id="fanuc-mill-M98"><td class="code">M98</td><td>Calls subprogram P (O number); L or the leading digits of P repeat it.</td></tr>
+<tr id="fanuc-mill-M99"><td class="code">M99</td><td>End of subprogram: returns to the block after the call.</td></tr>
+</tbody></table>
+<h2 id="haas-mill">Haas NGC mill</h2>
+<h3>G codes</h3>
+<table><thead><tr><th>Code</th><th>What it does</th></tr></thead><tbody>
+<tr id="haas-mill-G00"><td class="code">G00</td><td>Rapid positioning at the machine's top speed, not cutting. Use it only in free air: a rapid into the stock is a crash.</td></tr>
+<tr id="haas-mill-G01"><td class="code">G01</td><td>Straight cut at feed F to the programmed point.</td></tr>
+<tr id="haas-mill-G02"><td class="code">G02</td><td>Clockwise arc to the end point, seen from the plane's positive axis. Center with I/J/K (from the start point) or radius R.</td></tr>
+<tr id="haas-mill-G03"><td class="code">G03</td><td>Counterclockwise arc to the end point. Center with I/J/K (from the start point) or radius R.</td></tr>
+<tr id="haas-mill-G04"><td class="code">G04</td><td>Dwell: waits P (milliseconds, no decimal point) or X/U (seconds) without moving.</td></tr>
+<tr id="haas-mill-G09"><td class="code">G09</td><td><b>Exact stop.</b> Control function with no effect on the path.</td></tr>
+<tr id="haas-mill-G10"><td class="code">G10</td><td><b>Set offsets (L2/L20 work, L10–L13 tool).</b> Writes offsets from the program: L2/L20 work offsets, L10–L13 tool offsets (lathe: P n wear, P 10000+n geometry).</td></tr>
+<tr id="haas-mill-G12"><td class="code">G12</td><td><b>Circular pocket CW.</b> Circle or pocket milling cycle (not drawn by the simulator yet).</td></tr>
+<tr id="haas-mill-G13"><td class="code">G13</td><td><b>Circular pocket CCW.</b> Circle or pocket milling cycle (not drawn by the simulator yet).</td></tr>
+<tr id="haas-mill-G17"><td class="code">G17</td><td>Plane XY for arcs and cutter compensation (machining centers).</td></tr>
+<tr id="haas-mill-G18"><td class="code">G18</td><td>Plane ZX for arcs and compensation (the turning plane on lathes).</td></tr>
+<tr id="haas-mill-G19"><td class="code">G19</td><td>Plane YZ for arcs and compensation.</td></tr>
+<tr id="haas-mill-G20"><td class="code">G20</td><td>Units in inches.</td></tr>
+<tr id="haas-mill-G21"><td class="code">G21</td><td>Units in millimeters.</td></tr>
+<tr id="haas-mill-G28"><td class="code">G28</td><td>Return to the machine reference point through the programmed point (G91 G28 Z0 goes straight up from where it is).</td></tr>
+<tr id="haas-mill-G29"><td class="code">G29</td><td><b>Return from reference.</b> Control function with no effect on the path.</td></tr>
+<tr id="haas-mill-G31"><td class="code">G31</td><td><b>Skip function.</b> Control function with no effect on the path.</td></tr>
+<tr id="haas-mill-G35"><td class="code">G35</td><td><b>Tool diameter measure.</b> Control function with no effect on the path.</td></tr>
+<tr id="haas-mill-G36"><td class="code">G36</td><td><b>Work offset probing.</b> Control function with no effect on the path.</td></tr>
+<tr id="haas-mill-G37"><td class="code">G37</td><td><b>Tool length measure.</b> Control function with no effect on the path.</td></tr>
+<tr id="haas-mill-G40"><td class="code">G40</td><td>Cancels cutter (or nose) radius compensation. Cancel with a move away from the part.</td></tr>
+<tr id="haas-mill-G41"><td class="code">G41</td><td>Cutter radius compensation to the left of the path (climb milling on outside contours). Radius from D (lathe: nose radius of the T offset). Start it with a straight move.</td></tr>
+<tr id="haas-mill-G42"><td class="code">G42</td><td>Cutter radius compensation to the right of the path. Radius from D (lathe: nose radius). Start it with a straight move.</td></tr>
+<tr id="haas-mill-G43"><td class="code">G43</td><td>Tool length compensation with offset H: Z positions are measured at the tool tip. A wrong H puts the tip too high or into the part.</td></tr>
+<tr id="haas-mill-G44"><td class="code">G44</td><td>Tool length compensation with offset H: Z positions are measured at the tool tip. A wrong H puts the tip too high or into the part.</td></tr>
+<tr id="haas-mill-G47"><td class="code">G47</td><td><b>Text engraving.</b> Accepted by the control, but the simulator does not draw it yet: the path after it may differ from the machine.</td></tr>
+<tr id="haas-mill-G49"><td class="code">G49</td><td>Cancels tool length compensation.</td></tr>
+<tr id="haas-mill-G50"><td class="code">G50</td><td><b>Scaling cancel.</b> Control function with no effect on the path.</td></tr>
+<tr id="haas-mill-G51"><td class="code">G51</td><td><b>Scaling.</b> Accepted by the control, but the simulator does not draw it yet: the path after it may differ from the machine.</td></tr>
+<tr id="haas-mill-G52"><td class="code">G52</td><td>Local coordinate system shifted from the work offset (not drawn by the simulator yet).</td></tr>
+<tr id="haas-mill-G53"><td class="code">G53</td><td>Move in machine coordinates for this block only, ignoring work offsets and tool length.</td></tr>
+<tr id="haas-mill-G54"><td class="code">G54</td><td>Selects a work offset (part zero) from the OFFSET table: G54–G59, G54.1 P n (Haas G154 P n).</td></tr>
+<tr id="haas-mill-G54-1"><td class="code">G54.1</td><td><b>Additional work offset P1–P99.</b> Selects a work offset (part zero) from the OFFSET table: G54–G59, G54.1 P n (Haas G154 P n).</td></tr>
+<tr id="haas-mill-G55"><td class="code">G55</td><td>Selects a work offset (part zero) from the OFFSET table: G54–G59, G54.1 P n (Haas G154 P n).</td></tr>
+<tr id="haas-mill-G56"><td class="code">G56</td><td>Selects a work offset (part zero) from the OFFSET table: G54–G59, G54.1 P n (Haas G154 P n).</td></tr>
+<tr id="haas-mill-G57"><td class="code">G57</td><td>Selects a work offset (part zero) from the OFFSET table: G54–G59, G54.1 P n (Haas G154 P n).</td></tr>
+<tr id="haas-mill-G58"><td class="code">G58</td><td>Selects a work offset (part zero) from the OFFSET table: G54–G59, G54.1 P n (Haas G154 P n).</td></tr>
+<tr id="haas-mill-G59"><td class="code">G59</td><td>Selects a work offset (part zero) from the OFFSET table: G54–G59, G54.1 P n (Haas G154 P n).</td></tr>
+<tr id="haas-mill-G61"><td class="code">G61</td><td><b>Exact stop modal.</b> Control function with no effect on the path.</td></tr>
+<tr id="haas-mill-G64"><td class="code">G64</td><td><b>Exact stop cancel.</b> Control function with no effect on the path.</td></tr>
+<tr id="haas-mill-G65"><td class="code">G65</td><td>Macro call (G65 P n): runs program O n once, with the letters as arguments (A → #1, B → #2, …).</td></tr>
+<tr id="haas-mill-G68"><td class="code">G68</td><td>Coordinate rotation by R degrees around the given point (not drawn by the simulator yet).</td></tr>
+<tr id="haas-mill-G69"><td class="code">G69</td><td>Coordinate rotation off.</td></tr>
+<tr id="haas-mill-G70"><td class="code">G70</td><td><b>Bolt hole circle.</b> Accepted by the control, but the simulator does not draw it yet: the path after it may differ from the machine.</td></tr>
+<tr id="haas-mill-G71"><td class="code">G71</td><td><b>Bolt hole arc.</b> Accepted by the control, but the simulator does not draw it yet: the path after it may differ from the machine.</td></tr>
+<tr id="haas-mill-G72"><td class="code">G72</td><td><b>Bolt holes along an angle.</b> Accepted by the control, but the simulator does not draw it yet: the path after it may differ from the machine.</td></tr>
+<tr id="haas-mill-G73"><td class="code">G73</td><td><b>High-speed peck drilling.</b> Peck drilling: drills Q at a time and backs out to break or clear the chip, down to Z.</td></tr>
+<tr id="haas-mill-G74"><td class="code">G74</td><td><b>Reverse tapping.</b> Tapping cycle: feed F must be the pitch × rpm (or the pitch with feed per revolution); the spindle reverses at the bottom.</td></tr>
+<tr id="haas-mill-G76"><td class="code">G76</td><td><b>Fine boring.</b> Boring cycle: feed in to Z and out (how it comes out, feed or rapid, stopped or turning, depends on the code).</td></tr>
+<tr id="haas-mill-G77"><td class="code">G77</td><td><b>Back boring.</b> Boring cycle: feed in to Z and out (how it comes out, feed or rapid, stopped or turning, depends on the code).</td></tr>
+<tr id="haas-mill-G80"><td class="code">G80</td><td>Cancels the active drilling cycle: the next X/Y no longer drills.</td></tr>
+<tr id="haas-mill-G81"><td class="code">G81</td><td>Drilling cycle: rapid to R, feed to Z, rapid out (G82 with a dwell P at the bottom). Repeats at each X/Y until G80.</td></tr>
+<tr id="haas-mill-G82"><td class="code">G82</td><td><b>Spot drill with dwell.</b> Drilling cycle: rapid to R, feed to Z, rapid out (G82 with a dwell P at the bottom). Repeats at each X/Y until G80.</td></tr>
+<tr id="haas-mill-G83"><td class="code">G83</td><td>Peck drilling: drills Q at a time and backs out to break or clear the chip, down to Z.</td></tr>
+<tr id="haas-mill-G84"><td class="code">G84</td><td>Tapping cycle: feed F must be the pitch × rpm (or the pitch with feed per revolution); the spindle reverses at the bottom.</td></tr>
+<tr id="haas-mill-G85"><td class="code">G85</td><td>Boring cycle: feed in to Z and out (how it comes out, feed or rapid, stopped or turning, depends on the code).</td></tr>
+<tr id="haas-mill-G86"><td class="code">G86</td><td>Boring cycle: feed in to Z and out (how it comes out, feed or rapid, stopped or turning, depends on the code).</td></tr>
+<tr id="haas-mill-G87"><td class="code">G87</td><td>Boring cycle: feed in to Z and out (how it comes out, feed or rapid, stopped or turning, depends on the code).</td></tr>
+<tr id="haas-mill-G88"><td class="code">G88</td><td>Boring cycle: feed in to Z and out (how it comes out, feed or rapid, stopped or turning, depends on the code).</td></tr>
+<tr id="haas-mill-G89"><td class="code">G89</td><td>Boring cycle: feed in to Z and out (how it comes out, feed or rapid, stopped or turning, depends on the code).</td></tr>
+<tr id="haas-mill-G90"><td class="code">G90</td><td>Absolute coordinates: every value is a position from the work zero.</td></tr>
+<tr id="haas-mill-G91"><td class="code">G91</td><td>Incremental coordinates: every value is a distance from where the tool is.</td></tr>
+<tr id="haas-mill-G92"><td class="code">G92</td><td>Sets the current position as the given coordinates (G92 on mills, G50 on system A lathes); on lathes it also limits the spindle speed with S.</td></tr>
+<tr id="haas-mill-G93"><td class="code">G93</td><td><b>Inverse time feed.</b> Accepted by the control, but the simulator does not draw it yet: the path after it may differ from the machine.</td></tr>
+<tr id="haas-mill-G94"><td class="code">G94</td><td>Feed F in mm/min.</td></tr>
+<tr id="haas-mill-G95"><td class="code">G95</td><td>Feed F in mm per spindle revolution (the usual on lathes).</td></tr>
+<tr id="haas-mill-G98"><td class="code">G98</td><td>After each hole the tool returns to the initial level (where the cycle started): safe over clamps.</td></tr>
+<tr id="haas-mill-G99"><td class="code">G99</td><td>After each hole the tool returns to the R level: faster, for a flat part without obstacles.</td></tr>
+<tr id="haas-mill-G100"><td class="code">G100</td><td>Mirror image off.</td></tr>
+<tr id="haas-mill-G101"><td class="code">G101</td><td>Mirror image (not drawn by the simulator yet).</td></tr>
+<tr id="haas-mill-G103"><td class="code">G103</td><td><b>Block lookahead.</b> Control function with no effect on the path.</td></tr>
+<tr id="haas-mill-G107"><td class="code">G107</td><td>Cylindrical interpolation: C is unrolled on the diameter, for slots around a shaft.</td></tr>
+<tr id="haas-mill-G110"><td class="code">G110</td><td><b>Work offset = G154 P1.</b> Selects a work offset (part zero) from the OFFSET table: G54–G59, G54.1 P n (Haas G154 P n).</td></tr>
+<tr id="haas-mill-G111"><td class="code">G111</td><td><b>Work offset = G154 P2.</b> Selects a work offset (part zero) from the OFFSET table: G54–G59, G54.1 P n (Haas G154 P n).</td></tr>
+<tr id="haas-mill-G112"><td class="code">G112</td><td><b>Work offset = G154 P3.</b> Selects a work offset (part zero) from the OFFSET table: G54–G59, G54.1 P n (Haas G154 P n).</td></tr>
+<tr id="haas-mill-G113"><td class="code">G113</td><td><b>Work offset = G154 P4.</b> Selects a work offset (part zero) from the OFFSET table: G54–G59, G54.1 P n (Haas G154 P n).</td></tr>
+<tr id="haas-mill-G114"><td class="code">G114</td><td><b>Work offset = G154 P5.</b> Selects a work offset (part zero) from the OFFSET table: G54–G59, G54.1 P n (Haas G154 P n).</td></tr>
+<tr id="haas-mill-G115"><td class="code">G115</td><td><b>Work offset = G154 P6.</b> Selects a work offset (part zero) from the OFFSET table: G54–G59, G54.1 P n (Haas G154 P n).</td></tr>
+<tr id="haas-mill-G116"><td class="code">G116</td><td><b>Work offset = G154 P7.</b> Selects a work offset (part zero) from the OFFSET table: G54–G59, G54.1 P n (Haas G154 P n).</td></tr>
+<tr id="haas-mill-G117"><td class="code">G117</td><td><b>Work offset = G154 P8.</b> Selects a work offset (part zero) from the OFFSET table: G54–G59, G54.1 P n (Haas G154 P n).</td></tr>
+<tr id="haas-mill-G118"><td class="code">G118</td><td><b>Work offset = G154 P9.</b> Selects a work offset (part zero) from the OFFSET table: G54–G59, G54.1 P n (Haas G154 P n).</td></tr>
+<tr id="haas-mill-G119"><td class="code">G119</td><td><b>Work offset = G154 P10.</b> Selects a work offset (part zero) from the OFFSET table: G54–G59, G54.1 P n (Haas G154 P n).</td></tr>
+<tr id="haas-mill-G120"><td class="code">G120</td><td><b>Work offset = G154 P11.</b> Selects a work offset (part zero) from the OFFSET table: G54–G59, G54.1 P n (Haas G154 P n).</td></tr>
+<tr id="haas-mill-G121"><td class="code">G121</td><td><b>Work offset = G154 P12.</b> Selects a work offset (part zero) from the OFFSET table: G54–G59, G54.1 P n (Haas G154 P n).</td></tr>
+<tr id="haas-mill-G122"><td class="code">G122</td><td><b>Work offset = G154 P13.</b> Selects a work offset (part zero) from the OFFSET table: G54–G59, G54.1 P n (Haas G154 P n).</td></tr>
+<tr id="haas-mill-G123"><td class="code">G123</td><td><b>Work offset = G154 P14.</b> Selects a work offset (part zero) from the OFFSET table: G54–G59, G54.1 P n (Haas G154 P n).</td></tr>
+<tr id="haas-mill-G124"><td class="code">G124</td><td><b>Work offset = G154 P15.</b> Selects a work offset (part zero) from the OFFSET table: G54–G59, G54.1 P n (Haas G154 P n).</td></tr>
+<tr id="haas-mill-G125"><td class="code">G125</td><td><b>Work offset = G154 P16.</b> Selects a work offset (part zero) from the OFFSET table: G54–G59, G54.1 P n (Haas G154 P n).</td></tr>
+<tr id="haas-mill-G126"><td class="code">G126</td><td><b>Work offset = G154 P17.</b> Selects a work offset (part zero) from the OFFSET table: G54–G59, G54.1 P n (Haas G154 P n).</td></tr>
+<tr id="haas-mill-G127"><td class="code">G127</td><td><b>Work offset = G154 P18.</b> Selects a work offset (part zero) from the OFFSET table: G54–G59, G54.1 P n (Haas G154 P n).</td></tr>
+<tr id="haas-mill-G128"><td class="code">G128</td><td><b>Work offset = G154 P19.</b> Selects a work offset (part zero) from the OFFSET table: G54–G59, G54.1 P n (Haas G154 P n).</td></tr>
+<tr id="haas-mill-G129"><td class="code">G129</td><td><b>Work offset = G154 P20.</b> Selects a work offset (part zero) from the OFFSET table: G54–G59, G54.1 P n (Haas G154 P n).</td></tr>
+<tr id="haas-mill-G141"><td class="code">G141</td><td><b>3D cutter compensation.</b> Accepted by the control, but the simulator does not draw it yet: the path after it may differ from the machine.</td></tr>
+<tr id="haas-mill-G150"><td class="code">G150</td><td><b>General purpose pocketing.</b> Accepted by the control, but the simulator does not draw it yet: the path after it may differ from the machine.</td></tr>
+<tr id="haas-mill-G154"><td class="code">G154</td><td><b>Additional work offset P1–P99.</b> Selects a work offset (part zero) from the OFFSET table: G54–G59, G54.1 P n (Haas G154 P n).</td></tr>
+<tr id="haas-mill-G187"><td class="code">G187</td><td><b>Smoothness / accuracy.</b> Control function with no effect on the path.</td></tr>
+<tr id="haas-mill-G234"><td class="code">G234</td><td><b>Tool center point control (TCPC).</b> Accepted by the control, but the simulator does not draw it yet: the path after it may differ from the machine.</td></tr>
+<tr id="haas-mill-G254"><td class="code">G254</td><td><b>Dynamic work offset (DWO).</b> Accepted by the control, but the simulator does not draw it yet: the path after it may differ from the machine.</td></tr>
+<tr id="haas-mill-G255"><td class="code">G255</td><td><b>DWO cancel.</b> Control function with no effect on the path.</td></tr>
+<tr id="haas-mill-G268"><td class="code">G268</td><td><b>Feature coordinates.</b> Accepted by the control, but the simulator does not draw it yet: the path after it may differ from the machine.</td></tr>
+<tr id="haas-mill-G269"><td class="code">G269</td><td><b>Feature coordinates cancel.</b> Control function with no effect on the path.</td></tr>
+</tbody></table>
+<h3>M codes</h3>
+<table><thead><tr><th>Code</th><th>What it does</th></tr></thead><tbody>
+<tr id="haas-mill-M00"><td class="code">M00</td><td>Program stop: the machine stops until cycle start (to measure, clean chips, turn the part).</td></tr>
+<tr id="haas-mill-M01"><td class="code">M01</td><td>Optional stop: stops only with the M01 key on.</td></tr>
+<tr id="haas-mill-M02"><td class="code">M02</td><td>End of program.</td></tr>
+<tr id="haas-mill-M03"><td class="code">M03</td><td>Spindle on, clockwise (S sets the speed).</td></tr>
+<tr id="haas-mill-M04"><td class="code">M04</td><td>Spindle on, counterclockwise.</td></tr>
+<tr id="haas-mill-M05"><td class="code">M05</td><td>Spindle stop.</td></tr>
+<tr id="haas-mill-M06"><td class="code">M06</td><td>Tool change to the tool T. Go to a safe place first (G28 or the change position).</td></tr>
+<tr id="haas-mill-M07"><td class="code">M07</td><td><b>Shower coolant.</b> Coolant on.</td></tr>
+<tr id="haas-mill-M08"><td class="code">M08</td><td>Coolant on.</td></tr>
+<tr id="haas-mill-M09"><td class="code">M09</td><td>Coolant off.</td></tr>
+<tr id="haas-mill-M10"><td class="code">M10</td><td><b>4th axis brake.</b> Clamps the axis (brake) to cut without it turning.</td></tr>
+<tr id="haas-mill-M11"><td class="code">M11</td><td><b>4th axis brake release.</b> Releases the axis brake.</td></tr>
+<tr id="haas-mill-M12"><td class="code">M12</td><td><b>5th axis brake.</b> Clamps the axis (brake) to cut without it turning.</td></tr>
+<tr id="haas-mill-M13"><td class="code">M13</td><td><b>5th axis brake release.</b> Releases the axis brake.</td></tr>
+<tr id="haas-mill-M19"><td class="code">M19</td><td><b>Spindle orient.</b> Machine function with no effect on the path.</td></tr>
+<tr id="haas-mill-M30"><td class="code">M30</td><td>End of program and back to the start.</td></tr>
+<tr id="haas-mill-M31"><td class="code">M31</td><td><b>Chip conveyor forward.</b> Machine function with no effect on the path.</td></tr>
+<tr id="haas-mill-M33"><td class="code">M33</td><td><b>Chip conveyor stop.</b> Machine function with no effect on the path.</td></tr>
+<tr id="haas-mill-M34"><td class="code">M34</td><td><b>Coolant spigot down.</b> Machine function with no effect on the path.</td></tr>
+<tr id="haas-mill-M35"><td class="code">M35</td><td><b>Coolant spigot up.</b> Machine function with no effect on the path.</td></tr>
+<tr id="haas-mill-M41"><td class="code">M41</td><td><b>Low gear.</b> Machine function with no effect on the path.</td></tr>
+<tr id="haas-mill-M42"><td class="code">M42</td><td><b>High gear.</b> Machine function with no effect on the path.</td></tr>
+<tr id="haas-mill-M73"><td class="code">M73</td><td><b>Tool air blast on.</b> Machine function with no effect on the path.</td></tr>
+<tr id="haas-mill-M74"><td class="code">M74</td><td><b>Tool air blast off.</b> Machine function with no effect on the path.</td></tr>
+<tr id="haas-mill-M83"><td class="code">M83</td><td><b>Auto air jet on.</b> Machine function with no effect on the path.</td></tr>
+<tr id="haas-mill-M84"><td class="code">M84</td><td><b>Auto air jet off.</b> Machine function with no effect on the path.</td></tr>
+<tr id="haas-mill-M88"><td class="code">M88</td><td><b>Through-spindle coolant.</b> Coolant on.</td></tr>
+<tr id="haas-mill-M89"><td class="code">M89</td><td><b>Through-spindle coolant off.</b> Coolant off.</td></tr>
+<tr id="haas-mill-M95"><td class="code">M95</td><td><b>Sleep mode.</b> Machine function with no effect on the path.</td></tr>
+<tr id="haas-mill-M96"><td class="code">M96</td><td><b>Jump if no input.</b> Machine function with no effect on the path.</td></tr>
+<tr id="haas-mill-M97"><td class="code">M97</td><td><b>Local subprogram call (P = N number).</b> Haas local subprogram: jumps to block N P of this same program and comes back at M99; L repeats.</td></tr>
+<tr id="haas-mill-M98"><td class="code">M98</td><td>Calls subprogram P (O number); L or the leading digits of P repeat it.</td></tr>
+<tr id="haas-mill-M99"><td class="code">M99</td><td>End of subprogram: returns to the block after the call.</td></tr>
+<tr id="haas-mill-M109"><td class="code">M109</td><td><b>Interactive user input.</b> Machine function with no effect on the path.</td></tr>
+</tbody></table>
+
+<footer>
+  Free software under the GPL-3.0 license, made for the CNC community. Control and machine names belong to their makers; this project is not affiliated with them.
+  · <a href="https://github.com/ismael-figueiredo/cnc-simulator/issues">Report a problem</a>
+  · <a href="https://github.com/ismael-figueiredo/cnc-simulator/discussions">Questions</a>
+  · <a href="https://github.com/ismael-figueiredo/cnc-simulator/blob/main/CONTRIBUTING.md">Contributing</a>
+  · v0.18.0
+</footer>
+</div>
+
+</body>
+</html>

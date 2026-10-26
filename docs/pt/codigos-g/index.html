@@ -1,0 +1,334 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lista de códigos G e M com explicação: torno Fanuc, centro Fanuc e Haas | CNC Simulator</title>
+<meta name="description" content="Todos os códigos G e M do torno Fanuc 0i-TF, do centro de usinagem Fanuc 0i-MF e da fresadora Haas NGC, com o que cada um faz: G71, G76, G41, G43, G154, M97 e outros.">
+<link rel="canonical" href="https://ismael-figueiredo.github.io/cnc-simulator/pt/codigos-g/">
+<link rel="alternate" hreflang="en" href="https://ismael-figueiredo.github.io/cnc-simulator/g-codes/">
+<link rel="alternate" hreflang="pt-BR" href="https://ismael-figueiredo.github.io/cnc-simulator/pt/codigos-g/">
+<link rel="alternate" hreflang="x-default" href="https://ismael-figueiredo.github.io/cnc-simulator/g-codes/">
+<meta name="robots" content="index, follow">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="CNC Simulator">
+<meta property="og:locale" content="pt_BR">
+<meta property="og:locale:alternate" content="en_US">
+<meta property="og:title" content="Lista de códigos G e M com explicação: torno Fanuc, centro Fanuc e Haas | CNC Simulator">
+<meta property="og:description" content="Todos os códigos G e M do torno Fanuc 0i-TF, do centro de usinagem Fanuc 0i-MF e da fresadora Haas NGC, com o que cada um faz: G71, G76, G41, G43, G154, M97 e outros.">
+<meta property="og:url" content="https://ismael-figueiredo.github.io/cnc-simulator/pt/codigos-g/">
+<meta property="og:image" content="https://ismael-figueiredo.github.io/cnc-simulator/social.png">
+<meta property="og:image:width" content="1280">
+<meta property="og:image:height" content="640">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://ismael-figueiredo.github.io/cnc-simulator/social.png">
+<link rel="icon" type="image/png" href="../../img/favicon.png">
+<link rel="apple-touch-icon" href="../../img/icon.png">
+<link rel="preload" as="image" href="../../img/machine-mill-en.jpg">
+<style>:root{--bg:#0b1117;--panel:#121a23;--line:#233142;--text:#e6edf3;--muted:#9fb0c0;--accent:#22d3ee;--warm:#ffb547}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:17px/1.6 -apple-system,'Segoe UI',Roboto,sans-serif}a{color:var(--accent)}img{max-width:100%;height:auto}.wrap{max-width:1100px;margin:0 auto;padding:0 16px}header{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:16px 0;flex-wrap:wrap}.brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:20px;color:var(--text);text-decoration:none}nav{display:flex;gap:16px;font-size:15px;flex-wrap:wrap}.hero{padding:36px 0 20px;text-align:center}h1{font-size:clamp(30px,5vw,48px);line-height:1.15;margin:0 0 14px}h2{font-size:28px;margin:52px 0 14px}h3{margin:0 0 6px;font-size:18px}.lead{color:var(--muted);font-size:19px;max-width:780px;margin:0 auto 26px}.downloads{display:flex;flex-wrap:wrap;justify-content:center;gap:10px}.btn{display:inline-block;text-decoration:none;background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:11px 18px;font-weight:600}.btn.primary{background:var(--warm);color:#111;border-color:var(--warm)}.small{font-size:14px;color:var(--muted)}figure{margin:28px 0}figure img{display:block;border:1px solid var(--line);border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,.45)}figcaption{color:var(--muted);font-size:14px;margin-top:8px;text-align:center}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:18px}.card p{margin:0;color:var(--muted);font-size:15px}ul.features{columns:2 320px;padding-left:18px;color:var(--muted)}ul.features li{margin-bottom:8px;break-inside:avoid}ul.features b{color:var(--text)}.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:18px}details{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px 16px;margin-bottom:8px}summary{cursor:pointer;font-weight:600}table{width:100%;border-collapse:collapse;font-size:15px;margin:10px 0 30px}th,td{text-align:left;vertical-align:top;padding:7px 10px;border-bottom:1px solid var(--line)}th{color:var(--muted);font-weight:600}td.code{font:600 15px ui-monospace,Menlo,Consolas,monospace;white-space:nowrap;color:var(--warm)}.toc{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0 20px}footer{border-top:1px solid var(--line);margin-top:56px;padding:20px 0 40px;color:var(--muted);font-size:14px}</style>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"Códigos G e M: torno e centro de usinagem Fanuc, Haas","inLanguage":"pt-BR","dateModified":"2026-10-26","url":"https://ismael-figueiredo.github.io/cnc-simulator/pt/codigos-g/","author":{"@type":"Person","name":"Ismael Figueiredo"},"isPartOf":{"@type":"WebSite","name":"CNC Simulator","url":"https://ismael-figueiredo.github.io/cnc-simulator/"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"CNC Simulator","item":"https://ismael-figueiredo.github.io/cnc-simulator/pt/"},{"@type":"ListItem","position":2,"name":"Códigos G e M","item":"https://ismael-figueiredo.github.io/cnc-simulator/pt/codigos-g/"}]}</script>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <a class="brand" href="../../pt/"><img src="../../img/icon.png" width="36" height="36" alt="">CNC Simulator</a>
+  <nav>
+    <a href="../../pt/#download">Baixar</a>
+    <a href="../../pt/codigos-g/">Códigos G e M</a>
+    <a href="https://github.com/ismael-figueiredo/cnc-simulator">GitHub</a>
+    <a href="../../g-codes/" hreflang="en" lang="en">English</a>
+  </nav>
+</header>
+
+<section>
+  <h1>Códigos G e M: torno e centro de usinagem Fanuc, Haas</h1>
+  <p class="lead" style="margin-left:0">O que cada código G e M faz em cada comando, como o CNC Simulator executa. As mesmas explicações aparecem no modo aprender do app, ao passar o mouse sobre um código no programa.</p>
+  <div class="toc"><a class="btn" href="#fanuc-lathe">Torno Fanuc 0i-TF (sistema de códigos G B, Romi GL)</a><a class="btn" href="#fanuc-mill">Centro de usinagem Fanuc 0i-MF</a><a class="btn" href="#haas-mill">Fresadora Haas NGC</a></div>
+  <p><a class="btn primary" href="../../pt/#download">Teste os códigos no simulador grátis</a></p>
+</section>
+<h2 id="fanuc-lathe">Torno Fanuc 0i-TF (sistema de códigos G B, Romi GL)</h2>
+<h3>Códigos G</h3>
+<table><thead><tr><th>Código</th><th>O que faz</th></tr></thead><tbody>
+<tr id="fanuc-lathe-G00"><td class="code">G00</td><td>Posicionamento rápido na velocidade máxima da máquina, sem cortar. Use só no ar: um rápido dentro do material é colisão.</td></tr>
+<tr id="fanuc-lathe-G01"><td class="code">G01</td><td>Corte em linha reta no avanço F até o ponto programado.</td></tr>
+<tr id="fanuc-lathe-G02"><td class="code">G02</td><td>Arco horário até o ponto final, visto do eixo positivo do plano. Centro com I/J/K (a partir do ponto inicial) ou raio R.</td></tr>
+<tr id="fanuc-lathe-G03"><td class="code">G03</td><td>Arco anti-horário até o ponto final. Centro com I/J/K (a partir do ponto inicial) ou raio R.</td></tr>
+<tr id="fanuc-lathe-G04"><td class="code">G04</td><td>Tempo de espera: aguarda P (milissegundos, sem ponto) ou X/U (segundos) sem mover.</td></tr>
+<tr id="fanuc-lathe-G07-1"><td class="code">G07.1</td><td><b>Interpolação cilíndrica.</b> Interpolação cilíndrica: o C é &quot;desenrolado&quot; no diâmetro, para rasgos ao redor de um eixo.</td></tr>
+<tr id="fanuc-lathe-G10"><td class="code">G10</td><td><b>Entrada de dados programável (zeros L2/L20).</b> Grava corretores pelo programa: L2/L20 zeros de peça, L10–L13 corretores de ferramenta (torno: P n desgaste, P 10000+n geometria).</td></tr>
+<tr id="fanuc-lathe-G12-1"><td class="code">G12.1</td><td><b>Coordenadas polares X/C.</b> Liga a interpolação polar: X (diâmetro) e C viram um plano XC, para fresar a face da peça com ferramenta acionada.</td></tr>
+<tr id="fanuc-lathe-G13-1"><td class="code">G13.1</td><td>Desliga a interpolação polar.</td></tr>
+<tr id="fanuc-lathe-G17"><td class="code">G17</td><td>Plano XY para arcos e compensação de raio (centros de usinagem).</td></tr>
+<tr id="fanuc-lathe-G18"><td class="code">G18</td><td>Plano ZX para arcos e compensação (o plano de torneamento no torno).</td></tr>
+<tr id="fanuc-lathe-G19"><td class="code">G19</td><td>Plano YZ para arcos e compensação.</td></tr>
+<tr id="fanuc-lathe-G20"><td class="code">G20</td><td>Unidades em polegadas.</td></tr>
+<tr id="fanuc-lathe-G21"><td class="code">G21</td><td>Unidades em milímetros.</td></tr>
+<tr id="fanuc-lathe-G28"><td class="code">G28</td><td>Retorno ao ponto de referência da máquina passando pelo ponto programado (G91 G28 Z0 sobe direto de onde está).</td></tr>
+<tr id="fanuc-lathe-G32"><td class="code">G32</td><td><b>Roscamento.</b> Movimento de rosca: corte reto sincronizado com a placa, F = passo.</td></tr>
+<tr id="fanuc-lathe-G40"><td class="code">G40</td><td>Cancela a compensação de raio da fresa (ou da ponta). Cancele com um movimento saindo da peça.</td></tr>
+<tr id="fanuc-lathe-G41"><td class="code">G41</td><td>Compensação de raio à esquerda do percurso (fresamento concordante em contornos externos). Raio do D (torno: raio de ponta do corretor do T). Comece com um movimento reto.</td></tr>
+<tr id="fanuc-lathe-G42"><td class="code">G42</td><td>Compensação de raio à direita do percurso. Raio do D (torno: raio de ponta). Comece com um movimento reto.</td></tr>
+<tr id="fanuc-lathe-G53"><td class="code">G53</td><td>Movimento em coordenadas de máquina só neste bloco, sem zero peça nem comprimento de ferramenta.</td></tr>
+<tr id="fanuc-lathe-G54"><td class="code">G54</td><td>Seleciona um zero peça da tabela OFFSET: G54–G59, G54.1 P n (Haas G154 P n).</td></tr>
+<tr id="fanuc-lathe-G55"><td class="code">G55</td><td>Seleciona um zero peça da tabela OFFSET: G54–G59, G54.1 P n (Haas G154 P n).</td></tr>
+<tr id="fanuc-lathe-G56"><td class="code">G56</td><td>Seleciona um zero peça da tabela OFFSET: G54–G59, G54.1 P n (Haas G154 P n).</td></tr>
+<tr id="fanuc-lathe-G57"><td class="code">G57</td><td>Seleciona um zero peça da tabela OFFSET: G54–G59, G54.1 P n (Haas G154 P n).</td></tr>
+<tr id="fanuc-lathe-G58"><td class="code">G58</td><td>Seleciona um zero peça da tabela OFFSET: G54–G59, G54.1 P n (Haas G154 P n).</td></tr>
+<tr id="fanuc-lathe-G59"><td class="code">G59</td><td>Seleciona um zero peça da tabela OFFSET: G54–G59, G54.1 P n (Haas G154 P n).</td></tr>
+<tr id="fanuc-lathe-G65"><td class="code">G65</td><td>Chamada de macro (G65 P n): roda o programa O n uma vez, com as letras como argumentos (A → #1, B → #2, …).</td></tr>
+<tr id="fanuc-lathe-G66"><td class="code">G66</td><td>Chamada modal de macro: a macro roda depois de cada movimento até ser cancelada.</td></tr>
+<tr id="fanuc-lathe-G67"><td class="code">G67</td><td>Cancela a chamada modal de macro.</td></tr>
+<tr id="fanuc-lathe-G70"><td class="code">G70</td><td>Ciclo de acabamento (G70 P Q): percorre uma vez o perfil entre os blocos N P e N Q, com o avanço de acabamento, depois do G71/G72/G73.</td></tr>
+<tr id="fanuc-lathe-G71"><td class="code">G71</td><td><b>Desbaste longitudinal.</b> Desbaste longitudinal (G71). Primeiro bloco: U profundidade de corte (no raio) e R recuo. Segundo bloco: P e Q são os números N do primeiro e do último bloco do perfil acabado, U/W o sobremetal em X (diâmetro) e Z, F o avanço de desbaste.</td></tr>
+<tr id="fanuc-lathe-G72"><td class="code">G72</td><td><b>Desbaste transversal.</b> Desbaste transversal (G72): como o G71, mas os passes correm em X, descendo em Z (profundidade W).</td></tr>
+<tr id="fanuc-lathe-G73"><td class="code">G73</td><td><b>Paralelo ao perfil.</b> Repetição de perfil (G73): o perfil acabado é percorrido várias vezes, cada vez mais perto; para peças forjadas ou fundidas. U/W alívio, R número de passes.</td></tr>
+<tr id="fanuc-lathe-G74"><td class="code">G74</td><td><b>Furação axial / torneamento com pica.</b> Ciclo de descarga em Z (canal frontal ou furo profundo no centro).</td></tr>
+<tr id="fanuc-lathe-G75"><td class="code">G75</td><td><b>Canais / faceamento.</b> Ciclo de canal com descarga em X.</td></tr>
+<tr id="fanuc-lathe-G76"><td class="code">G76</td><td>Rosca múltipla (G76). Primeiro bloco: P (passes de acabamento, chanfro, ângulo, em 6 dígitos), Q profundidade mínima, R sobremetal. Segundo bloco: X Z fundo da rosca no fim, P altura do filete, Q primeira profundidade (mícrons), F passo.</td></tr>
+<tr id="fanuc-lathe-G77"><td class="code">G77</td><td>Ciclo simples de torneamento: entra em rápido, corta até X Z, sai e volta, num bloco só. R faz cone. Repita só com o próximo X.</td></tr>
+<tr id="fanuc-lathe-G78"><td class="code">G78</td><td>Ciclo simples de rosca: um passe por bloco, F = passo. Programe o próximo diâmetro em cada passe.</td></tr>
+<tr id="fanuc-lathe-G79"><td class="code">G79</td><td>Ciclo simples de faceamento: como o de torneamento, mas cortando em X. R faz cone em Z.</td></tr>
+<tr id="fanuc-lathe-G80"><td class="code">G80</td><td>Cancela o ciclo de furação ativo: o próximo X/Y não fura mais.</td></tr>
+<tr id="fanuc-lathe-G83"><td class="code">G83</td><td><b>Furação axial.</b> Ciclo de furação: rápido até R, avanço até Z, sai em rápido (G82 com tempo P no fundo). Repete a cada X/Y até o G80.</td></tr>
+<tr id="fanuc-lathe-G84"><td class="code">G84</td><td><b>Roscamento axial.</b> Ciclo de roscamento com macho: o avanço F deve ser passo × rotação (ou o passo com avanço por rotação); a árvore inverte no fundo.</td></tr>
+<tr id="fanuc-lathe-G85"><td class="code">G85</td><td>Ciclo de mandrilamento: avança até o Z e sai (o modo de sair, avanço ou rápido, parado ou girando, depende do código).</td></tr>
+<tr id="fanuc-lathe-G87"><td class="code">G87</td><td>Furação radial com ferramenta acionada, em X em direção ao centro.</td></tr>
+<tr id="fanuc-lathe-G88"><td class="code">G88</td><td>Roscamento radial com ferramenta acionada.</td></tr>
+<tr id="fanuc-lathe-G90"><td class="code">G90</td><td>Coordenadas absolutas: cada valor é uma posição a partir do zero peça.</td></tr>
+<tr id="fanuc-lathe-G91"><td class="code">G91</td><td>Coordenadas incrementais: cada valor é uma distância a partir de onde a ferramenta está.</td></tr>
+<tr id="fanuc-lathe-G92"><td class="code">G92</td><td><b>Origem ou rotação máxima.</b> Define a posição atual como as coordenadas dadas (G92 no centro, G50 no torno sistema A); no torno também limita a rotação com S.</td></tr>
+<tr id="fanuc-lathe-G94"><td class="code">G94</td><td>Avanço F em mm/min.</td></tr>
+<tr id="fanuc-lathe-G95"><td class="code">G95</td><td>Avanço F em mm por rotação da placa (o comum no torno).</td></tr>
+<tr id="fanuc-lathe-G96"><td class="code">G96</td><td>Velocidade de corte constante: S em m/min e a rotação sobe quando o diâmetro diminui. Limite com G50/G92 S.</td></tr>
+<tr id="fanuc-lathe-G97"><td class="code">G97</td><td>Rotação constante: S em rpm.</td></tr>
+<tr id="fanuc-lathe-G98"><td class="code">G98</td><td>Depois de cada furo a ferramenta volta ao nível inicial (onde o ciclo começou): seguro sobre fixações.</td></tr>
+<tr id="fanuc-lathe-G99"><td class="code">G99</td><td>Depois de cada furo a ferramenta volta ao nível R: mais rápido, para peça plana sem obstáculos.</td></tr>
+</tbody></table>
+<h3>Códigos M</h3>
+<table><thead><tr><th>Código</th><th>O que faz</th></tr></thead><tbody>
+<tr id="fanuc-lathe-M00"><td class="code">M00</td><td>Parada de programa: a máquina para até o cycle start (para medir, limpar cavaco, virar a peça).</td></tr>
+<tr id="fanuc-lathe-M01"><td class="code">M01</td><td>Parada opcional: só para com a tecla M01 ligada.</td></tr>
+<tr id="fanuc-lathe-M02"><td class="code">M02</td><td>Fim de programa.</td></tr>
+<tr id="fanuc-lathe-M03"><td class="code">M03</td><td><b>Placa, ou ferramenta acionada com S2=, sentido horário.</b> Liga a árvore/placa no sentido horário (S dá a rotação).</td></tr>
+<tr id="fanuc-lathe-M04"><td class="code">M04</td><td>Liga a árvore/placa no sentido anti-horário.</td></tr>
+<tr id="fanuc-lathe-M05"><td class="code">M05</td><td><b>Também cancela o freio M85.</b> Para a árvore/placa.</td></tr>
+<tr id="fanuc-lathe-M08"><td class="code">M08</td><td>Liga o refrigerante.</td></tr>
+<tr id="fanuc-lathe-M09"><td class="code">M09</td><td>Desliga o refrigerante.</td></tr>
+<tr id="fanuc-lathe-M15"><td class="code">M15</td><td><b>Inverte o eixo de acoplamento (anti-horário).</b> Função da máquina sem efeito no percurso.</td></tr>
+<tr id="fanuc-lathe-M16"><td class="code">M16</td><td><b>Inverte o eixo de acoplamento (horário).</b> Função da máquina sem efeito no percurso.</td></tr>
+<tr id="fanuc-lathe-M19"><td class="code">M19</td><td><b>Orienta o eixo-árvore / ativa o eixo C.</b> Modo eixo C: a placa vira um eixo de posicionamento.</td></tr>
+<tr id="fanuc-lathe-M30"><td class="code">M30</td><td>Fim de programa e volta ao início.</td></tr>
+<tr id="fanuc-lathe-M85"><td class="code">M85</td><td><b>Freio de alto torque; G0 C ou M5 cancelam.</b> Trava o eixo (freio) para cortar sem ele girar.</td></tr>
+<tr id="fanuc-lathe-M98"><td class="code">M98</td><td>Chama o subprograma P (número O); L ou os primeiros dígitos do P repetem.</td></tr>
+<tr id="fanuc-lathe-M99"><td class="code">M99</td><td>Fim do subprograma: volta ao bloco depois da chamada.</td></tr>
+</tbody></table>
+<h2 id="fanuc-mill">Centro de usinagem Fanuc 0i-MF</h2>
+<h3>Códigos G</h3>
+<table><thead><tr><th>Código</th><th>O que faz</th></tr></thead><tbody>
+<tr id="fanuc-mill-G00"><td class="code">G00</td><td>Posicionamento rápido na velocidade máxima da máquina, sem cortar. Use só no ar: um rápido dentro do material é colisão.</td></tr>
+<tr id="fanuc-mill-G01"><td class="code">G01</td><td>Corte em linha reta no avanço F até o ponto programado.</td></tr>
+<tr id="fanuc-mill-G02"><td class="code">G02</td><td>Arco horário até o ponto final, visto do eixo positivo do plano. Centro com I/J/K (a partir do ponto inicial) ou raio R.</td></tr>
+<tr id="fanuc-mill-G03"><td class="code">G03</td><td>Arco anti-horário até o ponto final. Centro com I/J/K (a partir do ponto inicial) ou raio R.</td></tr>
+<tr id="fanuc-mill-G04"><td class="code">G04</td><td>Tempo de espera: aguarda P (milissegundos, sem ponto) ou X/U (segundos) sem mover.</td></tr>
+<tr id="fanuc-mill-G10"><td class="code">G10</td><td><b>Entrada de dados programável (zeros L2/L20).</b> Grava corretores pelo programa: L2/L20 zeros de peça, L10–L13 corretores de ferramenta (torno: P n desgaste, P 10000+n geometria).</td></tr>
+<tr id="fanuc-mill-G17"><td class="code">G17</td><td>Plano XY para arcos e compensação de raio (centros de usinagem).</td></tr>
+<tr id="fanuc-mill-G18"><td class="code">G18</td><td>Plano ZX para arcos e compensação (o plano de torneamento no torno).</td></tr>
+<tr id="fanuc-mill-G19"><td class="code">G19</td><td>Plano YZ para arcos e compensação.</td></tr>
+<tr id="fanuc-mill-G20"><td class="code">G20</td><td>Unidades em polegadas.</td></tr>
+<tr id="fanuc-mill-G21"><td class="code">G21</td><td>Unidades em milímetros.</td></tr>
+<tr id="fanuc-mill-G28"><td class="code">G28</td><td>Retorno ao ponto de referência da máquina passando pelo ponto programado (G91 G28 Z0 sobe direto de onde está).</td></tr>
+<tr id="fanuc-mill-G40"><td class="code">G40</td><td>Cancela a compensação de raio da fresa (ou da ponta). Cancele com um movimento saindo da peça.</td></tr>
+<tr id="fanuc-mill-G41"><td class="code">G41</td><td>Compensação de raio à esquerda do percurso (fresamento concordante em contornos externos). Raio do D (torno: raio de ponta do corretor do T). Comece com um movimento reto.</td></tr>
+<tr id="fanuc-mill-G42"><td class="code">G42</td><td>Compensação de raio à direita do percurso. Raio do D (torno: raio de ponta). Comece com um movimento reto.</td></tr>
+<tr id="fanuc-mill-G43"><td class="code">G43</td><td>Compensação de comprimento com o corretor H: as cotas Z passam a ser na ponta da ferramenta. Um H errado deixa a ponta alta ou dentro da peça.</td></tr>
+<tr id="fanuc-mill-G49"><td class="code">G49</td><td>Cancela a compensação de comprimento.</td></tr>
+<tr id="fanuc-mill-G53"><td class="code">G53</td><td>Movimento em coordenadas de máquina só neste bloco, sem zero peça nem comprimento de ferramenta.</td></tr>
+<tr id="fanuc-mill-G54"><td class="code">G54</td><td>Seleciona um zero peça da tabela OFFSET: G54–G59, G54.1 P n (Haas G154 P n).</td></tr>
+<tr id="fanuc-mill-G54-1"><td class="code">G54.1</td><td><b>Zero peça adicional (P1–P48).</b> Seleciona um zero peça da tabela OFFSET: G54–G59, G54.1 P n (Haas G154 P n).</td></tr>
+<tr id="fanuc-mill-G55"><td class="code">G55</td><td><b>Zero peça 2.</b> Seleciona um zero peça da tabela OFFSET: G54–G59, G54.1 P n (Haas G154 P n).</td></tr>
+<tr id="fanuc-mill-G56"><td class="code">G56</td><td><b>Zero peça 3.</b> Seleciona um zero peça da tabela OFFSET: G54–G59, G54.1 P n (Haas G154 P n).</td></tr>
+<tr id="fanuc-mill-G57"><td class="code">G57</td><td><b>Zero peça 4.</b> Seleciona um zero peça da tabela OFFSET: G54–G59, G54.1 P n (Haas G154 P n).</td></tr>
+<tr id="fanuc-mill-G58"><td class="code">G58</td><td><b>Zero peça 5.</b> Seleciona um zero peça da tabela OFFSET: G54–G59, G54.1 P n (Haas G154 P n).</td></tr>
+<tr id="fanuc-mill-G59"><td class="code">G59</td><td><b>Zero peça 6.</b> Seleciona um zero peça da tabela OFFSET: G54–G59, G54.1 P n (Haas G154 P n).</td></tr>
+<tr id="fanuc-mill-G65"><td class="code">G65</td><td>Chamada de macro (G65 P n): roda o programa O n uma vez, com as letras como argumentos (A → #1, B → #2, …).</td></tr>
+<tr id="fanuc-mill-G80"><td class="code">G80</td><td>Cancela o ciclo de furação ativo: o próximo X/Y não fura mais.</td></tr>
+<tr id="fanuc-mill-G81"><td class="code">G81</td><td>Ciclo de furação: rápido até R, avanço até Z, sai em rápido (G82 com tempo P no fundo). Repete a cada X/Y até o G80.</td></tr>
+<tr id="fanuc-mill-G83"><td class="code">G83</td><td>Furação com descarga: fura Q por vez e recua para quebrar ou tirar o cavaco, até o Z.</td></tr>
+<tr id="fanuc-mill-G84"><td class="code">G84</td><td>Ciclo de roscamento com macho: o avanço F deve ser passo × rotação (ou o passo com avanço por rotação); a árvore inverte no fundo.</td></tr>
+<tr id="fanuc-mill-G85"><td class="code">G85</td><td>Ciclo de mandrilamento: avança até o Z e sai (o modo de sair, avanço ou rápido, parado ou girando, depende do código).</td></tr>
+<tr id="fanuc-mill-G90"><td class="code">G90</td><td>Coordenadas absolutas: cada valor é uma posição a partir do zero peça.</td></tr>
+<tr id="fanuc-mill-G91"><td class="code">G91</td><td>Coordenadas incrementais: cada valor é uma distância a partir de onde a ferramenta está.</td></tr>
+<tr id="fanuc-mill-G94"><td class="code">G94</td><td>Avanço F em mm/min.</td></tr>
+<tr id="fanuc-mill-G95"><td class="code">G95</td><td>Avanço F em mm por rotação da placa (o comum no torno).</td></tr>
+<tr id="fanuc-mill-G98"><td class="code">G98</td><td>Depois de cada furo a ferramenta volta ao nível inicial (onde o ciclo começou): seguro sobre fixações.</td></tr>
+<tr id="fanuc-mill-G99"><td class="code">G99</td><td>Depois de cada furo a ferramenta volta ao nível R: mais rápido, para peça plana sem obstáculos.</td></tr>
+</tbody></table>
+<h3>Códigos M</h3>
+<table><thead><tr><th>Código</th><th>O que faz</th></tr></thead><tbody>
+<tr id="fanuc-mill-M00"><td class="code">M00</td><td>Parada de programa: a máquina para até o cycle start (para medir, limpar cavaco, virar a peça).</td></tr>
+<tr id="fanuc-mill-M01"><td class="code">M01</td><td>Parada opcional: só para com a tecla M01 ligada.</td></tr>
+<tr id="fanuc-mill-M03"><td class="code">M03</td><td>Liga a árvore/placa no sentido horário (S dá a rotação).</td></tr>
+<tr id="fanuc-mill-M04"><td class="code">M04</td><td>Liga a árvore/placa no sentido anti-horário.</td></tr>
+<tr id="fanuc-mill-M05"><td class="code">M05</td><td>Para a árvore/placa.</td></tr>
+<tr id="fanuc-mill-M06"><td class="code">M06</td><td>Troca para a ferramenta T. Vá antes a um lugar seguro (G28 ou a posição de troca).</td></tr>
+<tr id="fanuc-mill-M08"><td class="code">M08</td><td>Liga o refrigerante.</td></tr>
+<tr id="fanuc-mill-M09"><td class="code">M09</td><td>Desliga o refrigerante.</td></tr>
+<tr id="fanuc-mill-M30"><td class="code">M30</td><td>Fim de programa e volta ao início.</td></tr>
+<tr id="fanuc-mill-M98"><td class="code">M98</td><td>Chama o subprograma P (número O); L ou os primeiros dígitos do P repetem.</td></tr>
+<tr id="fanuc-mill-M99"><td class="code">M99</td><td>Fim do subprograma: volta ao bloco depois da chamada.</td></tr>
+</tbody></table>
+<h2 id="haas-mill">Fresadora Haas NGC</h2>
+<h3>Códigos G</h3>
+<table><thead><tr><th>Código</th><th>O que faz</th></tr></thead><tbody>
+<tr id="haas-mill-G00"><td class="code">G00</td><td>Posicionamento rápido na velocidade máxima da máquina, sem cortar. Use só no ar: um rápido dentro do material é colisão.</td></tr>
+<tr id="haas-mill-G01"><td class="code">G01</td><td>Corte em linha reta no avanço F até o ponto programado.</td></tr>
+<tr id="haas-mill-G02"><td class="code">G02</td><td>Arco horário até o ponto final, visto do eixo positivo do plano. Centro com I/J/K (a partir do ponto inicial) ou raio R.</td></tr>
+<tr id="haas-mill-G03"><td class="code">G03</td><td>Arco anti-horário até o ponto final. Centro com I/J/K (a partir do ponto inicial) ou raio R.</td></tr>
+<tr id="haas-mill-G04"><td class="code">G04</td><td>Tempo de espera: aguarda P (milissegundos, sem ponto) ou X/U (segundos) sem mover.</td></tr>
+<tr id="haas-mill-G09"><td class="code">G09</td><td><b>Exact stop.</b> Função do comando sem efeito no percurso.</td></tr>
+<tr id="haas-mill-G10"><td class="code">G10</td><td><b>Set offsets (L2/L20 work, L10–L13 tool).</b> Grava corretores pelo programa: L2/L20 zeros de peça, L10–L13 corretores de ferramenta (torno: P n desgaste, P 10000+n geometria).</td></tr>
+<tr id="haas-mill-G12"><td class="code">G12</td><td><b>Circular pocket CW.</b> Ciclo de fresamento de círculo ou bolsão (ainda não desenhado pelo simulador).</td></tr>
+<tr id="haas-mill-G13"><td class="code">G13</td><td><b>Circular pocket CCW.</b> Ciclo de fresamento de círculo ou bolsão (ainda não desenhado pelo simulador).</td></tr>
+<tr id="haas-mill-G17"><td class="code">G17</td><td>Plano XY para arcos e compensação de raio (centros de usinagem).</td></tr>
+<tr id="haas-mill-G18"><td class="code">G18</td><td>Plano ZX para arcos e compensação (o plano de torneamento no torno).</td></tr>
+<tr id="haas-mill-G19"><td class="code">G19</td><td>Plano YZ para arcos e compensação.</td></tr>
+<tr id="haas-mill-G20"><td class="code">G20</td><td>Unidades em polegadas.</td></tr>
+<tr id="haas-mill-G21"><td class="code">G21</td><td>Unidades em milímetros.</td></tr>
+<tr id="haas-mill-G28"><td class="code">G28</td><td>Retorno ao ponto de referência da máquina passando pelo ponto programado (G91 G28 Z0 sobe direto de onde está).</td></tr>
+<tr id="haas-mill-G29"><td class="code">G29</td><td><b>Return from reference.</b> Função do comando sem efeito no percurso.</td></tr>
+<tr id="haas-mill-G31"><td class="code">G31</td><td><b>Skip function.</b> Função do comando sem efeito no percurso.</td></tr>
+<tr id="haas-mill-G35"><td class="code">G35</td><td><b>Tool diameter measure.</b> Função do comando sem efeito no percurso.</td></tr>
+<tr id="haas-mill-G36"><td class="code">G36</td><td><b>Work offset probing.</b> Função do comando sem efeito no percurso.</td></tr>
+<tr id="haas-mill-G37"><td class="code">G37</td><td><b>Tool length measure.</b> Função do comando sem efeito no percurso.</td></tr>
+<tr id="haas-mill-G40"><td class="code">G40</td><td>Cancela a compensação de raio da fresa (ou da ponta). Cancele com um movimento saindo da peça.</td></tr>
+<tr id="haas-mill-G41"><td class="code">G41</td><td>Compensação de raio à esquerda do percurso (fresamento concordante em contornos externos). Raio do D (torno: raio de ponta do corretor do T). Comece com um movimento reto.</td></tr>
+<tr id="haas-mill-G42"><td class="code">G42</td><td>Compensação de raio à direita do percurso. Raio do D (torno: raio de ponta). Comece com um movimento reto.</td></tr>
+<tr id="haas-mill-G43"><td class="code">G43</td><td>Compensação de comprimento com o corretor H: as cotas Z passam a ser na ponta da ferramenta. Um H errado deixa a ponta alta ou dentro da peça.</td></tr>
+<tr id="haas-mill-G44"><td class="code">G44</td><td>Compensação de comprimento com o corretor H: as cotas Z passam a ser na ponta da ferramenta. Um H errado deixa a ponta alta ou dentro da peça.</td></tr>
+<tr id="haas-mill-G47"><td class="code">G47</td><td><b>Text engraving.</b> Aceito pelo comando, mas o simulador ainda não desenha: o percurso depois dele pode diferir da máquina.</td></tr>
+<tr id="haas-mill-G49"><td class="code">G49</td><td>Cancela a compensação de comprimento.</td></tr>
+<tr id="haas-mill-G50"><td class="code">G50</td><td><b>Scaling cancel.</b> Função do comando sem efeito no percurso.</td></tr>
+<tr id="haas-mill-G51"><td class="code">G51</td><td><b>Scaling.</b> Aceito pelo comando, mas o simulador ainda não desenha: o percurso depois dele pode diferir da máquina.</td></tr>
+<tr id="haas-mill-G52"><td class="code">G52</td><td>Sistema de coordenadas local deslocado do zero peça (ainda não desenhado pelo simulador).</td></tr>
+<tr id="haas-mill-G53"><td class="code">G53</td><td>Movimento em coordenadas de máquina só neste bloco, sem zero peça nem comprimento de ferramenta.</td></tr>
+<tr id="haas-mill-G54"><td class="code">G54</td><td>Seleciona um zero peça da tabela OFFSET: G54–G59, G54.1 P n (Haas G154 P n).</td></tr>
+<tr id="haas-mill-G54-1"><td class="code">G54.1</td><td><b>Additional work offset P1–P99.</b> Seleciona um zero peça da tabela OFFSET: G54–G59, G54.1 P n (Haas G154 P n).</td></tr>
+<tr id="haas-mill-G55"><td class="code">G55</td><td>Seleciona um zero peça da tabela OFFSET: G54–G59, G54.1 P n (Haas G154 P n).</td></tr>
+<tr id="haas-mill-G56"><td class="code">G56</td><td>Seleciona um zero peça da tabela OFFSET: G54–G59, G54.1 P n (Haas G154 P n).</td></tr>
+<tr id="haas-mill-G57"><td class="code">G57</td><td>Seleciona um zero peça da tabela OFFSET: G54–G59, G54.1 P n (Haas G154 P n).</td></tr>
+<tr id="haas-mill-G58"><td class="code">G58</td><td>Seleciona um zero peça da tabela OFFSET: G54–G59, G54.1 P n (Haas G154 P n).</td></tr>
+<tr id="haas-mill-G59"><td class="code">G59</td><td>Seleciona um zero peça da tabela OFFSET: G54–G59, G54.1 P n (Haas G154 P n).</td></tr>
+<tr id="haas-mill-G61"><td class="code">G61</td><td><b>Exact stop modal.</b> Função do comando sem efeito no percurso.</td></tr>
+<tr id="haas-mill-G64"><td class="code">G64</td><td><b>Exact stop cancel.</b> Função do comando sem efeito no percurso.</td></tr>
+<tr id="haas-mill-G65"><td class="code">G65</td><td>Chamada de macro (G65 P n): roda o programa O n uma vez, com as letras como argumentos (A → #1, B → #2, …).</td></tr>
+<tr id="haas-mill-G68"><td class="code">G68</td><td>Rotação de coordenadas de R graus em torno do ponto dado (ainda não desenhada pelo simulador).</td></tr>
+<tr id="haas-mill-G69"><td class="code">G69</td><td>Desliga a rotação de coordenadas.</td></tr>
+<tr id="haas-mill-G70"><td class="code">G70</td><td><b>Bolt hole circle.</b> Aceito pelo comando, mas o simulador ainda não desenha: o percurso depois dele pode diferir da máquina.</td></tr>
+<tr id="haas-mill-G71"><td class="code">G71</td><td><b>Bolt hole arc.</b> Aceito pelo comando, mas o simulador ainda não desenha: o percurso depois dele pode diferir da máquina.</td></tr>
+<tr id="haas-mill-G72"><td class="code">G72</td><td><b>Bolt holes along an angle.</b> Aceito pelo comando, mas o simulador ainda não desenha: o percurso depois dele pode diferir da máquina.</td></tr>
+<tr id="haas-mill-G73"><td class="code">G73</td><td><b>High-speed peck drilling.</b> Furação com descarga: fura Q por vez e recua para quebrar ou tirar o cavaco, até o Z.</td></tr>
+<tr id="haas-mill-G74"><td class="code">G74</td><td><b>Reverse tapping.</b> Ciclo de roscamento com macho: o avanço F deve ser passo × rotação (ou o passo com avanço por rotação); a árvore inverte no fundo.</td></tr>
+<tr id="haas-mill-G76"><td class="code">G76</td><td><b>Fine boring.</b> Ciclo de mandrilamento: avança até o Z e sai (o modo de sair, avanço ou rápido, parado ou girando, depende do código).</td></tr>
+<tr id="haas-mill-G77"><td class="code">G77</td><td><b>Back boring.</b> Ciclo de mandrilamento: avança até o Z e sai (o modo de sair, avanço ou rápido, parado ou girando, depende do código).</td></tr>
+<tr id="haas-mill-G80"><td class="code">G80</td><td>Cancela o ciclo de furação ativo: o próximo X/Y não fura mais.</td></tr>
+<tr id="haas-mill-G81"><td class="code">G81</td><td>Ciclo de furação: rápido até R, avanço até Z, sai em rápido (G82 com tempo P no fundo). Repete a cada X/Y até o G80.</td></tr>
+<tr id="haas-mill-G82"><td class="code">G82</td><td><b>Spot drill with dwell.</b> Ciclo de furação: rápido até R, avanço até Z, sai em rápido (G82 com tempo P no fundo). Repete a cada X/Y até o G80.</td></tr>
+<tr id="haas-mill-G83"><td class="code">G83</td><td>Furação com descarga: fura Q por vez e recua para quebrar ou tirar o cavaco, até o Z.</td></tr>
+<tr id="haas-mill-G84"><td class="code">G84</td><td>Ciclo de roscamento com macho: o avanço F deve ser passo × rotação (ou o passo com avanço por rotação); a árvore inverte no fundo.</td></tr>
+<tr id="haas-mill-G85"><td class="code">G85</td><td>Ciclo de mandrilamento: avança até o Z e sai (o modo de sair, avanço ou rápido, parado ou girando, depende do código).</td></tr>
+<tr id="haas-mill-G86"><td class="code">G86</td><td>Ciclo de mandrilamento: avança até o Z e sai (o modo de sair, avanço ou rápido, parado ou girando, depende do código).</td></tr>
+<tr id="haas-mill-G87"><td class="code">G87</td><td>Ciclo de mandrilamento: avança até o Z e sai (o modo de sair, avanço ou rápido, parado ou girando, depende do código).</td></tr>
+<tr id="haas-mill-G88"><td class="code">G88</td><td>Ciclo de mandrilamento: avança até o Z e sai (o modo de sair, avanço ou rápido, parado ou girando, depende do código).</td></tr>
+<tr id="haas-mill-G89"><td class="code">G89</td><td>Ciclo de mandrilamento: avança até o Z e sai (o modo de sair, avanço ou rápido, parado ou girando, depende do código).</td></tr>
+<tr id="haas-mill-G90"><td class="code">G90</td><td>Coordenadas absolutas: cada valor é uma posição a partir do zero peça.</td></tr>
+<tr id="haas-mill-G91"><td class="code">G91</td><td>Coordenadas incrementais: cada valor é uma distância a partir de onde a ferramenta está.</td></tr>
+<tr id="haas-mill-G92"><td class="code">G92</td><td>Define a posição atual como as coordenadas dadas (G92 no centro, G50 no torno sistema A); no torno também limita a rotação com S.</td></tr>
+<tr id="haas-mill-G93"><td class="code">G93</td><td><b>Inverse time feed.</b> Aceito pelo comando, mas o simulador ainda não desenha: o percurso depois dele pode diferir da máquina.</td></tr>
+<tr id="haas-mill-G94"><td class="code">G94</td><td>Avanço F em mm/min.</td></tr>
+<tr id="haas-mill-G95"><td class="code">G95</td><td>Avanço F em mm por rotação da placa (o comum no torno).</td></tr>
+<tr id="haas-mill-G98"><td class="code">G98</td><td>Depois de cada furo a ferramenta volta ao nível inicial (onde o ciclo começou): seguro sobre fixações.</td></tr>
+<tr id="haas-mill-G99"><td class="code">G99</td><td>Depois de cada furo a ferramenta volta ao nível R: mais rápido, para peça plana sem obstáculos.</td></tr>
+<tr id="haas-mill-G100"><td class="code">G100</td><td>Desliga o espelhamento.</td></tr>
+<tr id="haas-mill-G101"><td class="code">G101</td><td>Espelhamento (ainda não desenhado pelo simulador).</td></tr>
+<tr id="haas-mill-G103"><td class="code">G103</td><td><b>Block lookahead.</b> Função do comando sem efeito no percurso.</td></tr>
+<tr id="haas-mill-G107"><td class="code">G107</td><td>Interpolação cilíndrica: o C é &quot;desenrolado&quot; no diâmetro, para rasgos ao redor de um eixo.</td></tr>
+<tr id="haas-mill-G110"><td class="code">G110</td><td><b>Work offset = G154 P1.</b> Seleciona um zero peça da tabela OFFSET: G54–G59, G54.1 P n (Haas G154 P n).</td></tr>
+<tr id="haas-mill-G111"><td class="code">G111</td><td><b>Work offset = G154 P2.</b> Seleciona um zero peça da tabela OFFSET: G54–G59, G54.1 P n (Haas G154 P n).</td></tr>
+<tr id="haas-mill-G112"><td class="code">G112</td><td><b>Work offset = G154 P3.</b> Seleciona um zero peça da tabela OFFSET: G54–G59, G54.1 P n (Haas G154 P n).</td></tr>
+<tr id="haas-mill-G113"><td class="code">G113</td><td><b>Work offset = G154 P4.</b> Seleciona um zero peça da tabela OFFSET: G54–G59, G54.1 P n (Haas G154 P n).</td></tr>
+<tr id="haas-mill-G114"><td class="code">G114</td><td><b>Work offset = G154 P5.</b> Seleciona um zero peça da tabela OFFSET: G54–G59, G54.1 P n (Haas G154 P n).</td></tr>
+<tr id="haas-mill-G115"><td class="code">G115</td><td><b>Work offset = G154 P6.</b> Seleciona um zero peça da tabela OFFSET: G54–G59, G54.1 P n (Haas G154 P n).</td></tr>
+<tr id="haas-mill-G116"><td class="code">G116</td><td><b>Work offset = G154 P7.</b> Seleciona um zero peça da tabela OFFSET: G54–G59, G54.1 P n (Haas G154 P n).</td></tr>
+<tr id="haas-mill-G117"><td class="code">G117</td><td><b>Work offset = G154 P8.</b> Seleciona um zero peça da tabela OFFSET: G54–G59, G54.1 P n (Haas G154 P n).</td></tr>
+<tr id="haas-mill-G118"><td class="code">G118</td><td><b>Work offset = G154 P9.</b> Seleciona um zero peça da tabela OFFSET: G54–G59, G54.1 P n (Haas G154 P n).</td></tr>
+<tr id="haas-mill-G119"><td class="code">G119</td><td><b>Work offset = G154 P10.</b> Seleciona um zero peça da tabela OFFSET: G54–G59, G54.1 P n (Haas G154 P n).</td></tr>
+<tr id="haas-mill-G120"><td class="code">G120</td><td><b>Work offset = G154 P11.</b> Seleciona um zero peça da tabela OFFSET: G54–G59, G54.1 P n (Haas G154 P n).</td></tr>
+<tr id="haas-mill-G121"><td class="code">G121</td><td><b>Work offset = G154 P12.</b> Seleciona um zero peça da tabela OFFSET: G54–G59, G54.1 P n (Haas G154 P n).</td></tr>
+<tr id="haas-mill-G122"><td class="code">G122</td><td><b>Work offset = G154 P13.</b> Seleciona um zero peça da tabela OFFSET: G54–G59, G54.1 P n (Haas G154 P n).</td></tr>
+<tr id="haas-mill-G123"><td class="code">G123</td><td><b>Work offset = G154 P14.</b> Seleciona um zero peça da tabela OFFSET: G54–G59, G54.1 P n (Haas G154 P n).</td></tr>
+<tr id="haas-mill-G124"><td class="code">G124</td><td><b>Work offset = G154 P15.</b> Seleciona um zero peça da tabela OFFSET: G54–G59, G54.1 P n (Haas G154 P n).</td></tr>
+<tr id="haas-mill-G125"><td class="code">G125</td><td><b>Work offset = G154 P16.</b> Seleciona um zero peça da tabela OFFSET: G54–G59, G54.1 P n (Haas G154 P n).</td></tr>
+<tr id="haas-mill-G126"><td class="code">G126</td><td><b>Work offset = G154 P17.</b> Seleciona um zero peça da tabela OFFSET: G54–G59, G54.1 P n (Haas G154 P n).</td></tr>
+<tr id="haas-mill-G127"><td class="code">G127</td><td><b>Work offset = G154 P18.</b> Seleciona um zero peça da tabela OFFSET: G54–G59, G54.1 P n (Haas G154 P n).</td></tr>
+<tr id="haas-mill-G128"><td class="code">G128</td><td><b>Work offset = G154 P19.</b> Seleciona um zero peça da tabela OFFSET: G54–G59, G54.1 P n (Haas G154 P n).</td></tr>
+<tr id="haas-mill-G129"><td class="code">G129</td><td><b>Work offset = G154 P20.</b> Seleciona um zero peça da tabela OFFSET: G54–G59, G54.1 P n (Haas G154 P n).</td></tr>
+<tr id="haas-mill-G141"><td class="code">G141</td><td><b>3D cutter compensation.</b> Aceito pelo comando, mas o simulador ainda não desenha: o percurso depois dele pode diferir da máquina.</td></tr>
+<tr id="haas-mill-G150"><td class="code">G150</td><td><b>General purpose pocketing.</b> Aceito pelo comando, mas o simulador ainda não desenha: o percurso depois dele pode diferir da máquina.</td></tr>
+<tr id="haas-mill-G154"><td class="code">G154</td><td><b>Additional work offset P1–P99.</b> Seleciona um zero peça da tabela OFFSET: G54–G59, G54.1 P n (Haas G154 P n).</td></tr>
+<tr id="haas-mill-G187"><td class="code">G187</td><td><b>Smoothness / accuracy.</b> Função do comando sem efeito no percurso.</td></tr>
+<tr id="haas-mill-G234"><td class="code">G234</td><td><b>Tool center point control (TCPC).</b> Aceito pelo comando, mas o simulador ainda não desenha: o percurso depois dele pode diferir da máquina.</td></tr>
+<tr id="haas-mill-G254"><td class="code">G254</td><td><b>Dynamic work offset (DWO).</b> Aceito pelo comando, mas o simulador ainda não desenha: o percurso depois dele pode diferir da máquina.</td></tr>
+<tr id="haas-mill-G255"><td class="code">G255</td><td><b>DWO cancel.</b> Função do comando sem efeito no percurso.</td></tr>
+<tr id="haas-mill-G268"><td class="code">G268</td><td><b>Feature coordinates.</b> Aceito pelo comando, mas o simulador ainda não desenha: o percurso depois dele pode diferir da máquina.</td></tr>
+<tr id="haas-mill-G269"><td class="code">G269</td><td><b>Feature coordinates cancel.</b> Função do comando sem efeito no percurso.</td></tr>
+</tbody></table>
+<h3>Códigos M</h3>
+<table><thead><tr><th>Código</th><th>O que faz</th></tr></thead><tbody>
+<tr id="haas-mill-M00"><td class="code">M00</td><td>Parada de programa: a máquina para até o cycle start (para medir, limpar cavaco, virar a peça).</td></tr>
+<tr id="haas-mill-M01"><td class="code">M01</td><td>Parada opcional: só para com a tecla M01 ligada.</td></tr>
+<tr id="haas-mill-M02"><td class="code">M02</td><td>Fim de programa.</td></tr>
+<tr id="haas-mill-M03"><td class="code">M03</td><td>Liga a árvore/placa no sentido horário (S dá a rotação).</td></tr>
+<tr id="haas-mill-M04"><td class="code">M04</td><td>Liga a árvore/placa no sentido anti-horário.</td></tr>
+<tr id="haas-mill-M05"><td class="code">M05</td><td>Para a árvore/placa.</td></tr>
+<tr id="haas-mill-M06"><td class="code">M06</td><td>Troca para a ferramenta T. Vá antes a um lugar seguro (G28 ou a posição de troca).</td></tr>
+<tr id="haas-mill-M07"><td class="code">M07</td><td><b>Shower coolant.</b> Liga o refrigerante.</td></tr>
+<tr id="haas-mill-M08"><td class="code">M08</td><td>Liga o refrigerante.</td></tr>
+<tr id="haas-mill-M09"><td class="code">M09</td><td>Desliga o refrigerante.</td></tr>
+<tr id="haas-mill-M10"><td class="code">M10</td><td><b>4th axis brake.</b> Trava o eixo (freio) para cortar sem ele girar.</td></tr>
+<tr id="haas-mill-M11"><td class="code">M11</td><td><b>4th axis brake release.</b> Solta o freio do eixo.</td></tr>
+<tr id="haas-mill-M12"><td class="code">M12</td><td><b>5th axis brake.</b> Trava o eixo (freio) para cortar sem ele girar.</td></tr>
+<tr id="haas-mill-M13"><td class="code">M13</td><td><b>5th axis brake release.</b> Solta o freio do eixo.</td></tr>
+<tr id="haas-mill-M19"><td class="code">M19</td><td><b>Spindle orient.</b> Função da máquina sem efeito no percurso.</td></tr>
+<tr id="haas-mill-M30"><td class="code">M30</td><td>Fim de programa e volta ao início.</td></tr>
+<tr id="haas-mill-M31"><td class="code">M31</td><td><b>Chip conveyor forward.</b> Função da máquina sem efeito no percurso.</td></tr>
+<tr id="haas-mill-M33"><td class="code">M33</td><td><b>Chip conveyor stop.</b> Função da máquina sem efeito no percurso.</td></tr>
+<tr id="haas-mill-M34"><td class="code">M34</td><td><b>Coolant spigot down.</b> Função da máquina sem efeito no percurso.</td></tr>
+<tr id="haas-mill-M35"><td class="code">M35</td><td><b>Coolant spigot up.</b> Função da máquina sem efeito no percurso.</td></tr>
+<tr id="haas-mill-M41"><td class="code">M41</td><td><b>Low gear.</b> Função da máquina sem efeito no percurso.</td></tr>
+<tr id="haas-mill-M42"><td class="code">M42</td><td><b>High gear.</b> Função da máquina sem efeito no percurso.</td></tr>
+<tr id="haas-mill-M73"><td class="code">M73</td><td><b>Tool air blast on.</b> Função da máquina sem efeito no percurso.</td></tr>
+<tr id="haas-mill-M74"><td class="code">M74</td><td><b>Tool air blast off.</b> Função da máquina sem efeito no percurso.</td></tr>
+<tr id="haas-mill-M83"><td class="code">M83</td><td><b>Auto air jet on.</b> Função da máquina sem efeito no percurso.</td></tr>
+<tr id="haas-mill-M84"><td class="code">M84</td><td><b>Auto air jet off.</b> Função da máquina sem efeito no percurso.</td></tr>
+<tr id="haas-mill-M88"><td class="code">M88</td><td><b>Through-spindle coolant.</b> Liga o refrigerante.</td></tr>
+<tr id="haas-mill-M89"><td class="code">M89</td><td><b>Through-spindle coolant off.</b> Desliga o refrigerante.</td></tr>
+<tr id="haas-mill-M95"><td class="code">M95</td><td><b>Sleep mode.</b> Função da máquina sem efeito no percurso.</td></tr>
+<tr id="haas-mill-M96"><td class="code">M96</td><td><b>Jump if no input.</b> Função da máquina sem efeito no percurso.</td></tr>
+<tr id="haas-mill-M97"><td class="code">M97</td><td><b>Local subprogram call (P = N number).</b> Subprograma local Haas: pula para o bloco N P deste mesmo programa e volta no M99; L repete.</td></tr>
+<tr id="haas-mill-M98"><td class="code">M98</td><td>Chama o subprograma P (número O); L ou os primeiros dígitos do P repetem.</td></tr>
+<tr id="haas-mill-M99"><td class="code">M99</td><td>Fim do subprograma: volta ao bloco depois da chamada.</td></tr>
+<tr id="haas-mill-M109"><td class="code">M109</td><td><b>Interactive user input.</b> Função da máquina sem efeito no percurso.</td></tr>
+</tbody></table>
+
+<footer>
+  Software livre sob a licença GPL-3.0, feito para a comunidade CNC. Os nomes de comandos e máquinas pertencem aos fabricantes; este projeto não tem vínculo com eles.
+  · <a href="https://github.com/ismael-figueiredo/cnc-simulator/issues">Relatar um problema</a>
+  · <a href="https://github.com/ismael-figueiredo/cnc-simulator/discussions">Dúvidas</a>
+  · <a href="https://github.com/ismael-figueiredo/cnc-simulator/blob/main/CONTRIBUTING.md">Como contribuir</a>
+  · v0.18.0
+</footer>
+</div>
+
+</body>
+</html>
