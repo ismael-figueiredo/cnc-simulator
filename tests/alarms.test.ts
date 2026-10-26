@@ -1,19 +1,12 @@
-import { readFileSync } from 'node:fs'
-import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { loadAlarmCatalog, loadControl, loadMachine, simulate, type AlarmCatalog, type Control, type Machine } from '../src/core'
+import { simulate, type AlarmCatalog, type Control, type Machine } from '../src/core'
+import { alarmConfig, controlConfig, machineConfig } from './helpers/configs'
 
-const root = join(__dirname, '..')
-const read = (p: string) => readFileSync(join(root, p), 'utf8')
-function load<T>(r: { ok: true; value: T } | { ok: false; issues: unknown[] }): T {
-  if (!r.ok) throw new Error(JSON.stringify(r.issues))
-  return r.value
-}
-const romi: Machine = load(loadMachine(read('configs/machines/romi-gl250-m.json')))
-const lathe: Control = load(loadControl(read('configs/controls/fanuc-0i-tf-system-b.json')))
-const mill: Machine = load(loadMachine(read('configs/machines/mill-3axis.json')))
-const millControl: Control = load(loadControl(read('configs/controls/fanuc-0i-mf.json')))
-const fanuc: AlarmCatalog = load(loadAlarmCatalog(read('configs/alarms/fanuc-0i.json')))
+const romi: Machine = machineConfig('romi-gl250-m')
+const lathe: Control = controlConfig('fanuc-0i-tf-system-b')
+const mill: Machine = machineConfig('mill-3axis')
+const millControl: Control = controlConfig('fanuc-0i-mf')
+const fanuc: AlarmCatalog = alarmConfig('fanuc-0i')
 
 /** Wraps blocks in a valid file: "%", O number, ";" on every block, M30, "%". */
 const file = (blocks: string[], { end = 'M30' } = {}) => ['%', 'O0001', ...blocks, ...(end ? [end] : []), '%'].map((l) => (l === '%' ? l : `${l};`)).join('\n')

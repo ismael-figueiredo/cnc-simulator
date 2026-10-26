@@ -1,20 +1,13 @@
-import { readFileSync } from 'node:fs'
-import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { defaultToolOffsets, loadControl, loadMachine, loadToolLibrary, simulate, type ToolOffsets, type Move } from '../src/core'
+import { defaultToolOffsets, simulate, type ToolOffsets, type Move } from '../src/core'
+import { controlConfig, machineConfig, toolConfig } from './helpers/configs'
 
-const root = join(__dirname, '..')
-const read = (p: string) => readFileSync(join(root, p), 'utf8')
-function load<T>(r: { ok: true; value: T } | { ok: false; issues: unknown[] }): T {
-  if (!r.ok) throw new Error(JSON.stringify(r.issues))
-  return r.value
-}
-const d600 = load(loadMachine(read('configs/machines/romi-d600.json')))
-const fanucM = load(loadControl(read('configs/controls/fanuc-0i-mf-romi-d.json')))
-const bt40 = load(loadToolLibrary(read('configs/tools/machining-center.json')))
-const gl300 = load(loadMachine(read('configs/machines/romi-gl300.json')))
-const fanucT = load(loadControl(read('configs/controls/fanuc-0i-tf-system-b.json')))
-const turning = load(loadToolLibrary(read('configs/tools/lathe-turning.json')))
+const d600 = machineConfig('romi-d600')
+const fanucM = controlConfig('fanuc-0i-mf-romi-d')
+const bt40 = toolConfig('machining-center')
+const gl300 = machineConfig('romi-gl300')
+const fanucT = controlConfig('fanuc-0i-tf-system-b')
+const turning = toolConfig('lathe-turning')
 
 const mill = (blocks: string[], toolOffsets?: ToolOffsets) =>
   simulate({ text: ['%', 'O0001', 'G21 G17 G90 G40 G49', ...blocks, 'M30', '%'].join('\n'), machine: d600, control: fanucM, tools: bt40, toolOffsets, workOffsets: { G54: { X: 200, Y: 200, Z: -400 } } })

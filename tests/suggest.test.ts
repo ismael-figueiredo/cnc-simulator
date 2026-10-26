@@ -1,14 +1,9 @@
-import { readdirSync, readFileSync } from 'node:fs'
+import { readdirSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { loadControl, loadMachine, suggestSetup, type Control, type Machine } from '../src/core'
+import { load, read, root } from './helpers/configs'
 
-const root = join(__dirname, '..')
-const read = (p: string) => readFileSync(join(root, p), 'utf8')
-function load<T>(r: { ok: true; value: T } | { ok: false; issues: unknown[] }): T {
-  if (!r.ok) throw new Error(JSON.stringify(r.issues))
-  return r.value
-}
 const machines: Machine[] = readdirSync(join(root, 'configs/machines')).map((f) => load(loadMachine(read(`configs/machines/${f}`))))
 const controls: Control[] = readdirSync(join(root, 'configs/controls')).map((f) => load(loadControl(read(`configs/controls/${f}`))))
 const kindOf = (id: string | undefined) => machines.find((m) => m.id === id)?.kinematics.startsWith('lathe')

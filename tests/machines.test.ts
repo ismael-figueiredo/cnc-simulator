@@ -1,14 +1,7 @@
-import { readFileSync } from 'node:fs'
-import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { loadAlarmCatalog, loadControl, loadMachine, simulate, type AlarmCatalog, type Control, type Machine } from '../src/core'
+import { load, read } from './helpers/configs'
 
-const root = join(__dirname, '..')
-const read = (p: string) => readFileSync(join(root, p), 'utf8')
-function load<T>(r: { ok: true; value: T } | { ok: false; issues: unknown[] }): T {
-  if (!r.ok) throw new Error(JSON.stringify(r.issues))
-  return r.value
-}
 const machine = (id: string): Machine => load(loadMachine(read(`configs/machines/${id}.json`)))
 const control = (id: string): Control => load(loadControl(read(`configs/controls/${id}.json`)))
 const catalog = (id: string): AlarmCatalog => load(loadAlarmCatalog(read(`configs/alarms/${id}.json`)))

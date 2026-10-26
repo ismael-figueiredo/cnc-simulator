@@ -1,17 +1,10 @@
-import { readFileSync } from 'node:fs'
-import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { createProfile, cutProfile, loadAlarmCatalog, loadControl, loadMachine, simulate, type Move, type Vec3 } from '../src/core'
+import { createProfile, cutProfile, simulate, type Move, type Vec3 } from '../src/core'
+import { alarmConfig, controlConfig, machineConfig } from './helpers/configs'
 
-const root = join(__dirname, '..')
-const read = (p: string) => readFileSync(join(root, p), 'utf8')
-function load<T>(r: { ok: true; value: T } | { ok: false; issues: unknown[] }): T {
-  if (!r.ok) throw new Error(JSON.stringify(r.issues))
-  return r.value
-}
-const gl300 = load(loadMachine(read('configs/machines/romi-gl300.json')))
-const fanucT = load(loadControl(read('configs/controls/fanuc-0i-tf-system-b.json')))
-const alarms = load(loadAlarmCatalog(read('configs/alarms/fanuc-0i.json')))
+const gl300 = machineConfig('romi-gl300')
+const fanucT = controlConfig('fanuc-0i-tf-system-b')
+const alarms = alarmConfig('fanuc-0i')
 
 /** A Fanuc 0i-TF program (system B, ";" at every block). */
 const run = (blocks: string[]) =>

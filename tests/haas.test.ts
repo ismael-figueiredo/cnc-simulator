@@ -1,16 +1,9 @@
-import { readFileSync } from 'node:fs'
-import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { loadControl, loadMachine, simulate, type Control, type Machine, type Move, type WorkOffsets } from '../src/core'
+import { simulate, type Control, type Machine, type Move, type WorkOffsets } from '../src/core'
+import { controlConfig, machineConfig } from './helpers/configs'
 
-const root = join(__dirname, '..')
-const read = (p: string) => readFileSync(join(root, p), 'utf8')
-function load<T>(r: { ok: true; value: T } | { ok: false; issues: unknown[] }): T {
-  if (!r.ok) throw new Error(JSON.stringify(r.issues))
-  return r.value
-}
-const vf2: Machine = load(loadMachine(read('configs/machines/haas-vf2.json')))
-const haas: Control = load(loadControl(read('configs/controls/haas-ngc-mill.json')))
+const vf2: Machine = machineConfig('haas-vf2')
+const haas: Control = controlConfig('haas-ngc-mill')
 
 const program = (blocks: string[]) => ['%', 'O01000', 'G21 G17 G90 G40 G80', ...blocks, 'M30', '%'].join('\n')
 const run = (blocks: string[], workOffsets?: WorkOffsets) => simulate({ text: program(blocks), machine: vf2, control: haas, workOffsets })

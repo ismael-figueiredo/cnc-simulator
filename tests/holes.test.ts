@@ -1,16 +1,10 @@
-import { readFileSync } from 'node:fs'
-import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { holesOf, loadControl, loadMachine, loadToolLibrary, simulate } from '../src/core'
+import { holesOf, simulate } from '../src/core'
+import { controlConfig, machineConfig, toolConfig } from './helpers/configs'
 
-const read = (p: string) => readFileSync(join(__dirname, '..', p), 'utf8')
-function load<T>(r: { ok: true; value: T } | { ok: false; issues: unknown[] }): T {
-  if (!r.ok) throw new Error(JSON.stringify(r.issues))
-  return r.value
-}
-const d600 = load(loadMachine(read('configs/machines/romi-d600.json')))
-const fanucM = load(loadControl(read('configs/controls/fanuc-0i-mf-romi-d.json')))
-const bt40 = load(loadToolLibrary(read('configs/tools/machining-center.json')))
+const d600 = machineConfig('romi-d600')
+const fanucM = controlConfig('fanuc-0i-mf-romi-d')
+const bt40 = toolConfig('machining-center')
 const run = (blocks: string[]) =>
   simulate({ text: ['%', 'O0001', 'G21 G17 G90 G40', ...blocks, 'G0 Z50.', 'M30', '%'].join('\n'), machine: d600, control: fanucM, tools: bt40 })
 

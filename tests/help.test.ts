@@ -1,18 +1,12 @@
-import { readFileSync } from 'node:fs'
-import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { loadControl, type Control } from '../src/core'
+import { type Control } from '../src/core'
+import { controlConfig } from './helpers/configs'
 import { localize, type LocalizedText } from '../src/i18n'
 import { HELP } from '../src/i18n/help'
 import { explainLine, helpForWord } from '../src/renderer/help'
 
-const read = (p: string) => readFileSync(join(__dirname, '..', p), 'utf8')
-function load<T>(r: { ok: true; value: T } | { ok: false; issues: unknown[] }): T {
-  if (!r.ok) throw new Error(JSON.stringify(r.issues))
-  return r.value
-}
-const lathe: Control = load(loadControl(read('configs/controls/fanuc-0i-tf-system-b.json')))
-const haas: Control = load(loadControl(read('configs/controls/haas-ngc-mill.json')))
+const lathe: Control = controlConfig('fanuc-0i-tf-system-b')
+const haas: Control = controlConfig('haas-ngc-mill')
 const pt = (t: LocalizedText | undefined) => localize(t, 'pt-BR')
 const en = (t: LocalizedText | undefined) => localize(t, 'en')
 

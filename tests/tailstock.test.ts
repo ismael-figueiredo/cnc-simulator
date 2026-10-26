@@ -1,15 +1,9 @@
-import { readFileSync } from 'node:fs'
-import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { findTailstockCollisions, loadControl, loadMachine, simulate, tailstockGeometry, type Stock } from '../src/core'
+import { findTailstockCollisions, simulate, tailstockGeometry, type Stock } from '../src/core'
+import { controlConfig, machineConfig } from './helpers/configs'
 
-const read = (p: string) => readFileSync(join(__dirname, '..', p), 'utf8')
-function load<T>(r: { ok: true; value: T } | { ok: false; issues: unknown[] }): T {
-  if (!r.ok) throw new Error(JSON.stringify(r.issues))
-  return r.value
-}
-const gl300 = load(loadMachine(read('configs/machines/romi-gl300.json')))
-const control = load(loadControl(read('configs/controls/fanuc-0i-tf-system-b.json')))
+const gl300 = machineConfig('romi-gl300')
+const control = controlConfig('fanuc-0i-tf-system-b')
 const run = (blocks: string[]) =>
   simulate({ text: ['O0001;', 'G21 G95;', 'T0101;', 'G97 S1000 M3;', ...blocks.map((b) => `${b};`), 'M30;'].join('\n'), machine: gl300, control }).moves
 const bar: Stock = { shape: 'cylinder', diameter: 50, length: 120 }

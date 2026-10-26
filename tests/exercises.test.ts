@@ -1,14 +1,19 @@
-import { readdirSync, readFileSync } from 'node:fs'
+import { readdirSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { compareParts, loadControl, loadExercise, loadMachine, loadToolLibrary, simulate, workShift, type Exercise, type Vec3 } from '../src/core'
+import {
+  compareParts,
+  loadControl,
+  loadExercise,
+  loadMachine,
+  loadToolLibrary,
+  simulate,
+  workShift,
+  type Exercise,
+  type Vec3
+} from '../src/core'
+import { load, read, root } from './helpers/configs'
 
-const root = join(__dirname, '..')
-const read = (p: string) => readFileSync(join(root, p), 'utf8')
-function load<T>(r: { ok: true; value: T } | { ok: false; issues: unknown[] }): T {
-  if (!r.ok) throw new Error(JSON.stringify(r.issues))
-  return r.value
-}
 const files = readdirSync(join(root, 'examples/learn')).filter((f) => f.endsWith('.json'))
 
 /** Runs a program of the exercise as the app does: its machine, control, default tools and work offsets. */

@@ -1,5 +1,3 @@
-import { readFileSync } from 'node:fs'
-import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import {
   chuckGeometry,
@@ -8,25 +6,18 @@ import {
   cutHeightfield,
   cutProfile,
   findChuckCollisions,
-  loadControl,
-  loadMachine,
   offsetForZero,
   simulate,
   stockFromPath,
   type Stock,
   type ToolLibrary
 } from '../src/core'
+import { controlConfig, machineConfig } from './helpers/configs'
 
-const root = join(__dirname, '..')
-const read = (p: string) => readFileSync(join(root, p), 'utf8')
-function load<T>(r: { ok: true; value: T } | { ok: false; issues: unknown[] }): T {
-  if (!r.ok) throw new Error(JSON.stringify(r.issues))
-  return r.value
-}
-const mill = load(loadMachine(read('configs/machines/mill-3axis.json')))
-const fanucM = load(loadControl(read('configs/controls/fanuc-0i-mf.json')))
-const gl300 = load(loadMachine(read('configs/machines/romi-gl300.json')))
-const fanucT = load(loadControl(read('configs/controls/fanuc-0i-tf-system-b.json')))
+const mill = machineConfig('mill-3axis')
+const fanucM = controlConfig('fanuc-0i-mf')
+const gl300 = machineConfig('romi-gl300')
+const fanucT = controlConfig('fanuc-0i-tf-system-b')
 const endmill: ToolLibrary = { id: 't', name: 't', units: 'mm', holders: [], tools: [{ number: 1, name: 'Ø10', type: 'flat-endmill', diameter: 10, length: 40 }] }
 
 const millRun = (blocks: string[]) => simulate({ text: ['O0001', 'G21 G17 G90', 'T1 M6', 'S2000 M3', ...blocks, 'M30'].join('\n'), machine: mill, control: fanucM, tools: endmill }).moves

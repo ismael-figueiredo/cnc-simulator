@@ -1,20 +1,13 @@
-import { readFileSync } from 'node:fs'
-import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { loadAlarmCatalog, loadControl, loadMachine, loadToolLibrary, simulate, type Control, type Move, type Vec3 } from '../src/core'
+import { simulate, type Control, type Move, type Vec3 } from '../src/core'
+import { alarmConfig, controlConfig, machineConfig, toolConfig } from './helpers/configs'
 
-const root = join(__dirname, '..')
-const read = (p: string) => readFileSync(join(root, p), 'utf8')
-function load<T>(r: { ok: true; value: T } | { ok: false; issues: unknown[] }): T {
-  if (!r.ok) throw new Error(JSON.stringify(r.issues))
-  return r.value
-}
-const mill = load(loadMachine(read('configs/machines/mill-3axis.json')))
-const fanucM = load(loadControl(read('configs/controls/fanuc-0i-mf.json')))
-const gl300 = load(loadMachine(read('configs/machines/romi-gl300.json')))
-const fanucT = load(loadControl(read('configs/controls/fanuc-0i-tf-system-b.json')))
-const alarms = load(loadAlarmCatalog(read('configs/alarms/fanuc-0i.json')))
-const tools = load(loadToolLibrary(read('configs/tools/machining-center.json')))
+const mill = machineConfig('mill-3axis')
+const fanucM = controlConfig('fanuc-0i-mf')
+const gl300 = machineConfig('romi-gl300')
+const fanucT = controlConfig('fanuc-0i-tf-system-b')
+const alarms = alarmConfig('fanuc-0i')
+const tools = toolConfig('machining-center')
 
 const run = (blocks: string[], control: Control = fanucM, machine = mill) =>
   simulate({ text: ['%', 'O0001', ...blocks, 'M30', '%'].join('\n'), machine, control, alarms, tools })

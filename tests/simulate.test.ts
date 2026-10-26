@@ -1,31 +1,14 @@
-import { readFileSync } from 'node:fs'
-import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import {
-  loadAlarmCatalog,
-  loadControl,
-  loadMachine,
-  loadToolLibrary,
-  simulate,
-  type AlarmCatalog,
-  type Control,
-  type Machine,
-  type ToolLibrary
-} from '../src/core'
+import { simulate, type AlarmCatalog, type Control, type Machine, type ToolLibrary } from '../src/core'
+import { alarmConfig, controlConfig, machineConfig, read, toolConfig } from './helpers/configs'
 import { ansiSprocket, distanceToOutline } from './helpers/sprocket'
 
-const root = join(__dirname, '..')
-const read = (p: string) => readFileSync(join(root, p), 'utf8')
-function load<T>(r: { ok: true; value: T } | { ok: false; issues: unknown[] }): T {
-  if (!r.ok) throw new Error(JSON.stringify(r.issues))
-  return r.value
-}
-const romi: Machine = load(loadMachine(read('configs/machines/romi-gl250-m.json')))
-const fanucT: Control = load(loadControl(read('configs/controls/fanuc-0i-tf-system-b.json')))
-const mill: Machine = load(loadMachine(read('configs/machines/mill-3axis.json')))
-const fanucM: Control = load(loadControl(read('configs/controls/fanuc-0i-mf.json')))
-const library: ToolLibrary = load(loadToolLibrary(read('configs/tools/sample-library.json')))
-const alarms: AlarmCatalog = load(loadAlarmCatalog(read('configs/alarms/fanuc-0i.json')))
+const romi: Machine = machineConfig('romi-gl250-m')
+const fanucT: Control = controlConfig('fanuc-0i-tf-system-b')
+const mill: Machine = machineConfig('mill-3axis')
+const fanucM: Control = controlConfig('fanuc-0i-mf')
+const library: ToolLibrary = toolConfig('sample-library')
+const alarms: AlarmCatalog = alarmConfig('fanuc-0i')
 const o1500 = read('examples/O1500_COROA_ANSI40.nc')
 
 /** A program as the Romi expects it: "%" lines around it and ";" at the end of every block. */

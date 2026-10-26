@@ -1,7 +1,5 @@
 // The part as it comes out: the stock placed as the 3D view places it, cut by every move, measured.
 // Covers work offsets (changed in the table, G54/G55 in the same program, G10) and tool lengths.
-import { readFileSync } from 'node:fs'
-import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import {
   createHeightfield,
@@ -10,28 +8,20 @@ import {
   cutProfile,
   defaultToolOffsets,
   keepStockOnTable,
-  loadControl,
-  loadMachine,
-  loadToolLibrary,
   simulate,
   workShift,
   type Stock,
   type ToolOffsets,
   type WorkOffsets
 } from '../src/core'
+import { controlConfig, machineConfig, toolConfig } from './helpers/configs'
 
-const root = join(__dirname, '..')
-const read = (p: string) => readFileSync(join(root, p), 'utf8')
-function load<T>(r: { ok: true; value: T } | { ok: false; issues: unknown[] }): T {
-  if (!r.ok) throw new Error(JSON.stringify(r.issues))
-  return r.value
-}
-const d600 = load(loadMachine(read('configs/machines/romi-d600.json')))
-const fanucM = load(loadControl(read('configs/controls/fanuc-0i-mf-romi-d.json')))
-const bt40 = load(loadToolLibrary(read('configs/tools/machining-center.json')))
-const gl300 = load(loadMachine(read('configs/machines/romi-gl300.json')))
-const fanucT = load(loadControl(read('configs/controls/fanuc-0i-tf-system-b.json')))
-const turning = load(loadToolLibrary(read('configs/tools/lathe-turning.json')))
+const d600 = machineConfig('romi-d600')
+const fanucM = controlConfig('fanuc-0i-mf-romi-d')
+const bt40 = toolConfig('machining-center')
+const gl300 = machineConfig('romi-gl300')
+const fanucT = controlConfig('fanuc-0i-tf-system-b')
+const turning = toolConfig('lathe-turning')
 
 const VISE: WorkOffsets = { G54: { X: 200, Y: 200, Z: -400 } }
 /** Block 60 × 40 × 20 in the vise, its top face on G54 Z0. */

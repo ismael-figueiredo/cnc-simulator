@@ -1,27 +1,17 @@
-import { readFileSync } from 'node:fs'
-import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import {
   findHolderCollisions,
   GENERIC_HOLDERS,
   holderOf,
   holderOutline,
-  loadControl,
-  loadMachine,
-  loadToolLibrary,
   simulate,
   toolMount,
   toolOutline,
   type Tool,
   type ToolLibrary
 } from '../src/core'
+import { controlConfig, machineConfig, read, toolConfig } from './helpers/configs'
 
-const root = join(__dirname, '..')
-const read = (p: string) => readFileSync(join(root, p), 'utf8')
-function load<T>(r: { ok: true; value: T } | { ok: false; issues: unknown[] }): T {
-  if (!r.ok) throw new Error(JSON.stringify(r.issues))
-  return r.value
-}
 
 const endmill: Tool = { number: 1, name: 'Ø10', type: 'flat-endmill', diameter: 10, length: 30, fluteLength: 20 }
 const lib = (tools: Tool[]): ToolLibrary => ({ id: 't', name: 't', units: 'mm', holders: [], tools })
@@ -54,8 +44,8 @@ describe('tool geometry', () => {
 })
 
 describe('holder against the stock', () => {
-  const mill = load(loadMachine(read('configs/machines/mill-3axis.json')))
-  const fanucM = load(loadControl(read('configs/controls/fanuc-0i-mf.json')))
+  const mill = machineConfig('mill-3axis')
+  const fanucM = controlConfig('fanuc-0i-mf')
   const stock = { shape: 'block' as const, x: 100, y: 80, z: 40 }
   const run = (depth: number) =>
     simulate({ text: ['O0001', 'G21 G90 G17', 'T1 M6', 'S2000 M3', 'G0 X50 Y40 Z5', `G1 Z${depth} F100`, 'G0 Z50', 'M30'].join('\n'), machine: mill, control: fanucM }).moves
@@ -71,11 +61,11 @@ describe('holder against the stock', () => {
   })
 
   it('finds nothing on the O1500 example as set up', () => {
-    const library = load(loadToolLibrary(read('configs/tools/sample-library.json')))
+    const library = toolConfig('sample-library')
     const moves = simulate({
       text: read('examples/O1500_COROA_ANSI40.nc'),
-      machine: load(loadMachine(read('configs/machines/romi-gl250-m.json'))),
-      control: load(loadControl(read('configs/controls/fanuc-0i-tf-system-b.json'))),
+      machine: machineConfig('romi-gl250-m'),
+      control: controlConfig('fanuc-0i-tf-system-b'),
       tools: library
     }).moves
     const stock = { shape: 'cylinder' as const, diameter: 67.37, length: 30 }

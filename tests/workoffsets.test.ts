@@ -1,16 +1,9 @@
-import { readFileSync } from 'node:fs'
-import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { loadControl, loadMachine, simulate, workShift, type Control, type Machine, type Move, type WorkOffsets } from '../src/core'
+import { simulate, workShift, type Control, type Machine, type Move, type WorkOffsets } from '../src/core'
+import { controlConfig, machineConfig } from './helpers/configs'
 
-const root = join(__dirname, '..')
-const read = (p: string) => readFileSync(join(root, p), 'utf8')
-function load<T>(r: { ok: true; value: T } | { ok: false; issues: unknown[] }): T {
-  if (!r.ok) throw new Error(JSON.stringify(r.issues))
-  return r.value
-}
-const mill: Machine = load(loadMachine(read('configs/machines/mill-3axis.json')))
-const fanucM: Control = load(loadControl(read('configs/controls/fanuc-0i-mf.json')))
+const mill: Machine = machineConfig('mill-3axis')
+const fanucM: Control = controlConfig('fanuc-0i-mf')
 
 const program = (blocks: string[]) => ['O0001', 'G21 G17 G90 G40', ...blocks, 'M30'].join('\n')
 const run = (blocks: string[], workOffsets?: WorkOffsets) => simulate({ text: program(blocks), machine: mill, control: fanucM, workOffsets })

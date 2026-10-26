@@ -1,14 +1,17 @@
-import { readdirSync, readFileSync } from 'node:fs'
+import { readdirSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { loadAlarmCatalog, loadControl, loadMachine, programTemplate, simulate, type ProgramKind, type TemplateTexts } from '../src/core'
+import {
+  loadAlarmCatalog,
+  loadControl,
+  loadMachine,
+  programTemplate,
+  simulate,
+  type ProgramKind,
+  type TemplateTexts
+} from '../src/core'
+import { controlConfig, load, read, root } from './helpers/configs'
 
-const root = join(__dirname, '..')
-const read = (p: string) => readFileSync(join(root, p), 'utf8')
-function load<T>(r: { ok: true; value: T } | { ok: false; issues: unknown[] }): T {
-  if (!r.ok) throw new Error(JSON.stringify(r.issues))
-  return r.value
-}
 
 const texts: TemplateTexts = {
   newProgram: 'Novo programa',
@@ -45,7 +48,7 @@ describe('new program templates', () => {
   it('writes ASCII comments and the control EOB', () => {
     const machine = machines.find((m) => m.id === 'romi-gl250-m')
     if (!machine) throw new Error('romi-gl250-m')
-    const control = load(loadControl(read('configs/controls/fanuc-0i-tf-system-b.json')))
+    const control = controlConfig('fanuc-0i-tf-system-b')
     const text = programTemplate(machine, control, 'parametric', 25, texts)
     expect(text).toContain('O0025 (NOVO PROGRAMA);')
     expect(text).toContain('(PARAMETROS - ALTERE AQUI);')

@@ -13,3 +13,4 @@ Pós processadores/
 /*.txt
 /*.cncsim
 *.patch
+coverage/
