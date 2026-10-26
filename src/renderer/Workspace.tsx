@@ -16,6 +16,7 @@ import {
   findChuckCollisions,
   findHolderCollisions,
   holderOf,
+  keepStockOnTable,
   programTemplate,
   simulate,
   stockFromPath,
@@ -543,8 +544,10 @@ export function Workspace({ init, cfg, active, layout, learn, onLearn, onHelp, o
     setSetup({ ...setup, stock })
     setEditingStock(false)
   }
-  function applyOffsets(workOffsets: WorkOffsets) {
-    const s = { ...setup, workOffsets }
+  function applyOffsets(workOffsets: WorkOffsets, keepStock: boolean) {
+    // As on the machine, the stock stays clamped where it is: a changed zero moves the cut, not the part
+    const stock = setup.stock && keepStock ? keepStockOnTable(setup.stock, setup.workOffsets, workOffsets) : setup.stock
+    const s = { ...setup, workOffsets, stock }
     setSetup(s)
     setEditingOffsets(false)
     simulateWith(currentProgram(), machine, control, s)
@@ -1373,6 +1376,7 @@ export function Workspace({ init, cfg, active, layout, learn, onLearn, onHelp, o
       )}
       {editingOffsets && machine && (
         <WorkOffsetsEditor
+          stockOffset={setup.stock?.workOffset ?? 'G54'}
           offsets={setup.workOffsets}
           axes={machine.axes.filter((a) => a.type === 'linear' && ['X', 'Y', 'Z'].includes(a.name)).map((a) => a.name)}
           extended={machineKind === 'mill'}

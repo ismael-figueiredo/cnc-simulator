@@ -159,7 +159,7 @@ export const en = {
   'offsets.title': 'Work offsets',
   'offsets.none': 'None set: the path is drawn in program coordinates.',
   'offsets.help': 'Machine position of each part zero, as on the control\'s WORK OFFSET screen. Leave empty what is not set.',
-  'offsets.impact': 'With one offset the path does not change on the part; G54 places machine zero (G53, G28, MACHINE position, travel check). G55… are drawn shifted by their difference to G54, and G10 L2/L20 in the program update this table while it runs.',
+  'offsets.impact': 'Each value is the machine position of that part zero. The program cuts from the zero it selects (G54, G55…, also several in the same program), and G10 L2/L20 in the program updates this table while it runs. G54 also places machine zero (G53, G28, MACHINE position and the travel check).',
   'offsets.addExtended': 'Add G54.1 P…',
   'offsets.clear': 'Clear all',
   'offsets.apply': 'Apply',
@@ -596,7 +596,10 @@ export const en = {
   'layers.finished': 'Finished part',
   'layers.finishedHint': 'Show the stock as the whole program leaves it, wherever playback is',
   'tree.preview': 'The finished part',
-  'brand.tagline': 'G-code · Lathe · Mill'
+  'brand.tagline': 'G-code · Lathe · Mill',
+  'offsets.keepStock': 'The stock stays clamped on the table ({offset})',
+  'offsets.keepStockOn': 'As on the machine: changing the zero moves where the program cuts on the part (a wrong zero cuts in the air or into the part).',
+  'offsets.keepStockOff': 'The stock follows the zero: use it to correct where the part really is.'
 } as const
 
 export type MessageKey = keyof typeof en

@@ -107,7 +107,7 @@ The **O1500** example is a full parametric program (an ANSI 40 sprocket computed
 
 ### Work offsets: what changes the simulation
 
-- **One work offset:** the path does not change on the part. Its values (machine position of the part zero) place machine zero, so the **Machine** column, G53/G28 and the travel check become real.
+- **Changing a zero moves the cut, not the part:** the stock stays clamped on the table, as on the machine. Raising G54 Z by 5 mm cuts 5 mm higher (in the air, if the program only went 2 mm deep); moving it in X moves the slot on the part. Untick **The stock stays clamped on the table** in the work offset editor to have the stock follow the zero instead (correcting where the part really is). The values also place machine zero, so the **Machine** column, G53/G28 and the travel check are real.
 - **Several work offsets** (two vises, two faces): each one is drawn shifted by its difference to G54, and the stock sits on the offset you choose.
 - **G10 L2 / L20** in the program write the table while it runs, as on the machine.
 - **Tool offsets count too:** G43 H puts the spindle gauge line at Z + H, so machine positions and travel checks are real; see below.

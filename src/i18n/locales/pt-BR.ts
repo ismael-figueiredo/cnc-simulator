@@ -160,7 +160,7 @@ export const ptBR: Record<MessageKey, string> = {
   'offsets.title': 'Zeros de peça',
   'offsets.none': 'Nenhum: o percurso é desenhado nas coordenadas do programa.',
   'offsets.help': 'Posição de máquina de cada zero peça, como na tela de ZERO PEÇA (WORK OFFSET) do comando. Deixe vazio o que não estiver definido.',
-  'offsets.impact': 'Com um zero só, o percurso não muda em relação à peça; o G54 posiciona o zero de máquina (G53, G28, posição MÁQUINA e conferência de curso). G55… são desenhados deslocados pela diferença para o G54, e o G10 L2/L20 do programa atualiza esta tabela durante a execução.',
+  'offsets.impact': 'Cada valor é a posição de máquina daquele zero peça. O programa corta a partir do zero que ele seleciona (G54, G55…, inclusive vários no mesmo programa), e o G10 L2/L20 do programa atualiza esta tabela durante a execução. O G54 também posiciona o zero de máquina (G53, G28, posição MÁQUINA e conferência de curso).',
   'offsets.addExtended': 'Adicionar G54.1 P…',
   'offsets.clear': 'Limpar tudo',
   'offsets.apply': 'Aplicar',
@@ -596,5 +596,8 @@ export const ptBR: Record<MessageKey, string> = {
   'layers.finished': 'Peça acabada',
   'layers.finishedHint': 'Mostra o blank como o programa inteiro deixa, em qualquer ponto da execução',
   'tree.preview': 'A peça acabada',
-  'brand.tagline': 'G-code · Torno · Fresa'
+  'brand.tagline': 'G-code · Torno · Fresa',
+  'offsets.keepStock': 'O blank fica preso na mesa ({offset})',
+  'offsets.keepStockOn': 'Como na máquina: mudar o zero muda onde o programa corta na peça (um zero errado corta no ar ou dentro da peça).',
+  'offsets.keepStockOff': 'O blank acompanha o zero: use para corrigir onde a peça realmente está.'
 }

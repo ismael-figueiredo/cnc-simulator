@@ -605,3 +605,5 @@ kbd { font: 12px var(--f-mono); padding: 1px 6px; border: 1px solid var(--line);
 .feature-tree summary, .layout-switch button, .help-menu .dropdown button { font-family: var(--f-brand); letter-spacing: .03em; font-size: 14.5px; }
 .layout-switch button { text-transform: uppercase; letter-spacing: .06em; }
 .file-name { font-family: var(--f-brand); font-size: 17px; letter-spacing: .02em; }
+.check-row { flex-direction: row !important; align-items: flex-start; gap: 8px !important; padding: 8px 10px; border: 1px solid var(--line); border-radius: 6px; color: var(--ink) !important; font-size: 13px !important; cursor: pointer; }
+.check-row input { margin-top: 3px; }

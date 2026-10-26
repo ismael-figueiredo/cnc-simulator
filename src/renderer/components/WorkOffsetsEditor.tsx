@@ -8,16 +8,20 @@ interface Props {
   axes: AxisName[]
   /** Mills also have the additional offsets G54.1 P1…P48. */
   extended: boolean
-  onApply: (offsets: WorkOffsets) => void
+  /** keepStock: the stock stays on the table (a changed zero moves the cut); false: it follows the zero. */
+  onApply: (offsets: WorkOffsets, keepStock: boolean) => void
+  /** The stock's work offset, named in the option. */
+  stockOffset: string
   onClose: () => void
 }
 
 const STANDARD = ['G54', 'G55', 'G56', 'G57', 'G58', 'G59']
 
 /** The control's WORK OFFSET screen: machine position of each part zero. Empty cells are not set. */
-export function WorkOffsetsEditor({ offsets, axes, extended, onApply, onClose }: Props) {
+export function WorkOffsetsEditor({ offsets, axes, extended, onApply, onClose, stockOffset }: Props) {
   const { t } = useI18n()
   const [rows, setRows] = useState<WorkOffsets>(() => structuredClone(offsets))
+  const [keepStock, setKeepStock] = useState(true)
   const names = [...STANDARD, ...Object.keys(rows).filter((n) => !STANDARD.includes(n)).sort((a, b) => a.localeCompare(b, 'en', { numeric: true }))]
 
   function set(name: string, ax: AxisName, value: string) {
@@ -76,12 +80,20 @@ export function WorkOffsetsEditor({ offsets, axes, extended, onApply, onClose }:
             </div>
           )}
           <p className="muted">{t('offsets.impact')}</p>
+          <label className="check-row">
+            <input type="checkbox" checked={keepStock} onChange={(e) => setKeepStock(e.target.checked)} />
+            <span>
+              <b>{t('offsets.keepStock', { offset: stockOffset })}</b>
+              <br />
+              <span className="muted">{t(keepStock ? 'offsets.keepStockOn' : 'offsets.keepStockOff')}</span>
+            </span>
+          </label>
         </div>
         <footer>
           <button className="btn" onClick={() => setRows({})}>{t('offsets.clear')}</button>
           <span className="spacer" />
           <button className="btn" onClick={onClose}>{t('common.cancel')}</button>
-          <button className="btn primary" onClick={() => onApply(rows)}>{t('offsets.apply')}</button>
+          <button className="btn primary" onClick={() => onApply(rows, keepStock)}>{t('offsets.apply')}</button>
         </footer>
       </div>
     </div>

@@ -107,7 +107,7 @@ O exemplo **O1500** é um programa parametrizado completo (coroa ANSI 40 calcula
 
 ### Zeros de peça: o que muda na simulação
 
-- **Um zero só:** o percurso não muda em relação à peça. Os valores dele (posição de máquina do zero peça) posicionam o zero de máquina, e aí a coluna **Máquina**, o G53/G28 e a conferência de curso passam a ser reais.
+- **Mudar um zero desloca o corte, não a peça:** o blank fica preso na mesa, como na máquina. Subir o Z do G54 em 5 mm corta 5 mm mais alto (no ar, se o programa só descia 2 mm); mexer em X desloca o rasgo na peça. Desmarque **O blank fica preso na mesa** no editor de zeros para o blank acompanhar o zero (corrigir onde a peça realmente está). Os valores também posicionam o zero de máquina, então a coluna **Máquina**, o G53/G28 e a conferência de curso são reais.
 - **Vários zeros** (duas morsas, duas faces): cada um é desenhado deslocado pela diferença para o G54, e o blank fica no zero que você escolher.
 - **G10 L2 / L20** no programa gravam a tabela durante a execução, como na máquina.
 - **Corretores também contam:** o G43 H põe a linha de referência do fuso em Z + H, então posição de máquina e conferência de curso são reais; veja abaixo.

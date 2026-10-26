@@ -160,7 +160,7 @@ export const es: Record<MessageKey, string> = {
   'offsets.title': 'Ceros pieza',
   'offsets.none': 'Ninguno: la trayectoria se dibuja en coordenadas del programa.',
   'offsets.help': 'Posición de máquina de cada cero pieza, como en la pantalla WORK OFFSET del control. Deje vacío lo que no esté definido.',
-  'offsets.impact': 'Con un solo cero la trayectoria no cambia respecto a la pieza; G54 ubica el cero de máquina (G53, G28, posición MÁQUINA y control de recorrido). G55… se dibujan desplazados por su diferencia con G54, y G10 L2/L20 del programa actualiza esta tabla durante la ejecución.',
+  'offsets.impact': 'Cada valor es la posición de máquina de ese cero pieza. El programa corta desde el cero que selecciona (G54, G55…, también varios en el mismo programa), y el G10 L2/L20 del programa actualiza esta tabla mientras se ejecuta. El G54 también sitúa el cero máquina (G53, G28, posición MÁQUINA y control de recorridos).',
   'offsets.addExtended': 'Agregar G54.1 P…',
   'offsets.clear': 'Borrar todo',
   'offsets.apply': 'Aplicar',
@@ -596,5 +596,8 @@ export const es: Record<MessageKey, string> = {
   'layers.finished': 'Pieza acabada',
   'layers.finishedHint': 'Muestra el bruto como lo deja todo el programa, en cualquier punto de la ejecución',
   'tree.preview': 'La pieza acabada',
-  'brand.tagline': 'G-code · Torno · Fresa'
+  'brand.tagline': 'G-code · Torno · Fresa',
+  'offsets.keepStock': 'El bruto queda sujeto en la mesa ({offset})',
+  'offsets.keepStockOn': 'Como en la máquina: cambiar el cero cambia dónde corta el programa en la pieza (un cero equivocado corta en el aire o dentro de la pieza).',
+  'offsets.keepStockOff': 'El bruto sigue al cero: úselo para corregir dónde está realmente la pieza.'
 }
