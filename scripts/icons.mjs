@@ -21,15 +21,15 @@ const iconPage = (size) => page(`<img src="${logo}" width="${size}" height="${si
 
 // Windows installer, welcome and finish pages: 164x314 strip on the left
 const sidebar = page(
-  `<div style="position:absolute;inset:0;${GRID('rgba(34,211,238,.06)')}"></div>
+  `<div style="position:absolute;inset:0;${GRID('rgba(245,184,0,.06)')}"></div>
    <div style="position:relative;text-align:center;padding-top:44px;color:#e6edf3">
      <img src="${logo}" width="112" height="112">
      <div style="font-size:19px;font-weight:700;margin-top:10px">CNC Simulator</div>
-     <div style="font-size:11px;color:#22d3ee;margin-top:6px;letter-spacing:.5px">G-code · 3D</div>
+     <div style="font-size:11px;color:#F5B800;margin-top:6px;letter-spacing:.5px">G-code · 3D</div>
    </div>
    <svg style="position:absolute;left:0;bottom:30px" width="164" height="60" viewBox="0 0 164 60">
-     <path d="M14 20H52Q60 20 64 28L70 40H100" fill="none" stroke="#22d3ee" stroke-width="4" stroke-linecap="round"/>
-     <path d="M100 40H118L124 28Q128 20 136 20H150" fill="none" stroke="#22d3ee" stroke-opacity=".45" stroke-width="3" stroke-linecap="round" stroke-dasharray="1 7"/>
+     <path d="M14 20H52Q60 20 64 28L70 40H100" fill="none" stroke="#F5B800" stroke-width="4" stroke-linecap="round"/>
+     <path d="M100 40H118L124 28Q128 20 136 20H150" fill="none" stroke="#F5B800" stroke-opacity=".45" stroke-width="3" stroke-linecap="round" stroke-dasharray="1 7"/>
      <circle cx="100" cy="40" r="5" fill="#ffb547"/>
    </svg>`,
   DARK
@@ -52,8 +52,8 @@ const dmg = page(
      <div style="font-size:22px;font-weight:700">CNC Simulator</div>
    </div>
    <svg style="position:absolute;left:0;top:0" width="540" height="380" viewBox="0 0 540 380">
-     <path d="M214 190H312" fill="none" stroke="#0891b2" stroke-width="5" stroke-linecap="round" stroke-dasharray="2 12"/>
-     <path d="M310 176L330 190L310 204" fill="none" stroke="#0891b2" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+     <path d="M214 190H312" fill="none" stroke="#C99300" stroke-width="5" stroke-linecap="round" stroke-dasharray="2 12"/>
+     <path d="M310 176L330 190L310 204" fill="none" stroke="#C99300" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
    </svg>
    <div style="position:absolute;left:0;right:0;bottom:34px;text-align:center;color:#52606d;font-size:13px;line-height:1.5">
      Arraste para <b>Aplicativos</b> para instalar<br>
@@ -65,9 +65,9 @@ const dmg = page(
 // GitHub social preview (Settings → Social preview): 1280x640, with a frame of the demo
 // The GIF is too big for a data URL: the page is loaded from a file and captured once the demo is under way
 const demo = pathToFileURL(resolve(root, 'docs/demo.gif')).href
-const chip = (text) => `<span style="border:1px solid rgba(34,211,238,.45);border-radius:999px;padding:6px 14px;color:#a5f3fc">${text}</span>`
+const chip = (text) => `<span style="border:1px solid rgba(245,184,0,.5);border-radius:999px;padding:6px 14px;color:#ffd76a">${text}</span>`
 const social = page(
-  `<div style="position:absolute;inset:0;${GRID('rgba(34,211,238,.06)')}"></div>
+  `<div style="position:absolute;inset:0;${GRID('rgba(245,184,0,.06)')}"></div>
    <div style="position:absolute;left:64px;top:70px;width:520px;color:#e6edf3">
      <div style="display:flex;align-items:center;gap:18px">
        <img src="${logo}" width="96" height="96">

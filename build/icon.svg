@@ -1,64 +1,14 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
-  <!-- App icon source. Regenerate the PNGs with `npm run icons` after editing. -->
-  <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#1f2a37"/>
-      <stop offset="1" stop-color="#0b1117"/>
-    </linearGradient>
-    <linearGradient id="stock" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#6b7a8c"/>
-      <stop offset="1" stop-color="#3b4654"/>
-    </linearGradient>
-    <linearGradient id="steel" x1="0" y1="0" x2="1" y2="0">
-      <stop offset="0" stop-color="#8d99a8"/>
-      <stop offset="0.45" stop-color="#eef2f6"/>
-      <stop offset="1" stop-color="#7b8796"/>
-    </linearGradient>
-    <linearGradient id="spindle" x1="0" y1="0" x2="1" y2="0">
-      <stop offset="0" stop-color="#3d4856"/>
-      <stop offset="0.5" stop-color="#7d8a9a"/>
-      <stop offset="1" stop-color="#36404d"/>
-    </linearGradient>
-    <radialGradient id="spark" cx="0.5" cy="0.5" r="0.5">
-      <stop offset="0" stop-color="#fff4d6"/>
-      <stop offset="0.35" stop-color="#ffb547"/>
-      <stop offset="1" stop-color="#ff7a1a" stop-opacity="0"/>
-    </radialGradient>
-    <clipPath id="tile"><rect x="100" y="100" width="824" height="824" rx="185"/></clipPath>
-    <clipPath id="flutes"><rect x="470" y="420" width="84" height="176" rx="6"/></clipPath>
-  </defs>
-
+  <!-- App icon source: a triangular turning insert (60°, with its clamping hole and cutting edge land)
+       that is also the "play" of the simulation. Regenerate the PNGs with `npm run icons` after editing. -->
+  <defs><linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#20252a"/><stop offset="1" stop-color="#121518"/></linearGradient></defs>
   <rect x="100" y="100" width="824" height="824" rx="185" fill="url(#bg)"/>
-
-  <g clip-path="url(#tile)">
-    <!-- Work grid -->
-    <g stroke="#22d3ee" stroke-opacity="0.07" stroke-width="4">
-      <path d="M100 260H924M100 420H924M100 580H924M260 100V924M420 100V924M604 100V924M764 100V924"/>
-    </g>
-
-    <!-- Stock with the machined pocket -->
-    <path d="M150 640H330Q352 640 360 660L376 700H648L664 660Q672 640 694 640H874V924H150Z" fill="url(#stock)"/>
-    <path d="M150 640H330Q352 640 360 660L376 700H648L664 660Q672 640 694 640H874" fill="none" stroke="#a9b6c4" stroke-width="8"/>
+  <rect x="101.5" y="101.5" width="821" height="821" rx="183.5" fill="none" stroke="#ffffff" stroke-opacity=".06" stroke-width="3"/>
+  <!-- Insert, nudged right so the triangle looks centred in the tile -->
+  <g transform="translate(8 0)">
+  <path d="M318 262 L782 512 L318 762 Z" fill="#F5B800" stroke="#F5B800" stroke-width="76" stroke-linejoin="round"/>
+  <path d="M352 330 L706 512 L352 694 Z" fill="none" stroke="#C99300" stroke-width="16" stroke-linejoin="round"/>
+  <circle cx="462" cy="512" r="106" fill="#C99300"/>
+  <circle cx="462" cy="512" r="78" fill="#15181B"/>
   </g>
-
-  <!-- Toolpath: done (solid) and still to run (dashed) -->
-  <path d="M190 600H316Q346 600 360 628L380 664H512" fill="none" stroke="#22d3ee" stroke-width="22" stroke-linecap="round" stroke-linejoin="round"/>
-  <path d="M512 664H644L664 628Q678 600 708 600H834" fill="none" stroke="#22d3ee" stroke-opacity="0.45" stroke-width="14" stroke-linecap="round" stroke-dasharray="2 34"/>
-
-  <!-- Spindle, collet and end mill -->
-  <rect x="380" y="100" width="264" height="150" fill="url(#spindle)"/>
-  <rect x="380" y="236" width="264" height="22" rx="6" fill="#2a333e"/>
-  <path d="M414 258H610L572 336H452Z" fill="url(#spindle)"/>
-  <rect x="470" y="336" width="84" height="90" fill="url(#steel)"/>
-  <g clip-path="url(#flutes)">
-    <rect x="470" y="420" width="84" height="176" fill="url(#steel)"/>
-    <g stroke="#56616e" stroke-width="16">
-      <path d="M440 470L590 400M440 530L590 460M440 590L590 520M440 650L590 580"/>
-    </g>
-  </g>
-  <path d="M470 596H554L548 624Q512 640 476 624Z" fill="#c9d2dc"/>
-
-  <!-- Cutting point -->
-  <circle cx="512" cy="652" r="74" fill="url(#spark)"/>
-  <circle cx="512" cy="652" r="14" fill="#fff8e6"/>
 </svg>
