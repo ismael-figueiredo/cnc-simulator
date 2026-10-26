@@ -50,7 +50,8 @@ Installers for every version are on the **[Releases page](https://github.com/ism
 - **Automatic chamfer and corner R:** `,C` and `,R` at any angle, with the tangent arc followed by cutter compensation, and the control's alarms when they cannot be made. Lathes can also take `C`/`R` without comma (control option `cornerWithoutComma`).
 - **Projects (`.cncsim`):** keep the program with its machine, control, tools, stock and work offsets, to reopen or send the whole job.
 - **Tools in 3D:** each tool is drawn from its type and lengths with its holder (BT40 tapers, ER collets, live tool holders) and a faded spindle nose on machining centers. Turning tools show their ISO insert, external or internal, right or left hand.
-- **Machining view:** the stock changes color and shape where the tool cuts: a heightfield on blocks (flat and ball end mills) and the turned profile on bars. Rapids and live tooling on lathes do not cut in this view yet.
+- **Machining view:** the stock changes color and shape where the tool cuts: a heightfield on blocks (flat and ball end mills) and the turned profile on bars. Holes from the drilling cycles are drawn round, with a straight wall, and the surface follows the edges of contours and pockets. Rapids and live tooling on lathes do not cut in this view yet.
+- **Chuck, table and vise:** lathes show a hydraulic three-jaw chuck (body, slots, stepped hard jaws) and machining centers a T-slot table with a vise holding the stock, both sized from the machine file. The table sits where G54 puts the part on the machine, or right under the stock without work offsets. **Chuck** / **Table and vise** in the view toolbar hides them.
 - **Possible collisions:** when a holder goes into the stock (the tool sticks out too little for the depth), the block is listed and the holder turns red. On lathes, a tool that reaches the jaws or the chuck body is listed and the jaws turn red.
 - **Stock tools:** fit the stock to what the program cuts with one click, and put the work zero on a corner or the center of the block.
 - **Lathe machine view:** the chuck and the part turn in C while the tool stays in X/Z, as on the machine; the chuck spins when turning.
@@ -301,9 +302,12 @@ Three separate files you can mix: the same machine with another control, or one 
   ],
   "spindles": [{ "id": "S2", "name": { "en": "Live tool", "pt-BR": "Ferramenta acionada" }, "type": "live", "maxRpm": 4500 }],
   "toolChangePosition": { "X": 300, "Z": 200 },
-  "defaultControl": "fanuc-0i-tf-system-b"
+  "defaultControl": "fanuc-0i-tf-system-b",
+  "chuck": { "diameter": 210, "length": 95, "jaws": 3, "jawHeight": 50, "jawWidth": 26, "jawLength": 25, "bore": 66 }
 }
 ```
+- **`chuck` (lathes):** body diameter and depth, number of jaws, jaw radial length, width and gripped length, spindle bore. It is drawn and used for the chuck collision check.
+- **`table` (machining centers):** `{ "length": 840, "width": 500, "slots": 5, "slotWidth": 18, "slotPitch": 80, "top": -560, "center": { "X": 300, "Y": 265 } }`. `top` and `center` are the machine Z of the table face and the machine X/Y over its middle, in the frame of the work offsets. Without them, the table goes under the stock; without `table`, it is sized from the travels.
 
 **Control:** the "post-processor". Inspired by FreeCAD posts and Fusion `.cps` files. Every G or M code maps to a **function** the interpreter knows (`rapid`, `polar-on`, `cutter-comp-left`, `c-axis-on`, `brake-on`…), so a new control is just a new JSON file.
 ```json
