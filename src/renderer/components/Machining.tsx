@@ -318,7 +318,8 @@ export function barGeometry(p: TurnProfile, color: string, _version = 0): LatheG
   const pts = [new Vector2(0, p.face)]
   p.radii.forEach((r, i) => pts.push(new Vector2(Math.max(r, 0.01), p.face - i * p.cell)))
   pts.push(new Vector2(0, back))
-  const g = new LatheGeometry(pts, 72)
+  // LatheGeometry faces outward when the profile goes up its axis: from the back to the face
+  const g = new LatheGeometry(pts.reverse(), 72)
   const pos = g.getAttribute('position') as BufferAttribute
   const colors = new Float32Array(pos.count * 3)
   const raw = new Color(color)

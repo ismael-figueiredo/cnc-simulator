@@ -133,7 +133,8 @@ export function renderPart(src: PartSource): string | null {
   return url
 }
 
-const PREFIX = 'cncsim.thumb.'
+// Bumped when the drawing changes (2: turned bars faced inward before), so old pictures are redrawn
+const PREFIX = 'cncsim.thumb2.'
 /** Short stable key for a part: same program, machine and stock give the same picture. */
 export function thumbKey(...parts: string[]): string {
   let h = 2166136261
