@@ -183,7 +183,9 @@ function TurnedBar({ moves, index, stock, zero, color }: Props) {
   return (
     // LatheGeometry turns around +Y; the spindle axis is Z
     <mesh geometry={geometry} rotation={[Math.PI / 2, 0, 0]}>
-      <meshStandardMaterial vertexColors metalness={0.5} roughness={0.4} transparent opacity={0.85} depthWrite={false} />
+      {/* Opaque: a see-through bar flickered as the view turned (faces sorted against the chuck);
+          pushed back a little so the path drawn on its surface stays visible */}
+      <meshStandardMaterial vertexColors metalness={0.5} roughness={0.4} polygonOffset polygonOffsetFactor={1} polygonOffsetUnits={1} />
     </mesh>
   )
 }

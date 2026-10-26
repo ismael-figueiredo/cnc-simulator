@@ -47,8 +47,8 @@ interface Props {
   machineView: boolean
   /** Current C angle in radians (lathe). */
   spindleAngle: number
-  /** Main spindle turning (turning, not live tooling): the chuck spins while playing. */
-  spinning: boolean
+  /** Main spindle speed as drawn, radians per second (0: stopped); the chuck turns at it in machine view. */
+  spinRate: number
   showRapids: boolean
   showStock: boolean
   /** Show the stock being cut (heightfield on mills, turned profile on lathes). */
@@ -383,10 +383,11 @@ function Chuck({ stock, zero, hit }: { stock: StockData; zero: Vec3; hit: boolea
 }
 
 /** Turns its children around Z while `on` (spindle running): a visual cue, not the real speed. */
-function Spin({ on, children }: { on: boolean; children: ReactNode }) {
+/** Turns its children around the spindle axis at `rate` radians per second (0: stopped). */
+function Spin({ rate, children }: { rate: number; children: ReactNode }) {
   const ref = useRef<Group>(null)
   useFrame((_s, dt) => {
-    if (on && ref.current) ref.current.rotation.z -= dt * 6
+    if (rate > 0 && ref.current) ref.current.rotation.z -= dt * rate
   })
   return <group ref={ref}>{children}</group>
 }
@@ -407,7 +408,7 @@ export function Viewport3D({
   colliding,
   machineView,
   spindleAngle,
-  spinning,
+  spinRate,
   showRapids,
   showStock,
   machining,
@@ -548,7 +549,7 @@ export function Viewport3D({
       <group rotation={lathe ? [0, 0, 0] : [-Math.PI / 2, 0, 0]} onClick={measuring ? pick : undefined}>
         {/* Part side: stock, chuck, path and zeros turn together with the spindle in machine view */}
         <group ref={part} rotation={[0, 0, turn]}>
-          <Spin on={spinning && lathe && machineView}>
+          <Spin rate={lathe && machineView ? spinRate : 0}>
             {showStock && stock && (cutting && lathe ? null : <Stock stock={stock} faded={faded} zero={stockZero} />)}
             {cutting && <Machining moves={result.moves} index={finished ? result.moves.length - 1 : index} stock={stock} zero={stockZero} lathe={lathe} ballTools={ballTools} color={stock.color ?? COLORS.stock} />}
             {lathe && showStock && stock?.shape === 'cylinder' && <Chuck stock={stock} zero={stockZero} hit={chuckHit} />}

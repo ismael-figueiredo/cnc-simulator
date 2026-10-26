@@ -93,7 +93,7 @@ interface Simulation {
 
 const NO_SIMULATION: Simulation = { timeline: null, time: 0, playing: false }
 
-const overridesOf = (p: PanelState): Overrides => ({ feed: p.feed / 100, rapid: p.rapid / 100 })
+const overridesOf = (p: PanelState): Overrides => ({ feed: p.feed / 100, rapid: p.rapid / 100, spindle: p.spindle / 100 })
 
 function simInput(
   program: Program | null,
@@ -611,7 +611,7 @@ export function Workspace({ init, cfg, active, layout, learn, onLearn, onHelp, o
     // Block delete changes which blocks run: simulate again
     if (change.blockSkip !== undefined && change.blockSkip !== panel.blockSkip) simulateWith(currentProgram(), machine, control, setup, next)
     // Overrides change the times: same point of the program on the new timeline
-    else if (change.feed !== undefined || change.rapid !== undefined)
+    else if (change.feed !== undefined || change.rapid !== undefined || change.spindle !== undefined)
       setSim((s) => {
         if (!s.timeline) return s
         const timeline = buildTimeline(s.timeline.result, overridesOf(next))
@@ -741,7 +741,9 @@ export function Workspace({ init, cfg, active, layout, learn, onLearn, onHelp, o
   const programStock = useMemo(() => stockFromPath(result?.moves ?? [], lathe), [result, lathe])
   // C angle: from the tip in polar interpolation (C is not tracked as an angle there), else the C position
   const spindleAngle = move ? (move.state.polar && toolTip ? Math.atan2(toolTip[1], toolTip[0]) : ((position?.C ?? 0) * Math.PI) / 180) : 0
-  const spinning = playing && !!move?.state.spindleOn && !move.state.liveToolOn
+  // The spindle turns while it is on (M03/M04 until M05), also in feed hold and single block stops,
+  // as on the machine; faster with the speed and the spindle override (drawn slowed down)
+  const spinRate = move?.state.spindleOn && !move.state.liveToolOn ? Math.min(14, Math.max(1.2, (move.state.spindleSpeed * panel.spindle) / 100 / 250)) : 0
   // Learning mode: help for a word on this control, and the words of the block at the cursor
   const help = useCallback((word: string) => helpForWord(word, control, l), [control, l])
   const helpLine = move?.line ?? (atReset ? startLine : -1)
@@ -904,7 +906,7 @@ export function Workspace({ init, cfg, active, layout, learn, onLearn, onHelp, o
           colliding={colliding}
           machineView={machineView}
           spindleAngle={spindleAngle}
-          spinning={spinning}
+          spinRate={spinRate}
           machining={machining}
           ballTools={ballTools}
           chuckHit={chuckHit}
