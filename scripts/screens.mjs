@@ -50,7 +50,7 @@ void app.whenReady().then(async () => {
     // The finished part, from the view toolbar's display menu
     await js(`document.querySelectorAll('.workspace.active .vt-menu > button')[1].click()`)
     await sleep(200)
-    await js(`document.querySelectorAll('.workspace.active .vt-menu .check input')[3].click()`)
+    await js(`[...document.querySelectorAll('.workspace.active .vt-menu .check')].find((c) => /Peça acabada|Finished part/.test(c.textContent)).querySelector('input').click()`)
     await sleep(1500)
     // The same button closes the menu
     await js(`document.querySelectorAll('.workspace.active .vt-menu > button')[1].click()`)
