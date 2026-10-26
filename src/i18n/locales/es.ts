@@ -595,5 +595,6 @@ export const es: Record<MessageKey, string> = {
   'mdi.needEdit': 'MODO: EDIT para editar',
   'layers.finished': 'Pieza acabada',
   'layers.finishedHint': 'Muestra el bruto como lo deja todo el programa, en cualquier punto de la ejecución',
-  'tree.preview': 'La pieza acabada'
+  'tree.preview': 'La pieza acabada',
+  'brand.tagline': 'G-code · Torno · Fresa'
 }

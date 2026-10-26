@@ -595,7 +595,8 @@ export const en = {
   'mdi.needEdit': 'MODE: EDIT to edit',
   'layers.finished': 'Finished part',
   'layers.finishedHint': 'Show the stock as the whole program leaves it, wherever playback is',
-  'tree.preview': 'The finished part'
+  'tree.preview': 'The finished part',
+  'brand.tagline': 'G-code · Lathe · Mill'
 } as const
 
 export type MessageKey = keyof typeof en

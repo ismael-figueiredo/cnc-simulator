@@ -67,6 +67,13 @@ export function StartScreen(props: Props) {
 
   return (
     <main className="backstage">
+      <header className="brand-lockup">
+        <img src="icon.png" alt="" />
+        <div>
+          <div className="name">CNC Simulator</div>
+          <div className="tagline">{t('brand.tagline')}</div>
+        </div>
+      </header>
       <nav className="backstage-nav">
         <button className="btn primary" onClick={onNew}>{t('action.newProgram')}…</button>
         <button className="btn" onClick={onOpen}>{t('action.open')}…</button>

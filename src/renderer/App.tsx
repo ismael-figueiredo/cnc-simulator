@@ -279,6 +279,10 @@ export function App() {
   return (
     <div className="app">
       <header className="titlebar">
+        <span className="brand-mark" aria-label="CNC Simulator">
+          <img src="favicon.png" alt="" />
+          <span>CNC Simulator</span>
+        </span>
         <nav className="doc-tabs" role="tablist" aria-label={t('tabs.label')}>
           {tabs.map((tab) => (
             <div key={tab.id} role="tab" aria-selected={tab.id === activeId} className={`doc-tab ${tab.id === activeId ? 'on' : ''}`}>
