@@ -1,4 +1,4 @@
-import { Fragment } from 'react'
+import { Fragment, useState } from 'react'
 import type { MessageKey } from '@i18n/index'
 import { useI18n } from '../i18n'
 import type { FunctionKey } from './SoftKeys'
@@ -14,10 +14,19 @@ interface Props {
   /** Cursor keys: one block back or forward; PAGE: several. */
   onStep: (blocks: number) => void
   onHelp: () => void
+  /** Address and number keys type into the program (EDIT); CAN erases, DELETE removes the block. */
+  onType: (text: string) => void
+  onCancel: () => void
+  onDeleteBlock: () => void
 }
 
-// Address and number keys, as on the panel; they only type in EDIT on the machine, here they explain themselves
-const ADDRESS = ['O', 'N', 'G', '7', '8', '9', 'X', 'Y', 'Z', '4', '5', '6', 'M', 'S', 'T', '1', '2', '3', 'F', 'H', 'EOB', '-', '0', '.']
+// Address and number keys as on the panel, each with its SHIFT character (the small one on the key)
+const ADDRESS: [string, string][] = [
+  ['O', 'P'], ['N', 'Q'], ['G', 'R'], ['7', 'A'], ['8', 'B'], ['9', 'D'],
+  ['X', 'C'], ['Y', 'U'], ['Z', 'W'], ['4', '['], ['5', ']'], ['6', '#'],
+  ['M', 'I'], ['S', 'J'], ['T', 'K'], ['1', ','], ['2', '='], ['3', '*'],
+  ['F', 'L'], ['H', 'E'], ['EOB', ';'], ['-', '+'], ['0', '/'], ['.', ' ']
+]
 const FUNCTIONS: { key: FunctionKey; hint: MessageKey }[] = [
   { key: 'POS', hint: 'mdi.pos' },
   { key: 'PROG', hint: 'mdi.prog' },
@@ -28,14 +37,22 @@ const FUNCTIONS: { key: FunctionKey; hint: MessageKey }[] = [
 ]
 
 /** The MDI keyboard beside the display: address and number keys, function keys, editing keys, RESET and the cursor. */
-export function MdiKeypad({ current, onFunction, alarm, messages, onReset, onStep, onHelp }: Props) {
+export function MdiKeypad({ current, onFunction, alarm, messages, onReset, onStep, onHelp, onType, onCancel, onDeleteBlock }: Props) {
   const { t } = useI18n()
+  /** SHIFT: the next key gives its small character. */
+  const [shift, setShift] = useState(false)
+  const press = (main: string, alt: string) => {
+    const k = shift ? alt : main
+    setShift(false)
+    onType(k === 'EOB' ? 'EOB' : k)
+  }
   return (
     <div className="mdi" aria-label={t('mdi.title')}>
       <div className="mdi-grid address">
-        {ADDRESS.map((k) => (
-          <button key={k} className="mdi-key" title={t('mdi.addressHint')} tabIndex={-1}>
-            {k}
+        {ADDRESS.map(([main, alt]) => (
+          <button key={main} className="mdi-key" title={t('mdi.addressHint')} tabIndex={-1} onClick={() => press(main, alt)}>
+            <span className={shift ? 'dim' : ''}>{main}</span>
+            <small className={shift ? 'lit' : ''}>{alt === ' ' ? 'SP' : alt}</small>
           </button>
         ))}
       </div>
@@ -55,7 +72,17 @@ export function MdiKeypad({ current, onFunction, alarm, messages, onReset, onSte
               </button>
             ))}
             {(r === 0 ? ['SHIFT', 'CAN', 'INPUT'] : ['ALTER', 'INSERT', 'DELETE']).map((k) => (
-              <button key={k} className="mdi-key edit" title={t('mdi.editHint')} tabIndex={-1}>
+              <button
+                key={k}
+                className={`mdi-key edit ${k === 'SHIFT' && shift ? 'on' : ''}`}
+                title={t(k === 'SHIFT' ? 'mdi.shiftHint' : k === 'CAN' ? 'mdi.canHint' : k === 'DELETE' ? 'mdi.deleteHint' : 'mdi.editHint')}
+                tabIndex={-1}
+                onClick={() => {
+                  if (k === 'SHIFT') setShift(!shift)
+                  else if (k === 'CAN') onCancel()
+                  else if (k === 'DELETE') onDeleteBlock()
+                }}
+              >
                 {k}
               </button>
             ))}
