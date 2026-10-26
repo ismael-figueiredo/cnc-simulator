@@ -245,8 +245,10 @@ export interface ChuckCollision {
   moveIndex: number
   line: number
   tool: number
-  /** Z where the tool reaches the jaws or the chuck body. */
+  /** Z where the tool reaches the jaws or the chuck body (or the tailstock center). */
   z: number
+  /** What the tool reaches; absent: the chuck. */
+  part?: 'tailstock'
 }
 
 /**
@@ -273,6 +275,68 @@ export function findChuckCollisions(moves: readonly Move[], s: Stock | null, zer
       if (!seen.has(key)) {
         seen.add(key)
         out.push({ moveIndex: k, line: m.line, tool: m.state.tool, z: Math.round(z * 1000) / 1000 })
+      }
+      return
+    }
+  })
+  return out
+}
+
+/** Tailstock live center at the bar's face: a 60° point, its bearing housing and the quill behind it. */
+export interface TailstockGeometry {
+  /** Z of the center's point when it is against the part. */
+  tip: number
+  /** How far it backs off when retracted. */
+  retract: number
+  /** Length of the 60° point; the bearing housing behind it is wider. */
+  pointLength: number
+  housingRadius: number
+  housingLength: number
+  quillRadius: number
+}
+
+/** Included angle of a lathe center: 60°, so the point widens by tan 30° per mm. */
+const CENTER_SLOPE = Math.tan(Math.PI / 6)
+
+export function tailstockGeometry(s: Stock, zero: Vec3, tailstock: NonNullable<Machine['tailstock']>): TailstockGeometry {
+  const o = stockOrigin(s, zero)
+  const quillRadius = tailstock.quillDiameter / 2
+  const housingRadius = quillRadius * 0.6
+  return {
+    tip: o[2],
+    retract: tailstock.retract ?? 80,
+    pointLength: (quillRadius * 0.25) / CENTER_SLOPE,
+    housingRadius,
+    housingLength: quillRadius * 0.9,
+    quillRadius
+  }
+}
+
+/** Radius of the center (point, housing, quill) at a distance d past its tip. */
+function centerRadius(t: TailstockGeometry, d: number): number {
+  if (d < t.pointLength) return d * CENTER_SLOPE
+  return d < t.pointLength + t.housingLength ? t.housingRadius : t.quillRadius
+}
+
+/**
+ * Tool tip against the tailstock center while it is against the part (moves after M27). The point
+ * sits in a center hole about 2 mm deep, so facing down to the axis reaches it too.
+ */
+export function findTailstockCollisions(moves: readonly Move[], s: Stock | null, zero: Vec3, tailstock: Machine['tailstock']): ChuckCollision[] {
+  if (s?.shape !== 'cylinder' || !tailstock) return []
+  const t = tailstockGeometry(s, zero, tailstock)
+  const HOLE = 2
+  const out: ChuckCollision[] = []
+  const seen = new Set<string>()
+  moves.forEach((m, k) => {
+    if (m.kind === 'dwell' || !m.state.tailstock) return
+    for (const [x, y, z] of m.points.slice(1)) {
+      const d = z - (t.tip - HOLE)
+      if (d < 0 || Math.hypot(x, y) - m.toolRadius >= Math.max(centerRadius(t, d), 0.5)) continue
+      const key = `${m.state.tool}|${m.line}`
+      if (!seen.has(key)) {
+        seen.add(key)
+        out.push({ moveIndex: k, line: m.line, tool: m.state.tool, z: Math.round(z * 1000) / 1000, part: 'tailstock' })
       }
       return
     }

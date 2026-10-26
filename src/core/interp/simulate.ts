@@ -298,6 +298,7 @@ export function simulate(input: SimulationInput): SimulationResult {
     thread: { repeats: 1, minDepth: 0.1, finish: 0.05 },
     cAxisEnabled: false,
     brake: false,
+    tailstock: false,
     cycle: null as Cycle | null,
     returnToR: false
   }
@@ -456,6 +457,7 @@ export function simulate(input: SimulationInput): SimulationResult {
       offset: st.offset,
       cAxisEnabled: st.cAxisEnabled,
       brake: st.brake,
+      tailstock: st.tailstock,
       cycle: st.cycle?.code ?? null,
       workOffset: st.workOffset
     },
@@ -1147,6 +1149,12 @@ export function simulate(input: SimulationInput): SimulationResult {
           break
         case 'brake-off':
           st.brake = false
+          break
+        case 'tailstock-advance':
+          st.tailstock = true
+          break
+        case 'tailstock-retract':
+          st.tailstock = false
           break
         case 'tool-change':
           // "T5 M06" in one block is handled with the T word below

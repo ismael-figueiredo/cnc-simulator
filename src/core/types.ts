@@ -51,6 +51,8 @@ export interface ModalState {
   offset: number
   cAxisEnabled: boolean
   brake: boolean
+  /** Lathe tailstock center against the part (M27 on Romi GL); absent on machines without one. */
+  tailstock?: boolean
   /** Active canned cycle code, e.g. "G83". */
   cycle: string | null
   /** Active work offset, e.g. "G54" or "G54.1 P3". */

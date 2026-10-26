@@ -19,9 +19,10 @@
   "defaultTools": "sample-library",
   "defaultStock": { "shape": "cylinder", "diameter": 67.37, "length": 30 },
   "notes": {
-    "en": "Chuck: 8\" hydraulic three-jaw chuck with hard jaws, catalog sizes; check against the chuck on the machine.",
-    "pt-BR": "Placa: hidráulica de 8\" com três castanhas duras, medidas de catálogo; conferir com a placa da máquina.",
-    "es": "Plato: hidráulico de 8\" con tres garras duras, medidas de catálogo; verificar con el plato de la máquina."
+    "en": "Chuck: 8\" hydraulic three-jaw chuck with hard jaws, catalog sizes; check against the chuck on the machine. Tailstock: servo tailstock with an MT4 live center; quill Ø80 mm is a catalog value to check. M27 advances it, M26/M31 retract it (manual 11.3.4).",
+    "pt-BR": "Placa: hidráulica de 8\" com três castanhas duras, medidas de catálogo; conferir com a placa da máquina. Contraponta: servo acionada com centro rotativo MT4; mangote Ø80 mm é valor de catálogo a conferir. M27 avança, M26/M31 recuam (manual 11.3.4).",
+    "es": "Plato: hidráulico de 8\" con tres garras duras, medidas de catálogo; verificar con el plato de la máquina. Contrapunto: servo con punto giratorio MT4; manguito Ø80 mm es un valor de catálogo a verificar. M27 avanza, M26/M31 retroceden (manual 11.3.4)."
   },
-  "chuck": { "diameter": 210, "length": 95, "jaws": 3, "jawHeight": 50, "jawWidth": 26, "jawLength": 25, "bore": 66 }
+  "chuck": { "diameter": 210, "length": 95, "jaws": 3, "jawHeight": 50, "jawWidth": 26, "jawLength": 25, "bore": 66 },
+  "tailstock": { "quillDiameter": 80, "retract": 80 }
 }

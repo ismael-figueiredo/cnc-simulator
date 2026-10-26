@@ -85,6 +85,8 @@ export const HELP: Record<string, LocalizedText> = {
   'm:brake-off': { en: "Releases the axis brake.", 'pt-BR': "Solta o freio do eixo.", es: "Suelta el freno del eje." },
   'm:coolant-on': { en: "Coolant on.", 'pt-BR': "Liga o refrigerante.", es: "Enciende el refrigerante." },
   'm:coolant-off': { en: "Coolant off.", 'pt-BR': "Desliga o refrigerante.", es: "Apaga el refrigerante." },
+  'm:tailstock-advance': { en: "Advances the tailstock center to the part. Do not face to the axis or back off along it while it is there.", 'pt-BR': "Avança o contraponto até a peça. Com ele encostado, não faceie até o centro nem saia pelo eixo.", es: "Avanza el contrapunto hasta la pieza. Con él apoyado, no refrente hasta el centro ni salga por el eje." },
+  'm:tailstock-retract': { en: "Backs the tailstock center off the part.", 'pt-BR': "Recua o contraponto da peça.", es: "Retrocede el contrapunto de la pieza." },
   'm:tool-change': { en: "Tool change to the tool T. Go to a safe place first (G28 or the change position).", 'pt-BR': "Troca para a ferramenta T. Vá antes a um lugar seguro (G28 ou a posição de troca).", es: "Cambio a la herramienta T. Vaya antes a un lugar seguro (G28 o la posición de cambio)." },
   'm:subprogram-call': { en: "Calls subprogram P (O number); L or the leading digits of P repeat it.", 'pt-BR': "Chama o subprograma P (número O); L ou os primeiros dígitos do P repetem.", es: "Llama al subprograma P (número O); L o los primeros dígitos de P lo repiten." },
   'm:subprogram-return': { en: "End of subprogram: returns to the block after the call.", 'pt-BR': "Fim do subprograma: volta ao bloco depois da chamada.", es: "Fin del subprograma: vuelve al bloque después de la llamada." },

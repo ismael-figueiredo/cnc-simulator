@@ -54,6 +54,13 @@ export const ChuckSchema = z.object({
   bore: z.number().positive().optional()
 })
 
+/** Lathe tailstock with a live center, on the side opposite the chuck. Sizes in mm. */
+export const TailstockSchema = z.object({
+  quillDiameter: z.number().positive(),
+  /** How far the center backs off the part when the tailstock is retracted. */
+  retract: z.number().positive().optional()
+})
+
 /** Machining center table with its T-slots along X. Sizes in mm. */
 export const TableSchema = z.object({
   length: z.number().positive(),
@@ -93,6 +100,7 @@ export const MachineSchema = z.object({
   notes: LocalizedTextSchema.optional(),
   defaultStock: StockShapeSchema.optional(),
   chuck: ChuckSchema.optional(),
+  tailstock: TailstockSchema.optional(),
   table: TableSchema.optional()
 })
 
@@ -127,6 +135,8 @@ export const MFunction = z.enum([
   'live-tool-cw', 'live-tool-ccw', 'live-tool-stop',
   'c-axis-on', 'c-axis-off', 'brake-on', 'brake-off',
   'coolant-on', 'coolant-off',
+  // Lathe tailstock (Romi GL: M27 advance, M26/M31 retract)
+  'tailstock-advance', 'tailstock-retract',
   'tool-change', 'subprogram-call', 'subprogram-return',
   // Haas M97 P n: subprogram in the same program, from sequence number N n
   'local-subprogram-call',
