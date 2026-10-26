@@ -649,13 +649,46 @@ export function simulate(input: SimulationInput): SimulationResult {
   const calls: { ret: number; count: number; start: number; macro: boolean }[] = []
   let pc = 0
 
+  type Words = Partial<Record<string, number>>
+  /** What a block's G codes ask for beyond the modal state they set. */
+  interface GCommands {
+    oneShot: GFn | null
+    latheCycle: { fn: GFn; code: string } | null
+    polarCmd: boolean | null
+    polarCode: string
+    skipMotion: boolean
+    compCmd: 40 | 41 | 42 | null
+  }
+
   function execWords(b: Block): Flow {
-    const W: Partial<Record<string, number>> = {}
+    const movesBefore = moves.length
+    const cornerBefore = corner
+    const { W, gs, ms, liveSpeedWord } = readWords(b)
+    if (gs.includes(65) && codes.g.get(65) === 'macro-call') return callMacro(W)
+    const cornerNoComma = cornerWithoutComma(gs, W)
+    const g = applyGCodes(gs, W)
+    applyPolar(g.polarCmd, g.polarCode)
+    const flow = applyMCodes(ms, W, b, liveSpeedWord)
+    applyModalWords(W, ms, b)
+    applyCompCommand(g.compCmd)
+    for (const ax of AXES) if (W[ax] !== undefined && !machineAxes.has(ax)) diag('warning', 'axis-not-on-machine', { axis: ax }, ax)
+    if (!g.skipMotion) runMotion(g.oneShot, W)
+    // Lathe multiple repetitive cycles (G70–G73, G76)
+    if (g.latheCycle) {
+      const cycleFlow = runLatheCycle(g.latheCycle.fn, g.latheCycle.code, W, () => targetOf(W))
+      if (cycleFlow) return cycleFlow
+    }
+    applyCorner(movesBefore, cornerBefore, W, cornerNoComma)
+    trackCompLookAhead(movesBefore)
+    return flow
+  }
+
+  /** The block's words, with decimal point and range checks; G and M codes apart. */
+  function readWords(b: Block): { W: Words; gs: number[]; ms: number[]; liveSpeedWord: boolean } {
+    const W: Words = {}
     const gs: number[] = []
     const ms: number[] = []
     let liveSpeedWord = false
-    const movesBefore = moves.length
-    const cornerBefore = corner
     for (const w of parseWords(b.text)) {
       if (w.value === null) continue // address with an empty variable = not programmed
       let v = w.value
@@ -676,34 +709,38 @@ export function simulate(input: SimulationInput): SimulationResult {
       else if (w.addr.startsWith(',')) diag('warning', 'direct-corner-not-simulated', { word: w.addr }, line)
       else W[w.addr] = v
     }
+    return { W, gs, ms, liveSpeedWord }
+  }
 
-    if (gs.includes(65) && codes.g.get(65) === 'macro-call') {
-      const o = W['P']
-      if (o === undefined) fatal('subprogram-p-missing', { code: 'G65' })
-      const bad = Object.keys(W).find((k) => k === 'G' || k === 'N' || k === 'O')
-      if (bad) fatal('g65-illegal-argument', { addr: bad })
-      const start = programs.get(o)
-      if (start === undefined) fatal('subprogram-missing', { o })
-      if (calls.filter((c) => c.macro).length >= limits.macroNesting) fatal('macro-nesting', { max: limits.macroNesting })
-      const loc = new Map<number, Value>()
-      for (const [k, val] of Object.entries(W)) {
-        const n = G65_ARGS[k]
-        if (n !== undefined && k !== 'P' && k !== 'L' && val !== undefined) loc.set(n, val)
-      }
-      locals.push(loc)
-      calls.push({ ret: pc + 1, count: W['L'] ?? 1, start: start + 1, macro: true })
-      pc = start + 1
-      return 'jump'
+  /** G65 P n: a macro call with arguments as local variables. */
+  function callMacro(W: Words): Flow {
+    const o = W['P']
+    if (o === undefined) fatal('subprogram-p-missing', { code: 'G65' })
+    const bad = Object.keys(W).find((k) => k === 'G' || k === 'N' || k === 'O')
+    if (bad) fatal('g65-illegal-argument', { addr: bad })
+    const start = programs.get(o)
+    if (start === undefined) fatal('subprogram-missing', { o })
+    if (calls.filter((c) => c.macro).length >= limits.macroNesting) fatal('macro-nesting', { max: limits.macroNesting })
+    const loc = new Map<number, Value>()
+    for (const [k, val] of Object.entries(W)) {
+      const n = G65_ARGS[k]
+      if (n !== undefined && k !== 'P' && k !== 'L' && val !== undefined) loc.set(n, val)
     }
+    locals.push(loc)
+    calls.push({ ret: pc + 1, count: W['L'] ?? 1, start: start + 1, macro: true })
+    pc = start + 1
+    return 'jump'
+  }
 
-    // Lathes with the chamfer/corner R option without comma: C or R in a one-axis G01 block.
-    // Machines with a C axis use ",C" (C alone is the axis), as on the control.
+  // Lathes with the chamfer/corner R option without comma: C or R in a one-axis G01 block.
+  // Machines with a C axis use ",C" (C alone is the axis), as on the control.
+  function cornerWithoutComma(gs: number[], W: Words): boolean {
     let cornerNoComma = false
     if (dialect.cornerWithoutComma && lathe && !machineAxes.has('C')) {
       const motion = gs.map((g) => codes.g.get(g)).filter((f) => f === 'rapid' || f === 'linear' || f === 'arc-cw' || f === 'arc-ccw')
       const linearNow = motion.length ? motion[motion.length - 1] === 'linear' : st.motion === 1
-      const moves = (ax: Axis) => W[ax] !== undefined || [...incremental].some(([a, x]) => x === ax && W[a] !== undefined)
-      if (linearNow && moves('X') !== moves('Z')) {
+      const given = (ax: Axis) => W[ax] !== undefined || [...incremental].some(([a, x]) => x === ax && W[a] !== undefined)
+      if (linearNow && given('X') !== given('Z')) {
         if (W['C'] !== undefined && W[',C'] === undefined) {
           W[',C'] = W['C']
           delete W['C']
@@ -716,10 +753,13 @@ export function simulate(input: SimulationInput): SimulationResult {
         }
       }
     }
+    return cornerNoComma
+  }
 
+  function applyGCodes(gs: number[], W: Words): GCommands {
     let oneShot: GFn | null = null
     let latheCycle: { fn: GFn; code: string } | null = null
-    let polarCmd = null as boolean | null
+    let polarCmd: boolean | null = null
     let polarCode = 'G12.1'
     let skipMotion = false
     let compCmd: 40 | 41 | 42 | null = null
@@ -942,7 +982,11 @@ export function simulate(input: SimulationInput): SimulationResult {
           break
       }
     }
+    return { oneShot, latheCycle, polarCmd, polarCode, skipMotion, compCmd }
+  }
 
+  /** G12.1 / G13.1: polar coordinate interpolation on and off. */
+  function applyPolar(polarCmd: boolean | null, polarCode: string): void {
     if (polarCmd === true) {
       // A lathe without C (or a mill) does not have polar interpolation: the control refuses the G code
       if (!lathe || !machineAxes.has('C')) diag('warning', 'option-not-on-machine', { code: polarCode }, 'polar')
@@ -967,9 +1011,11 @@ export function simulate(input: SimulationInput): SimulationResult {
       pos.Y = 0
       st.polar = false
     }
+  }
 
-    // ---- M codes ----
+  function applyMCodes(ms: number[], W: Words, b: Block, liveSpeedWord: boolean): Flow {
     let flow: Flow = null
+    // ---- M codes ----
     for (const mNum of ms) {
       const fn = codes.m.get(mNum)
       const code = formatCode('M', mNum)
@@ -1065,7 +1111,11 @@ export function simulate(input: SimulationInput): SimulationResult {
           break
       }
     }
+    return flow
+  }
 
+  /** S, F, D, H and T words: speeds, feed, offsets and the tool. */
+  function applyModalWords(W: Words, ms: number[], b: Block): void {
     if (W['S'] !== undefined) {
       st.spindleSpeed = W['S']
       st.lastSpeedWasLive = false
@@ -1088,8 +1138,10 @@ export function simulate(input: SimulationInput): SimulationResult {
         if (ms.some((m) => codes.m.get(m) === 'tool-change')) selectTool(t, b.comment)
       }
     }
+  }
 
-    // ---- cutter compensation commands ----
+  /** G40/G41/G42: compensation starts or ends with the next move in the plane. */
+  function applyCompCommand(compCmd: 40 | 41 | 42 | null): void {
     if (compCmd !== null) {
       if (compCmd !== 40 && st.cutterComp === 40) st.compStartPending = compCmd
       else if (compCmd === 40 && st.cutterComp !== 40) st.compCancelPending = true
@@ -1098,130 +1150,126 @@ export function simulate(input: SimulationInput): SimulationResult {
         st.cutterComp = compCmd
       }
     }
+  }
 
-    // ---- motion ----
+  /** The end point of a move block: the axis words in G90/G91, with U V W… incremental. */
+  function targetOf(W: Words): Target {
+    const t: Target = { pos: { ...pos }, px: st.px, py: st.py }
+    for (const ax of AXES) {
+      const w = W[ax]
+      if (w === undefined) continue
+      if (st.polar && ax === 'X') t.px = st.absolute ? w / xDia : st.px + w / xDia
+      else if (st.polar && ax === 'C') t.py = st.absolute ? w : st.py + w
+      else t.pos[ax] = st.absolute ? w + shift[ax] : pos[ax] + w
+    }
+    for (const [addr, ax] of incremental) {
+      const w = W[addr]
+      if (w === undefined) continue
+      if (st.polar && ax === 'X') t.px = st.px + w / xDia
+      else if (st.polar && ax === 'C') t.py = st.py + w
+      else t.pos[ax] += w
+    }
+    return t
+  }
+  /** The current point with some axes replaced (machine-coordinate moves, cycles). */
+  const atPos = (p: Partial<Position>): Target => ({ pos: { ...pos, ...p }, px: st.px, py: st.py })
+
+  /** The block's move: a one-shot code, a cycle, or the modal G00–G03. */
+  function runMotion(oneShot: GFn | null, W: Words): void {
     const has = (k: string) => W[k] !== undefined
     const axisWords = AXES.some((ax) => has(ax)) || [...incremental.keys()].some((k) => has(k))
-    for (const ax of AXES) if (has(ax) && !machineAxes.has(ax)) diag('warning', 'axis-not-on-machine', { axis: ax }, ax)
-
-    const target = (): Target => {
-      const t: Target = { pos: { ...pos }, px: st.px, py: st.py }
+    if (oneShot === 'dwell') {
+      const s = has('P') ? (W['P'] ?? 0) / 1000 : (W['X'] ?? W['U'] ?? 0)
+      pushMove('dwell', [worldNow(), worldNow()], {}, s)
+    } else if (oneShot === 'machine-coords') {
+      const p: Partial<Position> = {}
       for (const ax of AXES) {
         const w = W[ax]
-        if (w === undefined) continue
-        if (st.polar && ax === 'X') t.px = st.absolute ? w / xDia : st.px + w / xDia
-        else if (st.polar && ax === 'C') t.py = st.absolute ? w : st.py + w
-        else t.pos[ax] = st.absolute ? w + shift[ax] : pos[ax] + w
+        // The gauge line (or turret) goes to the machine position: the tip is the offset below it
+        if (w !== undefined) p[ax] = machineZero[ax] + w - extraOf(ax)
       }
-      for (const [addr, ax] of incremental) {
-        const w = W[addr]
-        if (w === undefined) continue
-        if (st.polar && ax === 'X') t.px = st.px + w / xDia
-        else if (st.polar && ax === 'C') t.py = st.py + w
-        else t.pos[ax] += w
+      linear('rapid', atPos(p))
+    } else if (oneShot === 'reference-return') {
+      if (!st.polar) linear('rapid', targetOf(W))
+      const p: Partial<Position> = {}
+      for (const ax of AXES) {
+        const inc = [...incremental].find(([, a]) => a === ax)?.[0]
+        if (!has(ax) && !(inc && has(inc))) continue
+        p[ax] = ax === 'C' || ax === 'A' || ax === 'B' ? 0 : machineZero[ax] - extraOf(ax)
+        if (ax === 'C') st.cAxisEnabled = true
       }
-      return t
-    }
-    const at = (p: Partial<Position>): Target => ({ pos: { ...pos, ...p }, px: st.px, py: st.py })
-
-    if (!skipMotion) {
-      if (oneShot === 'dwell') {
-        const s = has('P') ? (W['P'] ?? 0) / 1000 : (W['X'] ?? W['U'] ?? 0)
-        pushMove('dwell', [worldNow(), worldNow()], {}, s)
-      } else if (oneShot === 'machine-coords') {
-        const p: Partial<Position> = {}
-        for (const ax of AXES) {
-          const w = W[ax]
-          // The gauge line (or turret) goes to the machine position: the tip is the offset below it
-          if (w !== undefined) p[ax] = machineZero[ax] + w - extraOf(ax)
-        }
-        linear('rapid', at(p))
-      } else if (oneShot === 'reference-return') {
-        if (!st.polar) linear('rapid', target())
-        const p: Partial<Position> = {}
-        for (const ax of AXES) {
-          const inc = [...incremental].find(([, a]) => a === ax)?.[0]
-          if (!has(ax) && !(inc && has(inc))) continue
-          p[ax] = ax === 'C' || ax === 'A' || ax === 'B' ? 0 : machineZero[ax] - extraOf(ax)
-          if (ax === 'C') st.cAxisEnabled = true
-        }
-        linear('rapid', at(p))
-      } else if (oneShot === 'face-peck-cycle' || oneShot === 'groove-cycle') {
-        if (axisWords) {
-          const t = target()
-          const back = oneShot === 'face-peck-cycle' ? { Z: pos.Z } : { X: pos.X }
-          linear('feed', at({ X: t.pos.X, Z: t.pos.Z }))
-          linear('rapid', at(back))
-          diag('info', 'cycle-simplified', { code: oneShot === 'face-peck-cycle' ? 'face-peck' : 'groove' }, oneShot)
-        }
-      } else if (st.single && axisWords) {
-        const t = target()
-        const given = (ax: Axis) => has(ax) || [...incremental].some(([a, x]) => x === ax && has(a))
-        // X or Z left out of a repeat block (e.g. just "X42.") keeps the cycle's last end point
-        const prev = st.singleEnd ?? here()
-        const end = { x: given('X') ? t.pos.X / xDia : prev.x, z: given('Z') ? t.pos.Z : prev.z }
-        st.singleEnd = end
-        // R is the cone: radius difference in X (turning, threading) or in Z (facing)
-        runSteps(singleCycle(st.single, here(), end, W['R'] ?? 0))
-      } else if (st.cycle && axisWords) {
-        runCycle(st.cycle, W, target())
-      } else if (axisWords) {
-        const t = target()
-        const cMoves = !st.polar && Math.abs(t.pos.C - pos.C) > 1e-9
-        if (cMoves && st.motion === 0) st.brake = false // a rapid C move releases the brake
-        if (cMoves && lathe && rules.has('c-axis-requires-enable') && !st.cAxisEnabled) diag('warning', 'c-axis-not-enabled', undefined, 'c')
-        if (st.polar && st.motion === 0) diag('warning', 'rapid-in-polar', { code: 'G00' }, line)
-        const cs = st.compStartPending
-        const cc = st.compCancelPending
-        if ((cs || cc) && (st.motion === 2 || st.motion === 3)) fatal('comp-start-on-arc')
-        const inPlane = inCompPlaneNow()
-        let m: Move | null
-        if (st.motion === 0) m = linear('rapid', t)
-        else if (st.motion === 1) m = st.threading ? asThread(() => linear('feed', t)) : linear('feed', t)
-        else {
-          // only the plane axes (and the helix axis) may move on an arc
-          const pl = PLANES[st.plane]
-          const allowed = st.polar ? ['X', 'C', 'Z'] : [pl.u, pl.v, pl.helix]
-          const stray = AXES.find((ax) => has(ax) && !allowed.includes(ax))
-          if (stray) fatal('arc-plane-axis', { axis: stray, plane: `G${st.plane}` })
-          const aw: Partial<Record<string, number>> = {}
-          for (const k of ['R', 'I', 'J', 'K']) if (has(k)) aw[k] = W[k]
-          m = arc(st.motion === 2, t, aw)
-        }
-        if (m && inPlane && st.motion !== 0 && (cs || cc)) {
-          if (cs) {
-            m.compStart = cs
-            st.cutterComp = cs
-            m.state = { ...m.state, cutterComp: cs }
-          } else {
-            m.compCancel = true
-            st.cutterComp = 40
-          }
+      linear('rapid', atPos(p))
+    } else if (oneShot === 'face-peck-cycle' || oneShot === 'groove-cycle') {
+      if (axisWords) {
+        const t = targetOf(W)
+        const back = oneShot === 'face-peck-cycle' ? { Z: pos.Z } : { X: pos.X }
+        linear('feed', atPos({ X: t.pos.X, Z: t.pos.Z }))
+        linear('rapid', atPos(back))
+        diag('info', 'cycle-simplified', { code: oneShot === 'face-peck-cycle' ? 'face-peck' : 'groove' }, oneShot)
+      }
+    } else if (st.single && axisWords) {
+      const t = targetOf(W)
+      const given = (ax: Axis) => has(ax) || [...incremental].some(([a, x]) => x === ax && has(a))
+      // X or Z left out of a repeat block (e.g. just "X42.") keeps the cycle's last end point
+      const prev = st.singleEnd ?? here()
+      const end = { x: given('X') ? t.pos.X / xDia : prev.x, z: given('Z') ? t.pos.Z : prev.z }
+      st.singleEnd = end
+      // R is the cone: radius difference in X (turning, threading) or in Z (facing)
+      runSteps(singleCycle(st.single, here(), end, W['R'] ?? 0))
+    } else if (st.cycle && axisWords) {
+      runCycle(st.cycle, W, targetOf(W))
+    } else if (axisWords) {
+      const t = targetOf(W)
+      const cMoves = !st.polar && Math.abs(t.pos.C - pos.C) > 1e-9
+      if (cMoves && st.motion === 0) st.brake = false // a rapid C move releases the brake
+      if (cMoves && lathe && rules.has('c-axis-requires-enable') && !st.cAxisEnabled) diag('warning', 'c-axis-not-enabled', undefined, 'c')
+      if (st.polar && st.motion === 0) diag('warning', 'rapid-in-polar', { code: 'G00' }, line)
+      const cs = st.compStartPending
+      const cc = st.compCancelPending
+      if ((cs || cc) && (st.motion === 2 || st.motion === 3)) fatal('comp-start-on-arc')
+      const inPlane = inCompPlaneNow()
+      let m: Move | null
+      if (st.motion === 0) m = linear('rapid', t)
+      else if (st.motion === 1) m = st.threading ? asThread(() => linear('feed', t)) : linear('feed', t)
+      else {
+        // only the plane axes (and the helix axis) may move on an arc
+        const pl = PLANES[st.plane]
+        const allowed = st.polar ? ['X', 'C', 'Z'] : [pl.u, pl.v, pl.helix]
+        const stray = AXES.find((ax) => has(ax) && !allowed.includes(ax))
+        if (stray) fatal('arc-plane-axis', { axis: stray, plane: `G${st.plane}` })
+        const aw: Partial<Record<string, number>> = {}
+        for (const k of ['R', 'I', 'J', 'K']) if (has(k)) aw[k] = W[k]
+        m = arc(st.motion === 2, t, aw)
+      }
+      if (m && inPlane && st.motion !== 0 && (cs || cc)) {
+        if (cs) {
+          m.compStart = cs
+          st.cutterComp = cs
+          m.state = { ...m.state, cutterComp: cs }
         } else {
-          if (cs) st.cutterComp = cs
-          if (cc) st.cutterComp = 40
+          m.compCancel = true
+          st.cutterComp = 40
         }
-        st.compStartPending = null
-        st.compCancelPending = false
-        if (
-          m?.kind === 'feed' &&
-          pos.Z < -1e-6 &&
-          lathe &&
-          rules.has('live-tool-on-while-cutting') &&
-          !st.liveToolOn &&
-          (st.polar || st.cAxisEnabled)
-        )
-          diag('warning', 'live-tool-off-while-cutting', { tool: st.tool }, st.tool)
+      } else {
+        if (cs) st.cutterComp = cs
+        if (cc) st.cutterComp = 40
       }
+      st.compStartPending = null
+      st.compCancelPending = false
+      if (
+        m?.kind === 'feed' &&
+        pos.Z < -1e-6 &&
+        lathe &&
+        rules.has('live-tool-on-while-cutting') &&
+        !st.liveToolOn &&
+        (st.polar || st.cAxisEnabled)
+      )
+        diag('warning', 'live-tool-off-while-cutting', { tool: st.tool }, st.tool)
     }
+  }
 
-    // ---- lathe multiple repetitive cycles (G70–G73, G76) ----
-    if (latheCycle) {
-      const flow = runLatheCycle(latheCycle.fn, latheCycle.code, W, target)
-      if (flow) return flow
-    }
-
-    // ---- chamfer / corner R (",C" ",R", or C/R without comma on lathes that allow it) ----
+  /** Chamfer / corner R (",C" ",R", or C/R without comma on lathes that allow it). */
+  function applyCorner(movesBefore: number, cornerBefore: Corner | null, W: Words, cornerNoComma: boolean): void {
     const made = moves.slice(movesBefore)
     if (cornerBefore) {
       corner = null
@@ -1238,14 +1286,15 @@ export function simulate(input: SimulationInput): SimulationResult {
       if (!m || m.kind !== 'feed') fatal('corner-next-not-linear')
       corner = { kind: cWord !== undefined ? 'C' : 'R', size: cWord ?? rWord ?? 0, move: m, perpendicular: cornerNoComma }
     }
+  }
 
-    // Cutter compensation looks ahead along the plane; blocks without movement there blind it
+  /** Cutter compensation looks ahead along the plane; blocks without movement there blind it. */
+  function trackCompLookAhead(movesBefore: number): void {
     if (st.cutterComp !== 40 && inCompPlaneNow()) {
       const planeMoved = moves.slice(movesBefore).some((m) => m.element)
       st.compNoMove = planeMoved ? 0 : st.compNoMove + 1
       if (st.compNoMove > limits.compNoMoveBlocks) diag('warning', 'comp-no-move-blocks', { count: st.compNoMove, max: limits.compNoMoveBlocks })
     } else st.compNoMove = 0
-    return flow
   }
 
   // ---------- lathe cycles ----------
@@ -1447,15 +1496,11 @@ export function simulate(input: SimulationInput): SimulationResult {
     }
     const position: Partial<Position> = {}
     for (const ax of AXES) if (ax !== depthAxis) position[ax] = t.pos[ax]
-    linear('rapid', at(position))
-    if (cy.r !== undefined) linear('rapid', at({ [depthAxis]: cy.r }))
-    linear('feed', at({ [depthAxis]: depth }))
-    linear('rapid', at({ [depthAxis]: st.returnToR && cy.r !== undefined ? cy.r : cy.initial }))
+    linear('rapid', atPos(position))
+    if (cy.r !== undefined) linear('rapid', atPos({ [depthAxis]: cy.r }))
+    linear('feed', atPos({ [depthAxis]: depth }))
+    linear('rapid', atPos({ [depthAxis]: st.returnToR && cy.r !== undefined ? cy.r : cy.initial }))
     if (lathe && rules.has('live-tool-on-while-cutting') && !st.liveToolOn) diag('warning', 'drill-with-live-tool-off', undefined, line)
-
-    function at(p: Partial<Position>): Target {
-      return { pos: { ...pos, ...p }, px: st.px, py: st.py }
-    }
   }
 
   // ---------- run ----------
