@@ -118,7 +118,10 @@
 <tr id="fanuc-lathe-M15"><td class="code">M15</td><td><b>Reverse coupling shaft rotation (counter-clockwise).</b> Machine function with no effect on the path.</td></tr>
 <tr id="fanuc-lathe-M16"><td class="code">M16</td><td><b>Reverse coupling shaft rotation (clockwise).</b> Machine function with no effect on the path.</td></tr>
 <tr id="fanuc-lathe-M19"><td class="code">M19</td><td><b>Spindle orientation / enable C axis.</b> C axis mode: the spindle becomes a positioning axis.</td></tr>
+<tr id="fanuc-lathe-M26"><td class="code">M26</td><td><b>Retract the servo tailstock to its set position (Romi GL manual 11.3.4).</b> Backs the tailstock center off the part.</td></tr>
+<tr id="fanuc-lathe-M27"><td class="code">M27</td><td><b>Advance the servo tailstock to the part (Romi GL manual 11.3.4).</b> Advances the tailstock center to the part. Do not face to the axis or back off along it while it is there.</td></tr>
 <tr id="fanuc-lathe-M30"><td class="code">M30</td><td>End of program and back to the start.</td></tr>
+<tr id="fanuc-lathe-M31"><td class="code">M31</td><td><b>Retract the servo tailstock to its machine reference.</b> Backs the tailstock center off the part.</td></tr>
 <tr id="fanuc-lathe-M85"><td class="code">M85</td><td><b>High-torque brake; G0 C or M5 release it.</b> Clamps the axis (brake) to cut without it turning.</td></tr>
 <tr id="fanuc-lathe-M98"><td class="code">M98</td><td>Calls subprogram P (O number); L or the leading digits of P repeat it.</td></tr>
 <tr id="fanuc-lathe-M99"><td class="code">M99</td><td>End of subprogram: returns to the block after the call.</td></tr>
@@ -326,7 +329,7 @@
   · <a href="https://github.com/ismael-figueiredo/cnc-simulator/issues">Report a problem</a>
   · <a href="https://github.com/ismael-figueiredo/cnc-simulator/discussions">Questions</a>
   · <a href="https://github.com/ismael-figueiredo/cnc-simulator/blob/main/CONTRIBUTING.md">Contributing</a>
-  · v0.20.0
+  · v0.21.0
 </footer>
 </div>
 
