@@ -16,6 +16,8 @@ interface Props {
   /** Feed and rapid overrides, in percent. */
   feedOverride: number
   rapidOverride: number
+  /** Spindle override, in percent (shown on S). */
+  spindleOverride?: number
 }
 
 const FEED_KNOB_MAX = 150
@@ -33,12 +35,12 @@ function Bar({ value, max }: { value: number; max: number }) {
  * Top of the machine screen, as on the control: the position in large digits with machine coordinates
  * and distance to go, then spindle, feed with the overrides, tool and the active modal codes.
  */
-export const StatusHeader = memo(function StatusHeader({ move, position, machinePosition, distanceToGo, axes, maxRpm, maxLiveRpm, feedOverride, rapidOverride }: Props) {
+export const StatusHeader = memo(function StatusHeader({ move, position, machinePosition, distanceToGo, axes, maxRpm, maxLiveRpm, feedOverride, rapidOverride, spindleOverride = 100 }: Props) {
   const { t } = useI18n()
   const s = move?.state
   const rapid = move?.kind === 'rapid'
   const live = !!s?.liveToolOn
-  const rpm = s ? (live ? s.liveToolSpeed : s.spindleOn ? s.spindleSpeed : 0) : 0
+  const rpm = s ? Math.round((live ? s.liveToolSpeed : s.spindleOn ? s.spindleSpeed : 0) * (spindleOverride / 100)) : 0
   return (
     <div className="mp-status">
       <div className="mp-pos">
@@ -73,6 +75,7 @@ export const StatusHeader = memo(function StatusHeader({ move, position, machine
         </div>
         <div className="mp-ovr">
           <span>FOV {feedOverride}%</span>
+          <span>SOV {spindleOverride}%</span>
           <span>{t('panel.rapid')} {rapidOverride === 10 ? 'F0' : `${rapidOverride}%`}</span>
           <span>
             T {s?.tool ? `${String(s.tool).padStart(2, '0')}${String(s.offset).padStart(2, '0')}` : '—'}

@@ -1,5 +1,6 @@
 import { useI18n } from '../i18n'
 import { formatTime } from '../playback'
+import { FEED_STEPS as FEEDS, RAPID_STEPS as RAPIDS } from './OperatorPanel'
 
 interface Props {
   time: number
@@ -18,6 +19,8 @@ interface Props {
   onPanel: (change: Partial<PanelState>) => void
   /** Timeline under the slider: one colored stretch per tool, and marks where the run stops or warns. */
   strip?: Strip
+  /** Machine screen: the operator panel has RESET, cycle start and the keys; only the simulation controls stay here. */
+  simOnly?: boolean
 }
 
 export interface Strip {
@@ -33,28 +36,29 @@ export interface PanelState {
   optionalStop: boolean
   /** BLOCK DELETE: blocks starting with "/" are skipped. */
   blockSkip: boolean
-  /** Feed and rapid overrides, in percent. */
+  /** Feed, rapid and spindle overrides, in percent. */
   feed: number
   rapid: number
+  spindle: number
 }
 
-// Override steps of a Fanuc panel: feed 0–150 % (here from 10 %), rapid F0/25/50/100 % (F0 as 10 %)
-const FEEDS = [10, 20, 30, 50, 70, 80, 90, 100, 110, 120, 150]
-const RAPIDS = [10, 25, 50, 100]
 
 const SPEEDS = [1, 5, 20, 100, 1000]
 const STEPS = 10000
 
-export function Player({ time, total, playing, speed, disabled, runDisabled, onSeek, onTogglePlay, onStep, onSpeed, panel, onPanel, strip }: Props) {
+export function Player({ time, total, playing, speed, disabled, runDisabled, onSeek, onTogglePlay, onStep, onSpeed, panel, onPanel, strip, simOnly }: Props) {
   const pct = (s: number) => `${total > 0 ? (Math.max(0, Math.min(total, s)) / total) * 100 : 0}%`
   const { t } = useI18n()
   return (
-    <div className="player">
-      <button className="btn reset" disabled={disabled} title={t('player.start')} onClick={() => onSeek(0)}>RESET</button>
+    <div className={`player ${simOnly ? 'sim-only' : ''}`}>
+      {simOnly && <span className="sim-caption">{t('player.simulation')}</span>}
+      {!simOnly && <button className="btn reset" disabled={disabled} title={t('player.start')} onClick={() => onSeek(0)}>RESET</button>}
       <button className="btn icon" disabled={disabled} title={t('player.back')} aria-label={t('player.back')} onClick={() => onStep(-1)}>◀</button>
-      <button className="btn primary play" disabled={disabled || runDisabled} title={runDisabled ? t('player.editMode') : undefined} onClick={onTogglePlay}>
-        {playing ? `⏸ ${t('player.pause')}` : `▶ ${t('player.play')}`}
-      </button>
+      {!simOnly && (
+        <button className="btn primary play" disabled={disabled || runDisabled} title={runDisabled ? t('player.editMode') : undefined} onClick={onTogglePlay}>
+          {playing ? `⏸ ${t('player.pause')}` : `▶ ${t('player.play')}`}
+        </button>
+      )}
       <button className="btn icon" disabled={disabled} title={t('player.forward')} aria-label={t('player.forward')} onClick={() => onStep(1)}>▶|</button>
       <button className="btn icon" disabled={disabled} title={t('player.end')} aria-label={t('player.end')} onClick={() => onSeek(total)}>⏭</button>
       <div className="track">
@@ -94,7 +98,7 @@ export function Player({ time, total, playing, speed, disabled, runDisabled, onS
       <span className="time">
         {formatTime(time)} / {formatTime(total)}
       </span>
-      <div className="panel-keys">
+      {!simOnly && <div className="panel-keys">
         <button className={`key ${panel.singleBlock ? 'on' : ''}`} aria-pressed={panel.singleBlock} title={t('panel.singleBlockHint')} onClick={() => onPanel({ singleBlock: !panel.singleBlock })}>
           {t('panel.singleBlock')}
         </button>
@@ -120,7 +124,7 @@ export function Player({ time, total, playing, speed, disabled, runDisabled, onS
             ))}
           </select>
         </label>
-      </div>
+      </div>}
     </div>
   )
 }
