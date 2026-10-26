@@ -34,27 +34,39 @@ const DEFAULT_INSERT: Partial<Record<Tool['type'], NonNullable<Tool['insert']>>>
  */
 export function insertOutline(tool: Tool, size = 12): [number, number][] {
   let pts: [number, number][]
+  const shape = tool.insert ?? DEFAULT_INSERT[tool.type] ?? 'C'
   if (tool.type === 'grooving') {
     const w = Math.max(tool.diameter, 1)
     pts = [[0, 0], [0, w], [size, w], [size, 0]]
-  } else {
-    const shape = tool.insert ?? DEFAULT_INSERT[tool.type] ?? 'C'
-    const corner = { C: 80, D: 55, V: 35, W: 80, T: 60, S: 90, R: 0 }[shape]
-    if (shape === 'R') {
-      // Round insert: the circle passes through the origin, centered on the bisector
-      const r = size / 2
-      const c = r / Math.SQRT2
-      pts = Array.from({ length: 24 }, (_, i) => {
-        const a = (i / 24) * 2 * Math.PI
-        return [c + r * Math.cos(a), c + r * Math.sin(a)] as [number, number]
-      })
-    } else {
-      // Edges leave the corner symmetric about the 45° bisector
-      const h = (corner * Math.PI) / 360
-      const e1: [number, number] = [size * Math.cos(Math.PI / 4 - h), size * Math.sin(Math.PI / 4 - h)]
-      const e2: [number, number] = [size * Math.cos(Math.PI / 4 + h), size * Math.sin(Math.PI / 4 + h)]
-      pts = shape === 'T' || shape === 'W' ? [[0, 0], e1, e2] : [[0, 0], e1, [e1[0] + e2[0], e1[1] + e2[1]], e2]
+  } else if (tool.type === 'threading' && shape === 'T') {
+    // Laydown thread insert: an equilateral triangle, its 60° point square to the axis (toward -X)
+    const h = (size * Math.sqrt(3)) / 2
+    pts = [[0, 0], [h, -size / 2], [h, size / 2]]
+  } else if (shape === 'R') {
+    // Round insert: the circle passes through the origin, centered on the bisector
+    const r = size / 2
+    const c = r / Math.SQRT2
+    pts = Array.from({ length: 24 }, (_, i) => {
+      const a = (i / 24) * 2 * Math.PI
+      return [c + r * Math.cos(a), c + r * Math.sin(a)] as [number, number]
+    })
+  } else if (shape === 'W') {
+    // Trigon: three 80° corners joined by edges bent 160° in the middle
+    pts = [[0, 0]]
+    let dir = Math.PI / 4 - (40 * Math.PI) / 180
+    for (let k = 0; k < 6; k++) {
+      const last = pts[pts.length - 1] ?? [0, 0]
+      pts.push([last[0] + (size / 2) * Math.cos(dir), last[1] + (size / 2) * Math.sin(dir)])
+      dir += ((k % 2 ? 100 : 20) * Math.PI) / 180
     }
+    pts.pop()
+  } else {
+    const corner = { C: 80, D: 55, V: 35, T: 60, S: 90 }[shape]
+    // Edges leave the corner symmetric about the 45° bisector
+    const h = (corner * Math.PI) / 360
+    const e1: [number, number] = [size * Math.cos(Math.PI / 4 - h), size * Math.sin(Math.PI / 4 - h)]
+    const e2: [number, number] = [size * Math.cos(Math.PI / 4 + h), size * Math.sin(Math.PI / 4 + h)]
+    pts = shape === 'T' ? [[0, 0], e1, e2] : [[0, 0], e1, [e1[0] + e2[0], e1[1] + e2[1]], e2]
   }
   const sx = tool.side === 'internal' ? -1 : 1
   const sy = tool.hand === 'left' ? -1 : 1
@@ -113,6 +125,55 @@ export function holderOutline(holder: Holder, toolLength: number): Outline {
   const profile = holder.profile ?? []
   const nose = Math.max(...profile.map(([, l]) => l), 0)
   return [...profile].reverse().map(([r, l]) => [r, toolLength + (nose - l)])
+}
+
+/** Taper shanks: gauge diameter at the flange, taper length, and whether a pull stud closes it. */
+const TAPERS: Partial<Record<Holder['standard'], { gauge: number; length: number; stud: boolean }>> = {
+  BT30: { gauge: 31.75, length: 48.4, stud: true },
+  BT40: { gauge: 44.45, length: 65.4, stud: true },
+  BT50: { gauge: 69.85, length: 101.8, stud: true },
+  CAT40: { gauge: 44.45, length: 68.25, stud: true },
+  SK40: { gauge: 44.45, length: 68.4, stud: true },
+  HSK63A: { gauge: 48, length: 32, stud: false },
+  HSK100A: { gauge: 75, length: 50, stud: false }
+}
+
+/**
+ * The holder as drawn: its profile (see holderOutline) with the V-groove in the flange, the 7:24 taper
+ * and pull stud above it (or the short HSK taper), and a chamfered collet nut on ER holders.
+ * Drawing only: the checks use the plain profile.
+ */
+export function holderDrawing(holder: Holder, toolLength: number): Outline {
+  const out = holderOutline(holder, toolLength)
+  if (out.length < 2) return out
+  // Collet nut: chamfer its lower edge
+  const [nr, nh] = out[0] ?? [0, 0]
+  const [, nh2] = out[1] ?? [0, 0]
+  if (/er\d/i.test(holder.id) && nr > 0) {
+    const c = Math.min(nr * 0.12, (nh2 - nh) * 0.4)
+    out.splice(0, 1, [nr - c, nh], [nr, nh + c])
+  }
+  const taper = TAPERS[holder.standard]
+  if (!taper) return out
+  const top = out[out.length - 1]?.[1] ?? toolLength
+  // Flange: the widest step reaching the spindle face; its V-groove (60°) is cut in the middle
+  const rf = Math.max(...out.map(([r]) => r))
+  const k = out.findIndex(([r]) => r === rf)
+  const bottom = out[k]?.[1] ?? top
+  if (taper.stud && top - bottom > 10) {
+    const mid = (top + bottom) / 2
+    const depth = Math.min(5, rf * 0.15)
+    const half = depth * Math.tan(Math.PI / 6)
+    out.splice(k + 1, 0, [rf, mid - half - 2], [rf - depth, mid - half], [rf - depth, mid + half], [rf, mid + half + 2])
+  }
+  const end = taper.gauge / 2 - (taper.length * 7) / 48
+  out.push([taper.gauge / 2, top], [taper.stud ? end : taper.gauge / 2 - 1, top + taper.length])
+  if (taper.stud) {
+    const r = taper.gauge * 0.17
+    out.push([r, top + taper.length], [r, top + taper.length + taper.gauge * 0.35], [r * 1.35, top + taper.length + taper.gauge * 0.35], [r * 1.35, top + taper.length + taper.gauge * 0.55], [r * 0.6, top + taper.length + taper.gauge * 0.62])
+  }
+  out.push([0, out[out.length - 1]?.[1] ?? top])
+  return out
 }
 
 /** Radius of the holder where it meets the tool (the part that touches the stock first). */
