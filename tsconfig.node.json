@@ -15,6 +15,7 @@
     "src/i18n/**/*",
     "src/renderer/playback.ts",
     "src/renderer/help.ts",
+    "src/renderer/views.ts",
     "tests/**/*"
   ]
 }
