@@ -189,7 +189,7 @@ function TurnedBar({ moves, index, stock, zero, color }: Props) {
 }
 
 /** Turned bar: the outline from the axis at the face, along the radii, back to the axis at the chuck end. */
-function barGeometry(p: TurnProfile, color: string, _version: number): LatheGeometry {
+export function barGeometry(p: TurnProfile, color: string, _version = 0): LatheGeometry {
   const back = p.face - (p.radii.length - 1) * p.cell
   const pts = [new Vector2(0, p.face)]
   p.radii.forEach((r, i) => pts.push(new Vector2(Math.max(r, 0.01), p.face - i * p.cell)))
