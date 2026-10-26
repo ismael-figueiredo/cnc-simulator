@@ -28,7 +28,7 @@ export interface TurnProfile {
 }
 
 /** Cells per side at most: enough detail for pockets and contours, light enough to replay while playing. */
-const MAX_CELLS = 220
+const MAX_CELLS = 260
 
 /** Scene position of the stock corner (block) or face center (bar), from its work offset zero. */
 export const stockOrigin = (s: Stock, zero: Vec3): Vec3 => [zero[0] + (s.offset?.X ?? 0), zero[1] + (s.offset?.Y ?? 0), zero[2] + (s.offset?.Z ?? 0)]
