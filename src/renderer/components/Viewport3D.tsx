@@ -259,8 +259,9 @@ function WorkZero({ at, name, size }: { at: Vec3; name: string; size: number }) 
 }
 
 function Stock({ stock: s, faded, zero }: { stock: StockData; faded: boolean; zero: Vec3 }) {
+  // Keyed: three does not recompile a material when `transparent` flips, so the faded stock would stay opaque
   const material = (
-    <meshStandardMaterial color={s.color ?? COLORS.stock} metalness={0.5} roughness={0.4} transparent={faded} opacity={faded ? 0.22 : 1} depthWrite={!faded} />
+    <meshStandardMaterial key={faded ? 'faded' : 'solid'} color={s.color ?? COLORS.stock} metalness={0.5} roughness={0.4} transparent={faded} opacity={faded ? 0.22 : 1} depthWrite={!faded} />
   )
   const o: Vec3 = [zero[0] + (s.offset?.X ?? 0), zero[1] + (s.offset?.Y ?? 0), zero[2] + (s.offset?.Z ?? 0)]
   if (s.shape === 'cylinder') {
