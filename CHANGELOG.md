@@ -4,6 +4,38 @@ Cada versão em português e inglês. · Each version in Portuguese and English.
 
 Downloads: https://github.com/ismael-figueiredo/cnc-simulator/releases
 
+## 0.18.0 · 2026-10-26
+
+### Português
+**Edição pelo teclado MDI, imagens das peças e exemplos limpos.**
+- **Teclado MDI digita no programa** em EDIT, como no comando:
+  - letras e números; **SHIFT** dá o caractere pequeno de cada tecla (P, Q, R, #, [ …);
+  - **EOB** fecha o bloco, **CAN** apaga um caractere e **DELETE** apaga o bloco;
+  - uma letra começa uma palavra nova com espaço;
+  - fora do EDIT, a tela pede "MODO: EDIT".
+- **Programas em maiúsculas:** o que é digitado ou colado vira maiúscula, como no teclado do comando; os comentários ficam como foram escritos.
+- **macOS:** o atalho de uma tecla só "F" (Ajustar) no menu roubava essa letra do editor. Saiu do menu; a tecla F continua ajustando a vista fora do editor.
+- **Imagem da peça pronta:**
+  - os exemplos, os exercícios e os arquivos recentes mostram uma miniatura 3D da peça que o programa faz;
+  - a árvore do documento também mostra;
+  - **Peça acabada** na barra de vistas mostra o blank como o programa inteiro deixa.
+- **Exemplos sem colisão nem aviso:** a T7 do O2001 ficou mais longa (o aviso de colisão de suporte era proposital), e os testes passam a exigir isso de todos os exemplos.
+
+### English
+**Editing from the MDI keys, pictures of the parts and clean examples.**
+- **The MDI keys type into the program** in EDIT, as on the control:
+  - letters and numbers; **SHIFT** gives each key's small character (P, Q, R, #, [ …);
+  - **EOB** ends the block, **CAN** erases a character and **DELETE** removes the block;
+  - a letter starts a new word with a space;
+  - outside EDIT, the screen asks for "MODE: EDIT".
+- **Programs in capitals:** what is typed or pasted becomes upper case, as on the control's keyboard; comments keep what was written.
+- **macOS:** the one-key "F" shortcut (Fit) in the menu took that letter away from the editor. It left the menu; F still fits the view outside the editor.
+- **Picture of the finished part:**
+  - the examples, the exercises and the recent files show a small 3D picture of the part the program makes;
+  - the document tree shows it too;
+  - **Finished part** in the view toolbar shows the stock as the whole program leaves it.
+- **Examples with no collision or warning:** O2001's T7 is longer (the holder collision warning was on purpose), and the tests now require this of every example.
+
 ## 0.17.0 · 2026-10-26
 
 ### Português
