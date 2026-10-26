@@ -4,6 +4,16 @@ Cada versão em português e inglês. · Each version in Portuguese and English.
 
 Downloads: https://github.com/ismael-figueiredo/cnc-simulator/releases
 
+## 0.21.1 · 2026-10-26
+
+### Português
+**Cabeçote fresador redesenhado.**
+- O cabeçote era um cilindro liso com plaquinhas finas na borda. Agora segue as fotos de catálogo: corpo de aço com um bolsão de cavaco na frente de cada inserto, os insertos assentados na face do bolsão com o parafuso, um colar acima dos bolsões e o cubo que encaixa no suporte.
+
+### English
+**Redrawn face mill.**
+- The face mill was a plain cylinder with thin plates on its rim. It now follows catalog photos: a steel body with a chip pocket in front of each insert, the inserts seated on the pocket face with their screws, a collar above the pockets and the hub that sits on the arbor.
+
 ## 0.21.0 · 2026-10-26
 
 ### Português
