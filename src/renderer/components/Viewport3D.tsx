@@ -2,20 +2,16 @@ import { useEffect, useEffectEvent, useMemo, useRef, useState, type ReactNode } 
 import { Canvas, useFrame, useThree, type ThreeEvent } from '@react-three/fiber'
 import { CameraControls, GizmoHelper, GizmoViewcube, Grid, Html, Line, OrthographicCamera, PerspectiveCamera } from '@react-three/drei'
 import type CameraControlsImpl from 'camera-controls'
-import { Box3, BufferAttribute, Sphere, BufferGeometry, ExtrudeGeometry, LatheGeometry, Shape, Vector2, Vector3, type Group } from 'three'
+import { Box3, BufferAttribute, Sphere, BufferGeometry, Vector3, type Group } from 'three'
 import {
   chuckGeometry,
   tableLayout,
   tailstockGeometry,
   stockOrigin,
-  holderOutline,
-  insertOutline,
-  toolOutline,
   workShift,
   type Holder,
   type Machine,
   type Move,
-  type Outline,
   type SimulationResult,
   type Stock as StockData,
   type Tool,
@@ -25,6 +21,7 @@ import {
 } from '@core/index'
 import { Machining } from './Machining'
 import { ChuckModel, TableModel, TailstockModel } from './Fixtures'
+import { RotaryTool, TurningTool } from './ToolModels'
 import { useI18n } from '../i18n'
 import { latheToolAngle, viewAngles, viewDirection, type ViewKind } from '../views'
 
@@ -293,71 +290,6 @@ function Stock({ stock: s, faded, zero }: { stock: StockData; faded: boolean; ze
 }
 
 /** Solid of revolution around +Y (three.js LatheGeometry); the parent rotates it onto the tool axis. */
-function Revolved({ outline, color, opacity = 1 }: { outline: Outline; color: string; opacity?: number }) {
-  const geometry = useMemo(() => new LatheGeometry(outline.map(([r, h]) => new Vector2(Math.max(r, 0), h)), 40), [outline])
-  return (
-    <mesh geometry={geometry}>
-      <meshStandardMaterial color={color} metalness={0.6} roughness={0.35} transparent={opacity < 1} opacity={opacity} />
-    </mesh>
-  )
-}
-
-/** Rotary tool with its holder (mill taper or lathe driven holder), drawn from the tip up. */
-function RotaryTool({ tool, holder, colliding, spindleNose }: { tool: Tool; holder: Holder | undefined; colliding: boolean; spindleNose: boolean }) {
-  const body = useMemo(() => toolOutline(tool), [tool])
-  const nose = useMemo(() => (holder ? holderOutline(holder, tool.length) : null), [holder, tool.length])
-  const top = nose?.[nose.length - 1]?.[1] ?? tool.length
-  return (
-    <>
-      <Revolved outline={body} color={COLORS.cutter} />
-      {nose && <Revolved outline={nose} color={colliding ? COLORS.collision : COLORS.holder} />}
-      {/* Mill spindle nose above the taper, faded: only for reference */}
-      {spindleNose && (
-        <mesh position={[0, top + 20, 0]}>
-          <cylinderGeometry args={[45, 45, 40, 48]} />
-          <meshStandardMaterial color={COLORS.chuck} transparent opacity={0.25} depthWrite={false} />
-        </mesh>
-      )}
-    </>
-  )
-}
-
-/**
- * Turning tool in the X/Z plane: the ISO insert at the tip (its shape, hand and side from the tool),
- * with a square shank out along +X for external tools or a round boring bar along +Z for internal ones.
- */
-function TurningTool({ tool }: { tool: Tool }) {
-  const outline = useMemo(() => insertOutline(tool), [tool])
-  const insert = useMemo(() => {
-    const s = new Shape()
-    outline.forEach(([x, y], i) => (i ? s.lineTo(x, y) : s.moveTo(x, y)))
-    s.closePath()
-    return new ExtrudeGeometry(s, { depth: 4, bevelEnabled: false })
-  }, [outline])
-  const internal = tool.side === 'internal'
-  const zSign = tool.hand === 'left' ? -1 : 1
-  const shank = Math.max(tool.length, 30)
-  return (
-    // Shape x → X, shape y → Z (rotating +90° about X turns the drawing plane into X/Z)
-    <group rotation={[Math.PI / 2, 0, 0]}>
-      <mesh geometry={insert} position={[0, 0, -2]}>
-        <meshStandardMaterial color="#e3b23c" metalness={0.5} roughness={0.4} />
-      </mesh>
-      {internal ? (
-        <mesh position={[-8, (zSign * shank) / 2 + zSign * 6, 0]}>
-          <cylinderGeometry args={[7, 7, shank, 32]} />
-          <meshStandardMaterial color={COLORS.holder} metalness={0.5} roughness={0.4} />
-        </mesh>
-      ) : (
-        <mesh position={[shank / 2 + 8, zSign * 8, 0]}>
-          <boxGeometry args={[shank, 16, 16]} />
-          <meshStandardMaterial color={COLORS.holder} metalness={0.5} roughness={0.4} />
-        </mesh>
-      )}
-    </group>
-  )
-}
-
 /** Turns its children around the spindle axis at `rate` radians per second (0: stopped). */
 function Spin({ rate, children }: { rate: number; children: ReactNode }) {
   const ref = useRef<Group>(null)
