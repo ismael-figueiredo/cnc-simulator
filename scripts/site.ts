@@ -25,12 +25,18 @@ const PAGES = {
 type PageId = keyof typeof PAGES
 
 const CSS = `
-:root{--bg:#0b1117;--panel:#121a23;--line:#233142;--text:#e6edf3;--muted:#9fb0c0;--accent:#22d3ee;--warm:#ffb547}
+@font-face{font-family:'Barlow Condensed';font-weight:600;font-display:swap;src:url(FONTS/barlow-condensed-600.woff2) format('woff2')}
+@font-face{font-family:'Barlow Condensed';font-weight:700;font-display:swap;src:url(FONTS/barlow-condensed-700.woff2) format('woff2')}
+:root{--bg:#0e1215;--panel:#141a1f;--line:#233142;--text:#e6edf3;--muted:#9fb0c0;--accent:#f5b800;--warm:#f5b800;--brand:'Barlow Condensed','DIN Condensed','Arial Narrow',sans-serif}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:17px/1.6 -apple-system,'Segoe UI',Roboto,sans-serif}
 a{color:var(--accent)}img{max-width:100%;height:auto}
+.lockup{display:flex;align-items:center;gap:12px;color:var(--text);text-decoration:none}.lockup img{width:44px;height:44px}
+.lockup .name{font:700 28px/1 var(--brand);letter-spacing:.02em;text-transform:uppercase}.lockup .tag{font:600 12px var(--brand);letter-spacing:.22em;color:var(--accent);text-transform:uppercase;margin-top:3px}
+nav a{font:600 16px var(--brand);letter-spacing:.06em;text-transform:uppercase;text-decoration:none}
+h1,h2,h3,.btn,summary{font-family:var(--brand)}h1{font-weight:700;letter-spacing:.01em}h2{font-weight:700;text-transform:uppercase;letter-spacing:.04em}h3{font-weight:600;font-size:21px;letter-spacing:.02em}
+.btn{font-weight:600;font-size:18px;letter-spacing:.04em}summary{font-weight:600;font-size:19px}
 .wrap{max-width:1100px;margin:0 auto;padding:0 16px}
 header{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:16px 0;flex-wrap:wrap}
-.brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:20px;color:var(--text);text-decoration:none}
 nav{display:flex;gap:16px;font-size:15px;flex-wrap:wrap}
 .hero{padding:36px 0 20px;text-align:center}
 h1{font-size:clamp(30px,5vw,48px);line-height:1.15;margin:0 0 14px}
@@ -103,13 +109,13 @@ function layout({ lang, page, title, description, body, data, image = 'img/machi
 <link rel="icon" type="image/png" href="${to('/img/favicon.png')}">
 <link rel="apple-touch-icon" href="${to('/img/icon.png')}">
 <link rel="preload" as="image" href="${to(`/${image}`)}">
-<style>${CSS.replace(/\n/g, '')}</style>
+<style>${CSS.replace(/\n/g, '').replace(/FONTS\//g, to('/fonts/'))}</style>
 ${data.map((d) => `<script type="application/ld+json">${JSON.stringify(d)}</script>`).join('\n')}
 </head>
 <body>
 <div class="wrap">
 <header>
-  <a class="brand" href="${to(PAGES.home[lang])}"><img src="${to('/img/icon.png')}" width="36" height="36" alt="">CNC Simulator</a>
+  <a class="lockup" href="${to(PAGES.home[lang])}"><img src="${to('/img/icon.png')}" width="44" height="44" alt=""><span><span class="name">CNC Simulator</span><br><span class="tag">${t('G-code · Lathe · Mill', 'G-code · Torno · Fresa')}</span></span></a>
   <nav>
     <a href="${to(PAGES.home[lang])}#download">${t('Download', 'Baixar')}</a>
     <a href="${to(PAGES.codes[lang])}">${t('G-code reference', 'Códigos G e M')}</a>
@@ -386,7 +392,10 @@ for (const lang of ['en', 'pt'] as const) {
 // The app's icon and favicon, served by the site itself
 mkdirSync(join(root, 'docs/img'), { recursive: true })
 copyFileSync(join(root, 'src/renderer/public/favicon.png'), join(root, 'docs/img/favicon.png'))
-copyFileSync(join(root, 'build/icon.png'), join(root, 'docs/img/icon.png'))
+copyFileSync(join(root, 'src/renderer/public/icon.png'), join(root, 'docs/img/icon.png'))
+// The brand's condensed face, served by the site (no third-party font requests)
+mkdirSync(join(root, 'docs/fonts'), { recursive: true })
+for (const w of [600, 700]) copyFileSync(join(root, `node_modules/@fontsource/barlow-condensed/files/barlow-condensed-latin-${w}-normal.woff2`), join(root, `docs/fonts/barlow-condensed-${w}.woff2`))
 const urls = (Object.keys(PAGES) as PageId[]).flatMap((page) =>
   (['en', 'pt'] as const).map(
     (lang) => `  <url>
