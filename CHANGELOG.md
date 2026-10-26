@@ -4,6 +4,30 @@ Cada versão em português e inglês. · Each version in Portuguese and English.
 
 Downloads: https://github.com/ismael-figueiredo/cnc-simulator/releases
 
+## 0.19.1 · 2026-10-26
+
+### Português
+**Zeros de peça como na máquina.**
+- **Correção:** mudar o zero do blank na tabela (por exemplo o Z do G54) não mudava nada na tela, porque o blank andava junto com o zero. Agora o **blank fica preso na mesa**, como na máquina: subir o Z em 5 mm faz o programa cortar 5 mm mais alto (no ar, se ele só descia 2 mm), e mexer em X desloca o rasgo na peça.
+- No editor de zeros, a opção **"O blank fica preso na mesa"** (ligada por padrão) pode ser desligada para o blank acompanhar o zero, quando a intenção é corrigir onde a peça realmente está.
+- **Testes novos de ponta a ponta,** medindo a profundidade usinada no blank:
+  - zero movido em Z e em X;
+  - G54 e G55 no mesmo programa;
+  - G10 L2 trocando o zero no meio do programa;
+  - H mais curto ou mais longo que a ferramenta e o desgaste;
+  - zero do torno em Z.
+
+### English
+**Work offsets as on the machine.**
+- **Fix:** changing the stock's zero in the table (for example G54 Z) changed nothing on screen, because the stock moved with the zero. Now the **stock stays clamped on the table**, as on the machine: raising Z by 5 mm makes the program cut 5 mm higher (in the air, if it only went 2 mm deep), and moving X shifts the slot on the part.
+- In the work offset editor, **"The stock stays clamped on the table"** (on by default) can be turned off to have the stock follow the zero, when the point is to correct where the part really is.
+- **New end-to-end tests,** measuring the depth cut into the stock:
+  - zero moved in Z and in X;
+  - G54 and G55 in the same program;
+  - G10 L2 changing the zero mid-program;
+  - H shorter or longer than the tool, and wear;
+  - lathe Z zero.
+
 ## 0.19.0 · 2026-10-26
 
 ### Português
