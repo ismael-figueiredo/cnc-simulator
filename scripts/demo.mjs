@@ -36,7 +36,10 @@ void app.whenReady().then(async () => {
   const js = (code) => win.webContents.executeJavaScript(code)
   const frames = []
   await record(win, 1.5, frames)
-  await js(`[...document.querySelectorAll('.recent-item')].find((b) => b.textContent.includes('O2001')).click()`)
+  // The examples are on the start screen's second tab
+  await js(`document.querySelectorAll('.backstage-tabs button')[1].click()`)
+  await sleep(400)
+  await js(`[...document.querySelectorAll('.file-item')].find((b) => b.textContent.includes('O2001')).click()`)
   await sleep(1200)
   await js(`{
     const s = document.getElementById('player-speed')
