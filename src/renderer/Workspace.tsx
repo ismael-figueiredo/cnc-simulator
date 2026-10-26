@@ -3,31 +3,24 @@ import {
   useCallback,
   useEffect,
   useEffectEvent,
+  useImperativeHandle,
   useMemo,
   useRef,
   useState,
-  type ChangeEvent,
   type CSSProperties,
-  type PointerEvent as ReactPointerEvent
+  type PointerEvent as ReactPointerEvent,
+  type Ref
 } from 'react'
 import {
-  loadAlarmCatalog,
-  loadControl,
-  loadMachine,
   compareParts,
   findChuckCollisions,
   findHolderCollisions,
   holderOf,
-  loadExercise,
-  loadProject,
-  loadToolLibrary,
   programTemplate,
   simulate,
   stockFromPath,
-  supportsMacro,
   toolMount,
   workShift,
-  type AlarmCatalog,
   type ConfigIssue,
   type ProgramKind,
   type Control,
@@ -36,6 +29,7 @@ import {
   type Move,
   type Vec3,
   type Machine,
+  type Project,
   type Severity,
   type SimulationInput,
   type Stock,
@@ -44,8 +38,8 @@ import {
   type ToolOffsets,
   type WorkOffsets
 } from '@core/index'
-import { LANGUAGES, isLanguage } from '@i18n/index'
-import type { MenuCommand, OpenedFile } from '../preload/api'
+import type { MenuCommand } from '../preload/api'
+import { EXERCISES, isExample, type BundledConfigs, type Program } from './bundled'
 import { CodeView } from './components/CodeView'
 import { ProgramEditor, type EditorHandle } from './components/ProgramEditor'
 import { CncModal } from './components/CncModal'
@@ -54,9 +48,6 @@ import { Operations, toolColor } from './components/Operations'
 import { PositionAll, PositionPanel } from './components/PositionPanel'
 import { SoftKeys, type Screen } from './components/SoftKeys'
 import { StatusHeader } from './components/StatusHeader'
-import { Tour } from './components/Tour'
-import { StartScreen } from './components/StartScreen'
-import { NewProgramDialog } from './components/NewProgramDialog'
 import { StockEditor } from './components/StockEditor'
 import { ToolEditor } from './components/ToolEditor'
 import { ToolOffsetsEditor } from './components/ToolOffsetsEditor'
@@ -67,7 +58,6 @@ import { ExerciseCard, type ExerciseCheck } from './components/ExerciseCard'
 import { explainLine, helpForWord } from './help'
 import { useLibraries } from './libraries'
 import { defaultSetup, offsetsFor, projectData, setupFromProject, STOCK_COLOR, type Setup } from './project'
-import { useRecent } from './recent'
 import { createSimulator } from './simulation'
 import {
   blockEnd,
@@ -87,75 +77,6 @@ import {
 } from './playback'
 
 
-// Every JSON in configs/ ships with the app: dropping a file in the folder adds it.
-const machineFiles = import.meta.glob<unknown>('../../configs/machines/*.json', { eager: true, import: 'default' })
-const controlFiles = import.meta.glob<unknown>('../../configs/controls/*.json', { eager: true, import: 'default' })
-const toolFiles = import.meta.glob<unknown>('../../configs/tools/*.json', { eager: true, import: 'default' })
-const alarmFiles = import.meta.glob<unknown>('../../configs/alarms/*.json', { eager: true, import: 'default' })
-const fileName = (path: string) => path.slice(path.lastIndexOf('/') + 1)
-/** The Romi GL 250 M opens first: it is the machine of the bundled O1500 example. */
-const FIRST_MACHINE = 'romi-gl250-m'
-// Bundled examples: each is a project (examples/*.cncsim) next to its program
-const exampleProjects = import.meta.glob<string>('../../examples/*.cncsim', { eager: true, query: '?raw', import: 'default' })
-const examplePrograms = import.meta.glob<string>('../../examples/*.nc', { eager: true, query: '?raw', import: 'default' })
-const EXAMPLES = Object.entries(exampleProjects)
-  .map(([path, text]) => {
-    const r = loadProject(text, fileName(path))
-    if (!r.ok) return null
-    const program = examplePrograms[`../../examples/${r.value.program}`]
-    return program === undefined ? null : { id: fileName(path), project: r.value, projectText: text, programText: program }
-  })
-  .filter((e) => e !== null)
-  .sort((a, b) => a.id.localeCompare(b.id))
-const isExample = (path: string) => path.startsWith('example:')
-// Guided exercises (examples/learn): statement, starting program and solution in one file
-const exerciseFiles = import.meta.glob<string>('../../examples/learn/*.json', { eager: true, query: '?raw', import: 'default' })
-const EXERCISES = Object.entries(exerciseFiles)
-  .map(([path, text]) => {
-    const r = loadExercise(text, fileName(path))
-    return r.ok ? { id: fileName(path).replace(/\.json$/, ''), exercise: r.value } : null
-  })
-  .filter((e) => e !== null)
-  .sort((a, b) => a.id.localeCompare(b.id))
-
-
-interface Program {
-  name: string
-  /** File path on the desktop; the file name (or "example:…") in the browser. */
-  path: string
-  text: string
-}
-
-interface BundledConfigs {
-  machines: Machine[]
-  controls: Control[]
-  library: ToolLibrary | null
-  libraries: ToolLibrary[]
-  alarmCatalogs: AlarmCatalog[]
-  issues: ConfigIssue[]
-}
-
-// Configs shipped with the app. Phase 3 adds loading the user's own JSON files.
-// Takes the language only so callers re-run it when validation messages must be translated again.
-function loadBundled(_lang: string): BundledConfigs {
-  const issues: ConfigIssue[] = []
-  function loadAll<T>(files: Record<string, unknown>, load: (data: unknown, source: string) => { ok: true; value: T } | { ok: false; issues: ConfigIssue[] }): T[] {
-    const out: T[] = []
-    for (const [path, data] of Object.entries(files)) {
-      const r = load(data, fileName(path))
-      if (r.ok) out.push(r.value)
-      else issues.push(...r.issues)
-    }
-    return out
-  }
-  const machines = loadAll(machineFiles, loadMachine).sort(
-    (a, b) => Number(b.id === FIRST_MACHINE) - Number(a.id === FIRST_MACHINE) || a.name.localeCompare(b.name)
-  )
-  const controls = loadAll(controlFiles, loadControl).sort((a, b) => a.name.localeCompare(b.name))
-  const libraries = loadAll(toolFiles, loadToolLibrary)
-  const alarmCatalogs = loadAll(alarmFiles, loadAlarmCatalog)
-  return { machines, controls, library: libraries[0] ?? null, libraries, alarmCatalogs, issues }
-}
 
 interface Simulation {
   timeline: Timeline | null
@@ -189,35 +110,8 @@ function simInput(
   }
 }
 
-function run(program: Program | null, machine: Machine | undefined, control: Control | undefined, cfg: BundledConfigs, setup: Setup): Simulation {
-  const input = simInput(program, machine, control, cfg, setup)
-  if (!input) return NO_SIMULATION
-  const timeline = buildTimeline(simulate(input))
-  // Like the control after loading a program: RESET, cursor at the top, nothing run yet
-  return { timeline, time: 0, playing: false }
-}
-
 const FONT_KEY = 'cncsim.codeFontSize'
 const WIDTH_KEY = 'cncsim.codeWidth'
-const LAYOUT_KEY = 'cncsim.layout'
-const TOUR_KEY = 'cncsim.tourDone'
-const LEARN_KEY = 'cncsim.learn'
-const tourDone = () => {
-  try {
-    return localStorage.getItem(TOUR_KEY) === '1'
-  } catch {
-    return true
-  }
-}
-/** Machine (one control screen with soft keys) or CAM (program, 3D view, side panel). */
-type Layout = 'machine' | 'cam'
-const readLayout = (): Layout => {
-  try {
-    return localStorage.getItem(LAYOUT_KEY) === 'cam' ? 'cam' : 'machine'
-  } catch {
-    return 'machine'
-  }
-}
 const readNumber = (key: string, fallback: number) => {
   try {
     const v = Number(localStorage.getItem(key))
@@ -309,30 +203,113 @@ const Messages = memo(function Messages({ issues, diagnostics, collisions, chuck
   )
 })
 
-export function App() {
-  const { lang, setLang, t, l } = useI18n()
-  // Re-validate on language change so schema messages come out in the new language.
-  const cfg = useMemo(() => loadBundled(lang), [lang])
-  const [machineId, setMachineId] = useState(cfg.machines[0]?.id ?? '')
+/** Machine (one control screen with soft keys) or 3D model (program, 3D view, feature panel). */
+export type Layout = 'machine' | 'model'
+
+/** What a new tab opens: everything the document needs is decided before it is created. */
+export type DocInit =
+  | { kind: 'project'; program: Program; project: Project; projectPath: string }
+  | { kind: 'program'; program: Program; machineId: string; controlId: string; library: ToolLibrary | null }
+  | { kind: 'new'; machineId: string; controlId: string; programKind: ProgramKind; number: number }
+  | { kind: 'exercise'; id: string }
+
+/** What the tab strip and the status bar show about a document. */
+export interface DocState {
+  title: string
+  dirty: boolean
+  /** Project (.cncsim) or a program alone (.nc). */
+  kind: 'project' | 'program'
+}
+
+/** Commands the shell forwards to the document in front (menus, keyboard). */
+export interface WorkspaceHandle {
+  command: (command: MenuCommand) => void
+  /** Asks before throwing away unsaved edits; true when the tab may close. */
+  canClose: () => boolean
+}
+
+interface Props {
+  init: DocInit
+  cfg: BundledConfigs
+  /** Only the tab in front draws the 3D view, plays and takes keys. */
+  active: boolean
+  layout: Layout
+  learn: boolean
+  onLearn: (on: boolean) => void
+  onState: (state: DocState) => void
+  /** Browser mode keeps recent files itself. */
+  onRecord: (program: Program) => void
+  ref?: Ref<WorkspaceHandle>
+}
+
+/** One open document: its program, machine, setup and simulation, shown in the machine or 3D model layout. */
+export function Workspace({ init, cfg, active, layout, learn, onLearn, onState, onRecord, ref }: Props) {
+  const { t, l } = useI18n()
+  // Everything the document starts with comes from what was opened
+  const [start] = useState(() => {
+    if (init.kind === 'project') {
+      const m = cfg.machines.find((x) => x.id === init.project.machine) ?? cfg.machines[0]
+      const c = cfg.controls.find((x) => x.id === init.project.control) ?? cfg.controls.find((x) => x.id === m?.defaultControl)
+      return { program: init.program, machineId: m?.id ?? '', controlId: c?.id ?? '', setup: setupFromProject(init.project, m, cfg.libraries), projectPath: init.projectPath, mode: 'mem' as const, dirty: false, exercise: null }
+    }
+    if (init.kind === 'program') {
+      const m = cfg.machines.find((x) => x.id === init.machineId)
+      const base = defaultSetup(m, cfg.libraries)
+      const tools = init.library ?? base.tools
+      const setup = { ...base, tools, toolOffsets: offsetsFor(tools, m) }
+      return { program: init.program, machineId: init.machineId, controlId: init.controlId, setup, projectPath: null, mode: 'mem' as const, dirty: false, exercise: null }
+    }
+    if (init.kind === 'new') {
+      const m = cfg.machines.find((x) => x.id === init.machineId)
+      const c = cfg.controls.find((x) => x.id === init.controlId)
+      // Header written with the selected control's own codes, in its file format
+      const text =
+        m && c
+          ? programTemplate(m, c, init.programKind, init.number, {
+              newProgram: t('template.newProgram'),
+              workZero: t('template.workZero'),
+              latheZero: t('template.latheZero'),
+              tool: t('template.tool'),
+              machineHere: t('template.machineHere'),
+              parameters: t('template.parameters'),
+              passes: t('template.passes'),
+              length: t('template.length'),
+              stepDown: t('template.stepDown'),
+              totalDepth: t('template.totalDepth'),
+              feed: t('template.feed'),
+              startDiameter: t('template.startDiameter'),
+              finalDiameter: t('template.finalDiameter')
+            })
+          : ''
+      const program = { name: `O${String(init.number).padStart(4, '0')}.nc`, path: '', text }
+      // A new program starts unsaved, in EDIT, on the machine's own setup
+      return { program, machineId: init.machineId, controlId: init.controlId, setup: defaultSetup(m, cfg.libraries), projectPath: null, mode: 'edit' as const, dirty: true, exercise: null }
+    }
+    const e = EXERCISES.find((x) => x.id === init.id)
+    const ex = e?.exercise
+    const m = cfg.machines.find((x) => x.id === ex?.machine) ?? cfg.machines[0]
+    const base = defaultSetup(m, cfg.libraries)
+    const setup: Setup = ex ? { ...base, stock: { ...ex.stock }, workOffsets: ex.workOffsets ?? {} } : base
+    const program = { name: `${init.id}.nc`, path: `example:learn/${init.id}.nc`, text: ex?.start ?? '' }
+    return { program, machineId: m?.id ?? '', controlId: ex?.control ?? m?.defaultControl ?? '', setup, projectPath: null, mode: 'edit' as const, dirty: false, exercise: e ?? null }
+  })
+  const [machineId, setMachineId] = useState(start.machineId)
   const machine = cfg.machines.find((m) => m.id === machineId) ?? cfg.machines[0]
-  const [controlId, setControlId] = useState(machine?.defaultControl ?? cfg.controls[0]?.id ?? '')
+  const [controlId, setControlId] = useState(start.controlId)
   const control = cfg.controls.find((c) => c.id === controlId)
-  // No program on start: the start screen lists the recent files and the example
-  const [program, setProgram] = useState<Program | null>(null)
-  const recent = useRecent()
+  const [program, setProgram] = useState<Program>(start.program)
   // EDIT: the text is in CodeMirror (read it with editor.current.getText()); MEM: read-only run screen
-  const [mode, setMode] = useState<'mem' | 'edit'>('mem')
-  const [dirty, setDirty] = useState(false)
-  /** Bumped on every new or opened program, so the editor starts over with the new text. */
-  const [programKey, setProgramKey] = useState(0)
+  const [mode, setMode] = useState<'mem' | 'edit'>(start.mode)
+  const [dirty, setDirty] = useState(start.dirty)
   const editor = useRef<EditorHandle>(null)
   /** Bumped on each edit: the path is recomputed a moment after typing stops. */
   const [editTick, setEditTick] = useState(0)
   // Stock, tools and work offsets: from the open project, or the machine's defaults
-  const [setup, setSetup] = useState<Setup>(() => defaultSetup(machine, cfg.libraries))
+  const [setup, setSetup] = useState<Setup>(start.setup)
   /** The .cncsim file the setup came from, or null for a program opened alone. */
-  const [projectPath, setProjectPath] = useState<string | null>(null)
-  const [sim, setSim] = useState<Simulation>(() => run(program, machine, control, cfg, setup))
+  const [projectPath, setProjectPath] = useState<string | null>(start.projectPath)
+  // Simulated in the worker as soon as the tab opens (below)
+  const [sim, setSim] = useState<Simulation>(NO_SIMULATION)
   // One worker for the window's lifetime
   const [simulator] = useState(createSimulator)
   const [busy, setBusy] = useState(false)
@@ -342,7 +319,6 @@ export function App() {
   const [breakpoints, setBreakpoints] = useState<ReadonlySet<number>>(() => new Set())
   const [fontSize, setFontSize] = useState(() => readNumber(FONT_KEY, 11.5))
   const [codeWidth, setCodeWidth] = useState(() => readNumber(WIDTH_KEY, 300))
-  const [layout, setLayout] = useState<Layout>(readLayout)
   /** Page of the machine layout picked with the soft keys. */
   const [screen, setScreen] = useState<Screen>('graph')
   /** Tab of the CAM layout's side panel. */
@@ -351,12 +327,8 @@ export function App() {
   const [follow, setFollow] = useState(false)
   /** Measuring session in the 3D view, 0 when off (each new session starts with no points). */
   const [measuring, setMeasuring] = useState(0)
-  /** Step of the first-use tour, -1 when not shown. */
-  const [tour, setTour] = useState(-1)
-  /** Learning mode: help over the program's codes and the running block explained under it. */
-  const [learn, setLearn] = useState(() => readNumber(LEARN_KEY, 0) === 1)
   /** Guided exercise open, and the result of its last check. */
-  const [exercise, setExercise] = useState<{ id: string; exercise: Exercise } | null>(null)
+  const [exercise, setExercise] = useState<{ id: string; exercise: Exercise } | null>(start.exercise)
   const [exerciseCheck, setExerciseCheck] = useState<ExerciseCheck | null>(null)
   const [speed, setSpeed] = useState(20)
   const [showRapids, setShowRapids] = useState(true)
@@ -365,15 +337,13 @@ export function App() {
   const [machineView, setMachineView] = useState(true)
   /** Show the stock being cut where the tool passes. */
   const [machining, setMachining] = useState(true)
-  const fileInput = useRef<HTMLInputElement>(null)
   const libraries = useLibraries()
   const [editingTools, setEditingTools] = useState(false)
   const [editingStock, setEditingStock] = useState(false)
   const [editingOffsets, setEditingOffsets] = useState(false)
   const [editingToolOffsets, setEditingToolOffsets] = useState(false)
-  const [creating, setCreating] = useState(false)
 
-  const lines = useMemo(() => (program?.text ?? '').replace(/\r/g, '').split('\n'), [program])
+  const lines = useMemo(() => program.text.replace(/\r/g, '').split('\n'), [program])
   /** First block of the program (skips the % leader and blank lines): where RESET puts the cursor. */
   const startLine = useMemo(() => Math.max(0, lines.findIndex((l) => l.trim() !== '' && l.trim() !== '%')), [lines])
   const tl = sim.timeline
@@ -414,14 +384,6 @@ export function App() {
       return next
     })
   }, [])
-  function changeLayout(next: Layout) {
-    setLayout(next)
-    try {
-      localStorage.setItem(LAYOUT_KEY, next)
-    } catch {
-      // not persisted
-    }
-  }
   /** Drag the divider to widen the program panel; `dir` is -1 when the program is on the right. */
   function startResize(e: ReactPointerEvent<HTMLDivElement>, dir: 1 | -1) {
     const startX = e.clientX
@@ -442,69 +404,19 @@ export function App() {
     el.addEventListener('pointerup', up)
   }
   /** The program with the text being edited, if any. */
-  function currentProgram(): Program | null {
-    if (!program || mode !== 'edit' || !editor.current) return program
+  function currentProgram(): Program {
+    if (mode !== 'edit' || !editor.current) return program
     return { ...program, text: editor.current.getText() }
   }
   /** Asks before throwing away unsaved edits. */
   function canDiscard(): boolean {
-    return !dirty || !program || window.confirm(t('dialog.unsavedDiscard', { name: program.name }))
-  }
-  function load(p: Program | null, nextMode: 'mem' | 'edit' = 'mem') {
-    // Any other program leaves the exercise (openExercise sets it again right after)
-    setExercise(null)
-    setExerciseCheck(null)
-    // The first program opened shows the tour once
-    if (p && tour < 0 && !tourDone()) setTour(0)
-    setProgram(p)
-    setMode(nextMode)
-    setDirty(false)
-    setProgramKey((k) => k + 1)
-  }
-  function openProgram(f: OpenedFile) {
-    if (!canDiscard()) return
-    if (f.project) {
-      openProject(f, f.project)
-      return
-    }
-    // A program opened alone takes the machine's own stock and no work offsets
-    const p = { name: f.name, path: f.path, text: f.text }
-    const s = defaultSetup(machine, cfg.libraries)
-    load(p)
-    setSetup(s)
-    setProjectPath(null)
-    recent.record(p)
-    simulateWith(p, machine, control, s)
-  }
-  function openProject(f: OpenedFile, project: NonNullable<OpenedFile['project']>) {
-    const r = loadProject(project.text, project.path)
-    if (!r.ok) {
-      window.alert(`${t('project.invalid')}\n\n${r.issues.map(issueText).join('\n')}`)
-      return
-    }
-    const pr = r.value
-    const m = cfg.machines.find((x) => x.id === pr.machine)
-    const c = cfg.controls.find((x) => x.id === pr.control)
-    if (!m || !c) window.alert(t('project.unknownConfig', { machine: pr.machine, control: pr.control }))
-    const mm = m ?? machine
-    const cc = c ?? control
-    // Desktop: the program file next to the project; browser: the copy inside it
-    // Desktop and examples: the program file read with it; browser files: the copy inside the project
-    const text = f.text || (pr.programText ?? '')
-    if (window.api && project.programMissing) window.alert(t('project.programMissing', { program: pr.program }))
-    const p = { name: pr.program.slice(pr.program.lastIndexOf('/') + 1), path: f.path || pr.program, text }
-    const s = setupFromProject(pr, mm, cfg.libraries)
-    if (mm) setMachineId(mm.id)
-    if (cc) setControlId(cc.id)
-    load(p)
-    setSetup(s)
-    setProjectPath(project.path)
-    simulateWith(p, mm, cc, s)
+    return !dirty || window.confirm(t('dialog.unsavedDiscard', { name: program.name }))
   }
   async function saveProject(saveAs: boolean) {
-    let p = currentProgram()
-    if (!p || !machine || !control) return
+    const current = currentProgram()
+    if (!machine || !control) return
     const data = projectData(machine.id, control.id, setup)
+    let p = current
     if (!window.api) {
       const name = projectPath ?? `${p.name.replace(/\.[^.]+$/, '')}.cncsim`
       download(name, JSON.stringify({ ...data, program: p.name, programText: p.text }, null, 2), 'application/json')
@@ -513,49 +425,16 @@ export function App() {
     }
     // The project points to the program file, so a new or edited program is saved first
     if (dirty || !p.path || p.path.startsWith('example:')) {
-      p = await save(false)
-      if (!p) return
+      const saved = await save(false)
+      if (!saved) return
+      p = saved
     }
     const path = await window.api.saveProject({ project: data, projectPath: saveAs ? '' : (projectPath ?? ''), programPath: p.path }, saveAs)
     if (path) setProjectPath(path)
   }
-  /** File > New: asks plain or parametric first (NewProgramDialog). */
-  function newProgram() {
-    if (canDiscard()) setCreating(true)
-  }
-  function createProgram(kind: ProgramKind, number: number) {
-    setCreating(false)
-    if (!machine || !control) return
-    // Header written with the selected control's own codes, in its file format
-    const text = programTemplate(machine, control, kind, number, {
-      newProgram: t('template.newProgram'),
-      workZero: t('template.workZero'),
-      latheZero: t('template.latheZero'),
-      tool: t('template.tool'),
-      machineHere: t('template.machineHere'),
-      parameters: t('template.parameters'),
-      passes: t('template.passes'),
-      length: t('template.length'),
-      stepDown: t('template.stepDown'),
-      totalDepth: t('template.totalDepth'),
-      feed: t('template.feed'),
-      startDiameter: t('template.startDiameter'),
-      finalDiameter: t('template.finalDiameter')
-    })
-    const p = { name: `O${String(number).padStart(4, '0')}.nc`, path: '', text }
-    // A new program starts from the machine's own setup: its stock and its default tools
-    const s = defaultSetup(machine, cfg.libraries)
-    load(p, 'edit')
-    setSetup(s)
-    setProjectPath(null)
-    // A new program starts unsaved, so leaving it asks first
-    setDirty(true)
-    simulateWith(p, machine, control, s)
-  }
   /** Saves the program; returns it with its new name and path, or null if cancelled. */
   async function save(saveAs: boolean): Promise<Program | null> {
     let p = currentProgram()
-    if (!p) return null
     if (window.api) {
       // The example and new programs have no file yet: always ask where to save
       const r = await window.api.saveFile(p, saveAs || !p.path || p.path.startsWith('example:'))
@@ -564,7 +443,7 @@ export function App() {
     } else {
       // Browser: the file goes to the downloads folder
       download(p.name, p.text, 'text/plain')
-      recent.record(p)
+      onRecord(p)
     }
     setProgram(p)
     setDirty(false)
@@ -585,39 +464,6 @@ export function App() {
     if (p !== program) setProgram(p)
     setMode('mem')
     simulateWith(p, machine, control)
-  }
-  /** Bundled examples open like projects: machine, control, stock and work offsets come with them. */
-  function openExample(id: string) {
-    const ex = EXAMPLES.find((e) => e.id === id)
-    if (!ex || !canDiscard()) return
-    const path = `example:${ex.project.program}`
-    openProject({ name: ex.project.program, path, text: ex.programText }, { path: `example:${ex.id}`, text: ex.projectText, programMissing: false })
-  }
-  /** Opens a guided exercise: its machine, control, stock and offsets, and the starting program in EDIT. */
-  function openExercise(id: string) {
-    const e = EXERCISES.find((x) => x.id === id)
-    if (!e || !canDiscard()) return
-    const ex = e.exercise
-    const m = cfg.machines.find((x) => x.id === ex.machine) ?? machine
-    const c = cfg.controls.find((x) => x.id === ex.control) ?? control
-    const base = defaultSetup(m, cfg.libraries)
-    const s: Setup = { ...base, stock: { ...ex.stock }, workOffsets: ex.workOffsets ?? {} }
-    const p = { name: `${e.id}.nc`, path: `example:learn/${e.id}.nc`, text: ex.start }
-    if (m) setMachineId(m.id)
-    if (c) setControlId(c.id)
-    load(p, 'edit')
-    setSetup(s)
-    setProjectPath(null)
-    setExercise(e)
-    setExerciseCheck(null)
-    simulateWith(p, m, c, s)
-  }
-  function showStart() {
-    if (!canDiscard()) return
-    setExercise(null)
-    load(null)
-    setProjectPath(null)
-    simulateWith(null, machine, control)
   }
   function changeMachine(id: string) {
     const m = cfg.machines.find((x) => x.id === id)
@@ -661,22 +507,6 @@ export function App() {
     setEditingToolOffsets(false)
     simulateWith(currentProgram(), machine, control, s)
   }
-  async function pickProgram() {
-    // Electron uses the native dialog; the browser (server mode) falls back to <input type=file>.
-    if (window.api) {
-      const r = await window.api.openFile()
-      if (r) openProgram(r)
-    } else fileInput.current?.click()
-  }
-  function readInput(e: ChangeEvent<HTMLInputElement>) {
-    const f = e.target.files?.[0]
-    if (!f) return
-    void f.text().then((text) =>
-      openProgram(f.name.toLowerCase().endsWith('.cncsim') ? { name: f.name, path: '', text: '', project: { path: f.name, text, programMissing: false } } : { name: f.name, path: f.name, text })
-    )
-    e.target.value = ''
-  }
-
   const seek = useCallback((time: number) => {
     setSim((s) => ({ ...s, playing: false, time: Math.max(0, Math.min(s.timeline?.total ?? 0, time)) }))
   }, [])
@@ -762,31 +592,20 @@ export function App() {
     return () => cancelAnimationFrame(frame)
   }, [playing, speed, stops, singleBlock])
 
-  // Desktop: File > Open program… in the native menu.
-  const onMenuOpen = useEffectEvent((f: Program) => openProgram(f))
-  useEffect(() => window.api?.onFileOpened(onMenuOpen), [])
-  const onMenuHome = useEffectEvent(showStart)
-  useEffect(() => window.api?.onShowStart(onMenuHome), [])
-  const onMenuCommand = useEffectEvent((command: MenuCommand) => {
-    if (command === 'new') newProgram()
-    else if (command === 'saveProject') void saveProject(false)
-    else if (program) void save(command === 'saveAs')
-  })
-  useEffect(() => window.api?.onMenuCommand(onMenuCommand), [])
-  // Browser mode has no native menu: the same shortcuts from the keyboard
-  useEffect(() => {
-    if (window.api) return
-    const key = (e: KeyboardEvent) => {
-      if (!(e.ctrlKey || e.metaKey)) return
-      const k = e.key.toLowerCase()
-      if (k === 's') onMenuCommand(e.altKey ? 'saveProject' : e.shiftKey ? 'saveAs' : 'save')
-      else if (k === 'n' && e.altKey) onMenuCommand('new') // Ctrl+N opens a browser window
-      else return
-      e.preventDefault()
-    }
-    window.addEventListener('keydown', key)
-    return () => window.removeEventListener('keydown', key)
-  }, [])
+  // The tab opens on RESET with its program simulated, like the control after loading it
+  const simulateOnOpen = useEffectEvent(() => simulateWith(program, machine, control, setup))
+  useEffect(() => simulateOnOpen(), [])
+  // Menus and keys reach only the tab in front (the shell forwards them)
+  useImperativeHandle(ref, () => ({
+    command: (command: MenuCommand) => {
+      if (command === 'save' || command === 'saveAs') void save(command === 'saveAs')
+      else if (command === 'saveProject') void saveProject(false)
+      else if (command.startsWith('view:')) setView((v) => ({ kind: command.slice(5) as ViewKind, n: (v?.n ?? 0) + 1 }))
+    },
+    canClose: canDiscard
+  }))
+  // The tab strip shows the name, the unsaved mark and whether this is a project
+  useEffect(() => onState({ title: program.name, dirty, kind: projectPath ? 'project' : 'program' }), [program.name, dirty, projectPath, onState])
   // While editing, the path, messages and alarms follow the text: recomputed (at RESET)
   // a moment after typing stops, so the view never shows a program that is no longer there
   const refreshFromEditor = useEffectEvent(() => {
@@ -797,11 +616,6 @@ export function App() {
     const id = setTimeout(refreshFromEditor, 700)
     return () => clearTimeout(id)
   }, [editTick])
-
-  // The main process asks before closing the window with unsaved edits
-  useEffect(() => {
-    void window.api?.setDirty(dirty)
-  }, [dirty])
 
   // ---- derived lists ----
   const diagnostics = useMemo(
@@ -831,7 +645,6 @@ export function App() {
     [tl, jumpToLine, seekMove, seek]
   )
   const stoppedBy = result?.stoppedBy
-  const issueText = (i: ConfigIssue) => configIssueText(t, i)
 
   const machineKind = machine && (machine.kinematics.startsWith('lathe') ? 'lathe' : 'mill')
   const shownAxes = machine ? machine.axes.map((a) => a.name) : ['X', 'Y', 'Z']
@@ -917,7 +730,7 @@ export function App() {
   // Operator panel keys from the keyboard, outside text fields and dialogs: Space is cycle start or
   // feed hold, Esc is RESET, S toggles single block
   const onPanelKey = useEffectEvent((e: KeyboardEvent) => {
-    if (!program || e.ctrlKey || e.metaKey || e.altKey) return
+    if (!active || e.ctrlKey || e.metaKey || e.altKey) return
     const el = e.target instanceof HTMLElement ? e.target : null
     if (el?.closest('input, textarea, select, [contenteditable="true"], .modal-backdrop')) return
     if (e.key === ' ') {
@@ -934,9 +747,8 @@ export function App() {
     return () => window.removeEventListener('keydown', onPanelKey)
   }, [])
 
-  // ---- pieces of the screen, laid out by the CAM or the machine layout ----
-  const programPanel = (modalArea: boolean) =>
-    program && (
+  // ---- pieces of the screen, laid out by the 3D model or the machine layout ----
+  const programPanel = (modalArea: boolean) => (
       <section className="panel">
         <div className="panel-title">
           <span className="file" title={`${program.name} · ${t('program.lines', { count: lines.length })}`}>
@@ -955,16 +767,11 @@ export function App() {
             </svg>
           </button>
           <span className="zoom">
-            <button
-              className={`btn tiny ${learn ? 'on' : ''}`}
-              aria-pressed={learn}
-              title={t('learn.hint')}
-              onClick={() => {
-                setLearn(!learn)
-                writeNumber(LEARN_KEY, learn ? 0 : 1)
-              }}
-            >
-              ?
+            <button className={`btn tiny icon-btn ${learn ? 'on' : ''}`} aria-pressed={learn} title={t('learn.hint')} aria-label={t('learn.hint')} onClick={() => onLearn(!learn)}>
+              {/* An open book: learning mode */}
+              <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden>
+                <path d="M8 3.5C6.5 2.5 4 2.3 1.5 2.8v10c2.5-.5 5-.3 6.5.7 1.5-1 4-1.2 6.5-.7v-10C12 2.3 9.5 2.5 8 3.5Zm0 0v10" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round" />
+              </svg>
             </button>
             <button className="btn tiny" title={t('code.smaller')} aria-label={t('code.smaller')} onClick={() => changeFont(-0.5)}>A−</button>
             <button className="btn tiny" title={t('code.larger')} aria-label={t('code.larger')} onClick={() => changeFont(0.5)}>A+</button>
@@ -973,7 +780,7 @@ export function App() {
         {/* Like the control: the modal state (F, S, T, active codes and cycle) above the running program */}
         {mode === 'mem' && modalArea && <CncModal move={move} />}
         {mode === 'edit' ? (
-          <ProgramEditor key={programKey} ref={editor} text={program.text} fontSize={fontSize} onEdit={edited} help={learn ? help : undefined} />
+          <ProgramEditor ref={editor} text={program.text} fontSize={fontSize} onEdit={edited} help={learn ? help : undefined} />
         ) : (
           <CodeView
             lines={lines}
@@ -1004,7 +811,7 @@ export function App() {
           </div>
         )}
       </section>
-    )
+  )
   const viewTitle = (
     <div className="panel-title">
       <span>{t('view.title')}</span>
@@ -1293,82 +1100,9 @@ export function App() {
   )
 
   return (
-    <div className="app">
-      <header className="top">
-        <div className="brand">
-          <h1>{t('app.name')}</h1>
-        </div>
-        <div className="controls">
-          <label>
-            {t('header.machine')}
-            <select id="sel-machine" value={machineId} onChange={(e) => changeMachine(e.target.value)}>
-              {cfg.machines.map((m) => (
-                <option key={m.id} value={m.id}>{m.name}</option>
-              ))}
-            </select>
-          </label>
-          <label>
-            {t('header.control')}
-            <select id="sel-control" value={controlId} onChange={(e) => changeControl(e.target.value)}>
-              {cfg.controls.map((c) => (
-                <option key={c.id} value={c.id}>{c.name}</option>
-              ))}
-            </select>
-          </label>
-          {/* Desktop picks the language in Settings > Language; the browser has no menu bar. */}
-          {!window.api && (
-            <label>
-              {t('header.language')}
-              <select
-                id="sel-language"
-                value={lang}
-                onChange={(e) => {
-                  if (isLanguage(e.target.value)) setLang(e.target.value)
-                }}
-              >
-                {LANGUAGES.map((x) => (
-                  <option key={x.code} value={x.code}>{x.label}</option>
-                ))}
-              </select>
-            </label>
-          )}
-          <span className="layout-switch" role="group">
-            <button className={`btn tiny ${layout === 'machine' ? 'on' : ''}`} aria-pressed={layout === 'machine'} title={t('layout.machineHint')} onClick={() => changeLayout('machine')}>
-              {t('layout.machine')}
-            </button>
-            <button className={`btn tiny ${layout === 'cam' ? 'on' : ''}`} aria-pressed={layout === 'cam'} title={t('layout.camHint')} onClick={() => changeLayout('cam')}>
-              {t('layout.cam')}
-            </button>
-          </span>
-          <input ref={fileInput} type="file" hidden onChange={readInput} />
-          {program && (
-            <button className="btn" title={t('tour.startHint')} onClick={() => setTour(0)}>
-              {t('tour.start')}
-            </button>
-          )}
-          {program && <button className="btn" onClick={showStart}>{t('action.home')}</button>}
-          <button className="btn" onClick={() => void pickProgram()}>{t('action.openProgram')}</button>
-        </div>
-      </header>
-
-      {!program ? (
-        <StartScreen
-          recent={recent.items}
-          examples={EXAMPLES.map((e) => ({ id: e.id, name: e.project.program, detail: l(e.project.description ?? '') }))}
-          onOpenExample={openExample}
-          exercises={EXERCISES.map((e) => ({ id: e.id, name: l(e.exercise.title), level: e.exercise.level, detail: l(e.exercise.statement).split('\n')[0] ?? '' }))}
-          onOpenExercise={openExercise}
-          onNew={newProgram}
-          onPick={() => void pickProgram()}
-          onOpenRecent={(item) => {
-            void recent.open(item).then((f) => {
-              if (f) openProgram(f)
-            })
-          }}
-          onRemoveRecent={(item) => void recent.remove(item)}
-        />
-      ) : (
-        layout === 'cam' ? (
+    <div className={`workspace ${active ? 'active' : ''}`} hidden={!active}>
+      {
+        layout === 'model' ? (
           <main className="layout" style={{ '--code-w': `${codeWidth}px` } as CSSProperties}>
             {programPanel(true)}
             <div className="splitter" role="separator" aria-orientation="vertical" aria-label={t('layout.resize')} title={t('layout.resize')} onPointerDown={(e) => startResize(e, 1)} />
@@ -1483,21 +1217,34 @@ export function App() {
             </div>
           </main>
         )
-      )}
-      {program && tour >= 0 && (
-        <Tour
-          step={tour}
-          onStep={setTour}
-          onClose={() => {
-            setTour(-1)
-            try {
-              localStorage.setItem(TOUR_KEY, '1')
-            } catch {
-              // shown again next time
-            }
-          }}
-        />
-      )}
+      }
+      <footer className="status-bar">
+        <span className={`file-kind ${projectPath ? 'project' : 'program'}`} title={t(projectPath ? 'file.projectHint' : 'file.programHint')}>
+          {t(projectPath ? 'file.project' : 'file.program')}
+        </span>
+        <label title={t('status.machineHint')}>
+          {t('header.machine')}
+          <select value={machineId} onChange={(e) => changeMachine(e.target.value)}>
+            {cfg.machines.map((m) => (
+              <option key={m.id} value={m.id}>{m.name}</option>
+            ))}
+          </select>
+        </label>
+        <label>
+          {t('header.control')}
+          <select value={controlId} onChange={(e) => changeControl(e.target.value)}>
+            {cfg.controls
+              .filter((c) => c.machineType === machineKind || c.id === controlId)
+              .map((c) => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+          </select>
+        </label>
+        <span title={t('status.toolsHint')}>
+          {t('tools.title')}: {setup.tools ? l(setup.tools.name) : t('tools.none')}
+        </span>
+        {busy && <span className="busy">{t('sim.running')}</span>}
+      </footer>
       {editingStock && machine && (
         <StockEditor
           stock={setup.stock}
@@ -1516,15 +1263,6 @@ export function App() {
           extended={machineKind === 'mill'}
           onApply={applyOffsets}
           onClose={() => setEditingOffsets(false)}
-        />
-      )}
-      {creating && machine && control && (
-        <NewProgramDialog
-          machine={machine.name}
-          control={control.name}
-          macro={supportsMacro(control)}
-          onCreate={createProgram}
-          onClose={() => setCreating(false)}
         />
       )}
       {editingToolOffsets && (
