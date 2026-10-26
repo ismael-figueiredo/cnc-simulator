@@ -22,10 +22,15 @@ import type {
   Vec2,
   Vec3
 } from '../types'
+import { machineAlarm as catalogAlarm } from './alarms'
+import { AXES, D2R, isAxis, lerpPosition, positionOf, type Axis, type Position } from './axes'
 import { buildCodeTable, formatCode, type GFn } from './codes'
 import { applyCutterComp } from './cutterComp'
 import { patternRepeat, roughFace, roughTurn, singleCycle, threadPasses, type P2, type Step } from './latheCycles'
 import type { DiagnosticCode } from './diagnostics'
+import { findLoopEnd, findLoopStart, findSequence, isNcBlock, usesMacro } from './flow'
+import { isIgnoredWrite, isReadOnly, isValidVariable, LAST_COMMON, LAST_LOCAL, MODAL, positionVariable, SYSTEM } from './variables'
+import { createWordReader, DIMENSION } from './words'
 
 export interface SimulationOptions {
   /** Skip blocks that start with "/". */
@@ -53,12 +58,6 @@ export interface SimulationInput {
   options?: SimulationOptions
 }
 
-const D2R = Math.PI / 180
-const AXES = ['X', 'Y', 'Z', 'A', 'B', 'C'] as const
-type Axis = (typeof AXES)[number]
-type Position = Record<Axis, number>
-const isAxis = (s: string): s is Axis => (AXES as readonly string[]).includes(s)
-
 const DEFAULT_LIMITS = {
   maxDigits: 8,
   maxValue: 99999.999,
@@ -80,13 +79,6 @@ const DEFAULT_FORMAT = {
   programNumber: 'optional' as 'required' | 'optional',
   requireDecimalPoint: false
 }
-
-/** Addresses that take no minus sign, and no decimal point (Fanuc alarms 006 / 007). */
-const NO_NEGATIVE = new Set('GMNOSTFPLDH')
-const NO_DECIMAL = new Set('MNOTLDHPS')
-/** Addresses that take a dimension (decimal point check, value range). */
-const DIMENSION = 'XYZUVWABCIJKR'
-const VALID_CHARS = /^[A-Z0-9.+\-*/#[\]=,]*$/
 
 /** Fanuc G65 argument letters → local variables #1…#26 (argument specification I). */
 const G65_ARGS: Record<string, number> = {
@@ -117,15 +109,6 @@ export function toolRadiusFromComment(comment: string): number | null {
   if (!m?.[1]) return null
   const d = parseFloat(m[1])
   return d > 0 && d < 200 ? d / 2 : null
-}
-
-interface Word {
-  addr: string
-  value: Value
-  literal: boolean
-  dot: boolean
-  /** "S2=1200" → 2 */
-  spindle?: number
 }
 
 /** Unwinds the run after the diagnostic that stops the machine was already reported. */
@@ -182,19 +165,7 @@ export function simulate(input: SimulationInput): SimulationResult {
   let stoppedBy: Diagnostic | undefined
 
   // ---------- diagnostics and alarms ----------
-  function machineAlarm(code: DiagnosticCode, params?: Record<string, string | number>): MachineAlarm | undefined {
-    if (!catalog) return undefined
-    let num = catalog.map[code]
-    let message = num !== undefined ? (catalog.alarms[String(num)] ?? '') : ''
-    if (code === 'macro-alarm') {
-      // Fanuc: alarm base + n with the block comment; Mitsubishi: one fixed alarm (P277) with the comment
-      if (catalog.macroAlarmBase !== undefined) num = catalog.macroAlarmBase + Number(params?.['num'] ?? 0)
-      const comment = String(params?.['comment'] ?? '')
-      if (comment) message = comment
-    }
-    if (num === undefined) return undefined
-    return { code: catalog.prefix + String(num).padStart(catalog.digits, '0'), message, stops: true }
-  }
+  const machineAlarm = (code: DiagnosticCode, params?: Record<string, string | number>): MachineAlarm | undefined => catalogAlarm(catalog, code, params)
 
   /** Records a diagnostic; when the control maps it to an alarm that stops, unwinds the run. */
   function diag(
@@ -239,13 +210,10 @@ export function simulate(input: SimulationInput): SimulationResult {
   const configuredOffsets = table.size > 0
   const shiftOf = (name: string): Position => {
     const o = table.get(name) ?? {}
-    const s = {} as Position
-    for (const ax of AXES) s[ax] = ax === 'X' || ax === 'Y' || ax === 'Z' ? (o[ax] ?? 0) - (base[ax] ?? 0) : 0
-    return s
+    return positionOf((ax) => (ax === 'X' || ax === 'Y' || ax === 'Z' ? (o[ax] ?? 0) - (base[ax] ?? 0) : 0))
   }
   /** Machine zero in the drawing frame. */
-  const machineZero = {} as Position
-  for (const ax of AXES) machineZero[ax] = base[ax] !== undefined ? -(base[ax] ?? 0) : (tc[ax] ?? 0)
+  const machineZero = positionOf((ax) => (base[ax] !== undefined ? -(base[ax] ?? 0) : (tc[ax] ?? 0)))
   let shift = shiftOf('G54')
 
   // ---------- state ----------
@@ -314,52 +282,45 @@ export function simulate(input: SimulationInput): SimulationResult {
   const programC = () => (st.polar ? st.py : pos.C)
   /** X in the active work offset (polar mode has no work shift on X/C). */
   const absX = () => (st.polar ? st.px * xDia : pos.X - shift.X)
-  /** #0, locals #1–#33, commons #100–#199 and #500–#999, system variables from #1000. */
-  const validVariable = (n: number) => n === 0 || (n >= 1 && n <= 33) || (n >= 100 && n <= 199) || (n >= 500 && n <= 999) || n >= 1000
-  /** Modal information and positions cannot be written. */
-  const readOnly = (n: number) => (n >= 4000 && n <= 5999) || n === 3011 || n === 3012
 
   const vars: VariableReader & { set: (n: number, v: Value) => void } = {
     get(n) {
-      if (!validVariable(n)) fatal('variable-number-invalid', { n })
+      if (!isValidVariable(n)) fatal('variable-number-invalid', { n })
       if (n === 0) return null
       const f = forced.get(n)
       if (f !== undefined) return f
-      if (n <= 33) return locals[locals.length - 1]?.get(n) ?? null
-      if (n <= 999) return commons.get(n) ?? null
-      if (n === 4001) return st.motion
-      if (n === 4003) return st.absolute ? 90 : 91
-      if (n === 4109) return st.feed
-      if (n === 4119) return st.spindleSpeed
-      if (n === 4120) return st.tool
-      // #5001… absolute (work), #5021… machine, #5041… current position, for the n-th axis of the
-      // machine (X Z C on a lathe, X Y Z on a mill), as the control numbers its axes
-      const group = n >= 5001 && n <= 5060 ? Math.floor((n - 5001) / 20) : -1
-      const axis = group >= 0 ? machine.axes[(n - 5001) % 20]?.name : undefined
-      if (axis && isAxis(axis) && group !== 1) {
-        if (axis === 'X') return absX()
+      if (n <= LAST_LOCAL) return locals[locals.length - 1]?.get(n) ?? null
+      if (n <= LAST_COMMON) return commons.get(n) ?? null
+      if (n === MODAL.motion) return st.motion
+      if (n === MODAL.distance) return st.absolute ? 90 : 91
+      if (n === MODAL.feed) return st.feed
+      if (n === MODAL.spindleSpeed) return st.spindleSpeed
+      if (n === MODAL.tool) return st.tool
+      const pv = positionVariable(n)
+      const axis = pv ? machine.axes[pv.axisIndex]?.name : undefined
+      if (pv && axis && isAxis(axis)) {
         if (axis === 'C') return programC()
-        return pos[axis] - shift[axis]
+        if (pv.frame === 'machine') return pos[axis] - machineZero[axis]
+        return axis === 'X' ? absX() : pos[axis] - shift[axis]
       }
-      if (axis && isAxis(axis)) return axis === 'C' ? programC() : pos[axis] - machineZero[axis]
-      if (n === 3001 || n === 3002) return moves.length
+      if ((SYSTEM.clocks as readonly number[]).includes(n)) return moves.length
       diag('warning', 'system-variable-not-simulated', { n }, n)
       return null
     },
     set(n, v) {
-      if (!validVariable(n) || n === 0) fatal('variable-number-invalid', { n })
-      if (readOnly(n)) fatal('variable-write-protected', { n })
+      if (!isValidVariable(n) || n === 0) fatal('variable-number-invalid', { n })
+      if (isReadOnly(n)) fatal('variable-write-protected', { n })
       if (forced.has(n)) {
         diag('info', 'forced-variable', { n, value: forced.get(n) ?? 0 }, n)
         return
       }
-      if (n <= 33) locals[locals.length - 1]?.set(n, v)
-      else if (n <= 999) commons.set(n, v)
-      else if (n === 3000) throw new MacroAlarm(v ?? 0)
-      else if (n === 3006) {
+      if (n <= LAST_LOCAL) locals[locals.length - 1]?.set(n, v)
+      else if (n <= LAST_COMMON) commons.set(n, v)
+      else if (n === SYSTEM.alarm) throw new MacroAlarm(v ?? 0)
+      else if (n === SYSTEM.message) {
         diag('info', 'macro-message', { value: v ?? 0 })
         return
-      } else if ((n >= 3001 && n <= 3004) || n === 3901 || n === 3902) return
+      } else if (isIgnoredWrite(n)) return
       else {
         diag('warning', 'system-variable-write', { n }, n)
         return
@@ -532,12 +493,7 @@ export function simulate(input: SimulationInput): SimulationResult {
       // X/C (or A) interpolate together: a C move draws a spiral, as on the machine
       const n = Math.max(1, Math.ceil(Math.max(Math.abs(t.pos.C - a.C), Math.abs(t.pos.A - a.A)) / 2))
       points = []
-      for (let k = 0; k <= n; k++) {
-        const f = k / n
-        const p = {} as Position
-        for (const ax of AXES) p[ax] = a[ax] + (t.pos[ax] - a[ax]) * f
-        points.push(toWorld(p))
-      }
+      for (let k = 0; k <= n; k++) points.push(toWorld(lerpPosition(a, t.pos, k / n)))
     }
     const p0 = points[0] as Vec3
     const p1 = points[points.length - 1] as Vec3
@@ -635,8 +591,7 @@ export function simulate(input: SimulationInput): SimulationResult {
       const v = cv + rr * Math.sin(ang)
       if (st.polar) points.push([u, v, start.Z + (t.pos.Z - start.Z) * f])
       else {
-        const p = {} as Position
-        for (const ax of AXES) p[ax] = start[ax] + (t.pos[ax] - start[ax]) * f
+        const p = lerpPosition(start, t.pos, f)
         p[pl.u] = u * scaleOf(pl.u)
         p[pl.v] = v * scaleOf(pl.v)
         points.push(toWorld(p))
@@ -659,66 +614,7 @@ export function simulate(input: SimulationInput): SimulationResult {
   }
 
   // ---------- words ----------
-  function valueAt(s: string, i: number, addr: string): { v: Value; i: number; literal: boolean; dot: boolean } {
-    const c = s[i]
-    if (c === undefined || /[A-Z,]/.test(c)) fatal('no-data-after-address', { addr })
-    let sign = 1
-    if (c === '-' || c === '+') {
-      if (c === '-' && NO_NEGATIVE.has(addr)) fatal('illegal-negative-sign', { addr })
-      if (s[i + 1] === '-' || s[i + 1] === '+') fatal('illegal-negative-sign', { addr })
-      sign = c === '-' ? -1 : 1
-      i++
-      if (s[i] === undefined || /[A-Z,]/.test(s[i] ?? '')) fatal('no-data-after-address', { addr })
-    }
-    if (s[i] === '#' || s[i] === '[') {
-      const v = ex.at(s, i).primary()
-      return { v: v === null ? null : sign * v, i: ex.pos, literal: false, dot: false }
-    }
-    const m = /^[\d.]+/.exec(s.slice(i))
-    if (!m) fatal('no-data-after-address', { addr })
-    const lit = m[0]
-    const dots = lit.split('.').length - 1
-    const integerOnly = dots === 1 && NO_DECIMAL.has(addr)
-    if (dots > 1 || (integerOnly && integerDecimal === 'alarm')) fatal('illegal-decimal-point', { addr })
-    const digits = lit.replace('.', '').replace(/^0+(?=\d)/, '').length
-    if (digits > limits.maxDigits) fatal('too-many-digits', { addr, max: limits.maxDigits })
-    // Controls that accept "M3.5" keep only the integer part
-    const value = integerOnly ? Math.trunc(parseFloat(lit)) : parseFloat(lit)
-    return { v: sign * value, i: i + lit.length, literal: true, dot: dots === 1 && !integerOnly }
-  }
-
-  function parseWords(s: string): Word[] {
-    const bad = VALID_CHARS.test(s) ? null : /[^A-Z0-9.+\-*/#[\]=,]/.exec(s)
-    if (bad) fatal('invalid-character', { char: bad[0] })
-    if (/^[\d.+-]/.test(s)) fatal('address-not-found')
-    const words: Word[] = []
-    let i = 0
-    while (i < s.length) {
-      const c = s[i] as string
-      if (c === ',') {
-        // ",R" / ",C" direct corner rounding or chamfer
-        const L = s[i + 1] ?? ''
-        const v = ex.at(s, i + 2).unary()
-        i = ex.pos
-        words.push({ addr: ',' + L, value: v, literal: false, dot: false })
-        continue
-      }
-      if (!/[A-Z]/.test(c)) fatal('address-not-found')
-      i++
-      const spindle = /^(\d)=/.exec(s.slice(i))
-      if (c === 'S' && spindle) {
-        i += 2
-        const r = valueAt(s, i, 'S')
-        i = r.i
-        words.push({ addr: 'S', value: r.v, literal: r.literal, dot: r.dot, spindle: Number(spindle[1]) })
-        continue
-      }
-      const r = valueAt(s, i, c)
-      i = r.i
-      words.push({ addr: c, value: r.v, literal: r.literal, dot: r.dot })
-    }
-    return words
-  }
+  const { valueAt, parseWords } = createWordReader(ex, fatal, { integerDecimal, maxDigits: limits.maxDigits })
 
   function assign(s: string): void {
     ex.at(s, 0)
@@ -762,18 +658,7 @@ export function simulate(input: SimulationInput): SimulationResult {
   }
 
   // ---------- block loop helpers ----------
-  const findN = (n: number) => blocks.findIndex((b) => b.n === n)
-  const findEnd = (i: number, id: string) => {
-    for (let k = i + 1; k < blocks.length; k++) if (blocks[k]?.text === 'END' + id) return k
-    return -1
-  }
-  const findWhile = (i: number, id: string) => {
-    for (let k = i - 1; k >= 0; k--) {
-      const t = blocks[k]?.text ?? ''
-      if (/^(WHILE|DO)/.test(t) && t.endsWith('DO' + id)) return k
-    }
-    return -1
-  }
+  const findN = (n: number) => findSequence(blocks, n)
   const checkLoopId = (id: string) => {
     const n = Number(id)
     if (!(n >= 1 && n <= limits.loopIds)) fatal('macro-illegal-loop-number', { n, max: limits.loopIds })
@@ -1417,8 +1302,6 @@ export function simulate(input: SimulationInput): SimulationResult {
     }
   }
 
-  const isNcBlock = (b: Block | undefined): b is Block => !!b?.text && b.programNumber === undefined && !/^(#|IF|WHILE|GOTO|DO\d|END\d)/.test(b.text)
-
   /** Runs blocks from..to for real (G70 finishing along the contour). */
   function runBlocks(from: number, to: number): void {
     const saved = line
@@ -1693,7 +1576,6 @@ export function simulate(input: SimulationInput): SimulationResult {
   let steps = 0
   const mainStart = blocks.findIndex((b) => b.programNumber !== undefined)
   if (mainStart >= 0) pc = mainStart + 1
-  const usesMacro = (t: string) => t.includes('#') || /^(IF|WHILE|GOTO|DO\d|END\d)/.test(t)
 
   try {
     // Load checks: what the control verifies when the file comes in
@@ -1774,7 +1656,7 @@ export function simulate(input: SimulationInput): SimulationResult {
           if (!dm?.[1]) ex.fail('format', 'WHILE without DOn')
           checkLoopId(dm[1])
           // The control checks the matching END when it runs the WHILE, whatever the condition
-          const k = findEnd(pc, dm[1])
+          const k = findLoopEnd(blocks, pc, dm[1])
           if (k < 0) fatal('macro-missing-end', { n: dm[1] })
           pc = (c ?? 0) !== 0 ? pc + 1 : k + 1
           continue
@@ -1788,7 +1670,7 @@ export function simulate(input: SimulationInput): SimulationResult {
         const endM = /^END(\d+)$/.exec(s)
         if (endM?.[1]) {
           checkLoopId(endM[1])
-          const k = findWhile(pc, endM[1])
+          const k = findLoopStart(blocks, pc, endM[1])
           if (k < 0) fatal('macro-missing-end', { n: endM[1] })
           pc = k
           continue
