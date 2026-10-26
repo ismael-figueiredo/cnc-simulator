@@ -3,7 +3,7 @@
 import { useEffect, useMemo } from 'react'
 import { BoxGeometry, BufferGeometry, CylinderGeometry, ExtrudeGeometry, Matrix4, RingGeometry, Shape } from 'three'
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
-import { JAW_BASE, type ChuckGeometry, type TableLayout } from '@core/index'
+import { JAW_BASE, type ChuckGeometry, type TableLayout, type TailstockGeometry } from '@core/index'
 
 const COLORS = {
   body: '#7a8590',
@@ -15,6 +15,7 @@ const COLORS = {
   table: '#737e88',
   dowel: '#9aa4ad',
   vise: '#3f7396',
+  quill: '#b4bdc5',
   visePlate: '#a9b3bc'
 }
 
@@ -142,6 +143,46 @@ export function ChuckModel({ chuck: c, hit }: { chuck: ChuckGeometry; hit: boole
       </mesh>
       <mesh geometry={parts.bolts}>
         <meshStandardMaterial color={COLORS.hole} metalness={0.3} roughness={0.7} />
+      </mesh>
+    </group>
+  )
+}
+
+/** A solid along +Z from z0 to z1, radius r0 at z0 and r1 at z1. */
+function along(r0: number, r1: number, z0: number, z1: number) {
+  return new CylinderGeometry(r1, r0, z1 - z0, 48).rotateX(Math.PI / 2).translate(0, 0, (z0 + z1) / 2)
+}
+
+/**
+ * Tailstock on the far side of the bar: the live center's 60° point and bearing housing, the quill and
+ * the casting on its base (scene −Y is down). Against the part after M27, backed off otherwise.
+ */
+export function TailstockModel({ tailstock: t, engaged, hit }: { tailstock: TailstockGeometry; engaged: boolean; hit: boolean }) {
+  const parts = useMemo(() => {
+    const q = t.quillRadius
+    const p = t.pointLength
+    const h = p + t.housingLength
+    const center = mergeGeometries([along(0, q * 0.25, 0, p), along(t.housingRadius * 0.8, t.housingRadius, p, p + 4), along(t.housingRadius, t.housingRadius, p + 4, h)])
+    const quill = along(q, q, h, h + q * 1.6)
+    const back = h + q * 1.6
+    const body = mergeGeometries([
+      along(q * 1.15, q * 1.15, back, back + q * 2),
+      box(-q * 1.15, q * 1.15, -q * 2, 0, back, back + q * 2),
+      box(-q * 1.6, q * 1.6, -q * 2.3, -q * 2, back - q * 0.2, back + q * 2.2)
+    ])
+    return { center, quill, body }
+  }, [t])
+  useDispose(parts.center, parts.quill, parts.body)
+  return (
+    <group position={[0, 0, t.tip + (engaged ? 0 : t.retract)]}>
+      <mesh geometry={parts.center}>
+        <meshStandardMaterial color={hit ? COLORS.collision : COLORS.jaw} metalness={0.3} roughness={0.5} />
+      </mesh>
+      <mesh geometry={parts.quill}>
+        <meshStandardMaterial color={COLORS.quill} metalness={0.4} roughness={0.35} />
+      </mesh>
+      <mesh geometry={parts.body}>
+        <meshStandardMaterial color={COLORS.body} metalness={0.25} roughness={0.6} />
       </mesh>
     </group>
   )

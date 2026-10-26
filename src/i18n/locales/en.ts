@@ -601,7 +601,8 @@ export const en = {
   'offsets.keepStockOn': 'As on the machine: changing the zero moves where the program cuts on the part (a wrong zero cuts in the air or into the part).',
   'offsets.keepStockOff': 'The stock follows the zero: use it to correct where the part really is.',
   'layers.chuck': 'Chuck',
-  'layers.table': 'Table and vise'
+  'layers.table': 'Table and vise',
+  'collision.tailstock': 'T{tool} may hit the tailstock center at Z{z}.'
 } as const
 
 export type MessageKey = keyof typeof en

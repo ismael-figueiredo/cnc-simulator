@@ -14,6 +14,7 @@ import {
 import {
   compareParts,
   findChuckCollisions,
+  findTailstockCollisions,
   findHolderCollisions,
   holderOf,
   keepStockOnTable,
@@ -221,10 +222,10 @@ const Messages = memo(function Messages({ issues, diagnostics, collisions, chuck
         </button>
       ))}
       {chuckCollisions.map((c) => (
-        <button key={`chuck${c.tool}|${c.line}`} className="msg alarm" onClick={() => onMove(c.moveIndex)}>
+        <button key={`${c.part ?? 'chuck'}${c.tool}|${c.line}`} className="msg alarm" onClick={() => onMove(c.moveIndex)}>
           <b>{t('collision.label')}</b>
           <span>
-            L{c.line + 1} · {t('collision.chuck', { tool: String(c.tool).padStart(2, '0'), z: c.z })}
+            L{c.line + 1} · {t(c.part === 'tailstock' ? 'collision.tailstock' : 'collision.chuck', { tool: String(c.tool).padStart(2, '0'), z: c.z })}
           </span>
         </button>
       ))}
@@ -734,9 +735,14 @@ export function Workspace({ init, cfg, active, layout, learn, onLearn, onHelp, o
   const chuckCollisions = useMemo(() => {
     if (!lathe) return []
     const shift = workShift(setup.workOffsets, setup.stock?.workOffset ?? 'G54')
-    return findChuckCollisions(result?.moves ?? [], setup.stock, [0, 0, shift.Z], machine?.chuck)
+    const moves = result?.moves ?? []
+    const zero: Vec3 = [0, 0, shift.Z]
+    return [...findChuckCollisions(moves, setup.stock, zero, machine?.chuck), ...findTailstockCollisions(moves, setup.stock, zero, machine?.tailstock)]
   }, [result, setup, lathe, machine])
-  const chuckHit = !!move && chuckCollisions.some((c) => c.line === move.line && c.tool === move.state.tool)
+  const hitHere = (part: 'chuck' | 'tailstock') =>
+    !!move && chuckCollisions.some((c) => (c.part ?? 'chuck') === part && c.line === move.line && c.tool === move.state.tool)
+  const chuckHit = hitHere('chuck')
+  const tailstockHit = hitHere('tailstock')
   const ballTools = useMemo(() => new Set(setup.tools?.tools.filter((x) => x.type === 'ball-endmill').map((x) => x.number) ?? []), [setup.tools])
   /** Stock wrapping what the program cuts, offered in the stock editor. */
   const programStock = useMemo(() => stockFromPath(result?.moves ?? [], lathe), [result, lathe])
@@ -911,6 +917,7 @@ export function Workspace({ init, cfg, active, layout, learn, onLearn, onHelp, o
           machining={machining}
           ballTools={ballTools}
           chuckHit={chuckHit}
+          tailstockHit={tailstockHit}
           showRapids={showRapids}
           showStock={showStock}
           showFixture={showFixture}

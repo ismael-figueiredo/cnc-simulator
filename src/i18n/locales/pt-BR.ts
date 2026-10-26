@@ -601,5 +601,6 @@ export const ptBR: Record<MessageKey, string> = {
   'offsets.keepStockOn': 'Como na máquina: mudar o zero muda onde o programa corta na peça (um zero errado corta no ar ou dentro da peça).',
   'offsets.keepStockOff': 'O blank acompanha o zero: use para corrigir onde a peça realmente está.',
   'layers.chuck': 'Placa',
-  'layers.table': 'Mesa e morsa'
+  'layers.table': 'Mesa e morsa',
+  'collision.tailstock': 'A T{tool} pode bater no contraponto em Z{z}.'
 }

@@ -6,6 +6,7 @@ import { Box3, BufferAttribute, Sphere, BufferGeometry, ExtrudeGeometry, LatheGe
 import {
   chuckGeometry,
   tableLayout,
+  tailstockGeometry,
   stockOrigin,
   holderOutline,
   insertOutline,
@@ -23,7 +24,7 @@ import {
   type WorkOffsets
 } from '@core/index'
 import { Machining } from './Machining'
-import { ChuckModel, TableModel } from './Fixtures'
+import { ChuckModel, TableModel, TailstockModel } from './Fixtures'
 import { useI18n } from '../i18n'
 import { latheToolAngle, viewAngles, viewDirection, type ViewKind } from '../views'
 
@@ -61,6 +62,8 @@ interface Props {
   ballTools: Set<number>
   /** The tool may hit the chuck at this move: the jaws turn red. */
   chuckHit: boolean
+  /** The tool may hit the tailstock center at this move: the center turns red. */
+  tailstockHit?: boolean
   /** Camera preset to go to; `n` changes on every request, so the same view can be asked again. */
   view: { kind: ViewKind; n: number }
   /** Keep the tool in the middle of the view while it moves. */
@@ -387,6 +390,7 @@ export function Viewport3D({
   machining,
   ballTools,
   chuckHit,
+  tailstockHit = false,
   view,
   follow,
   measuring,
@@ -479,6 +483,10 @@ export function Viewport3D({
   const stockZero = useMemo<Vec3>(() => (stockOffset ? zeroOf(workOffsets, stockOffset, lathe) : [0, 0, 0]), [workOffsets, stockOffset, lathe])
   const faded = !!result?.moves.length
   const chuck = useMemo(() => (lathe && stock?.shape === 'cylinder' ? chuckGeometry(stock, stockZero, machine.chuck) : null), [lathe, stock, stockZero, machine])
+  const tailstock = useMemo(
+    () => (lathe && machine.tailstock && stock?.shape === 'cylinder' ? tailstockGeometry(stock, stockZero, machine.tailstock) : null),
+    [lathe, stock, stockZero, machine]
+  )
   const table = useMemo(() => (stock ? tableLayout(machine, stock, workOffsets, stockZero) : null), [machine, stock, workOffsets, stockZero])
   // Removal is drawn on block stock (mills) and bars (lathes); other combinations keep the raw stock
   const cutting = machining && showStock && !!stock && !!result?.moves.length && (lathe ? stock.shape === 'cylinder' : stock.shape === 'block')
@@ -548,6 +556,7 @@ export function Viewport3D({
           {measured.length > 0 && <Measure points={measured} lathe={lathe} size={size} />}
         </group>
         {showFixture && table && <TableModel layout={table} />}
+        {showFixture && tailstock && <TailstockModel tailstock={tailstock} engaged={!!result?.moves[Math.max(index, 0)]?.state.tailstock && index >= 0} hit={tailstockHit} />}
         {toolModel}
         <axesHelper args={[size * 0.75]} />
       </group>
