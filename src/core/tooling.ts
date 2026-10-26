@@ -274,3 +274,41 @@ export function defaultToolOffsets(library: ToolLibrary | null, lathe: boolean):
   }
   return out
 }
+
+/** A hole made by a drilling cycle: a straight plunge at one X/Y, drawn as a real cylinder. */
+export interface Hole {
+  x: number
+  y: number
+  radius: number
+  /** Deepest Z the tool reached. */
+  bottom: number
+  /** Move that finishes the hole (its deepest plunge): the hole is drawn once playback passes it. */
+  last: number
+}
+
+const SAME = 1e-6
+
+/**
+ * Holes of the drilling cycles (G73, G74, G76, G81–G89): their feed moves go straight down at one
+ * X/Y. Pecks at the same spot are one hole. Plain plunges outside a cycle are left out (an end mill
+ * entering a pocket is not a hole).
+ */
+export function holesOf(moves: readonly Move[]): Hole[] {
+  const out: Hole[] = []
+  moves.forEach((m, i) => {
+    if (m.kind !== 'feed' || !m.state.cycle || m.toolRadius <= 0) return
+    const a = m.points[0]
+    const b = m.points[m.points.length - 1]
+    if (!a || !b || Math.abs(a[0] - b[0]) > SAME || Math.abs(a[1] - b[1]) > SAME || b[2] >= a[2]) return
+    const prev = out[out.length - 1]
+    if (prev && Math.abs(prev.x - b[0]) < SAME && Math.abs(prev.y - b[1]) < SAME && Math.abs(prev.radius - m.toolRadius) < SAME) {
+      if (b[2] < prev.bottom) {
+        prev.bottom = b[2]
+        prev.last = i
+      }
+      return
+    }
+    out.push({ x: b[0], y: b[1], radius: m.toolRadius, bottom: b[2], last: i })
+  })
+  return out
+}
