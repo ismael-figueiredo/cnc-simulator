@@ -4,6 +4,50 @@ Cada versão em português e inglês. · Each version in Portuguese and English.
 
 Downloads: https://github.com/ismael-figueiredo/cnc-simulator/releases
 
+## 0.16.0 · 2026-10-26
+
+### Português
+**Modelo 3D no estilo dos programas de CAD.**
+- **Vistas exatas:** Topo, Frente, Lateral e Isométrica ficam realmente alinhadas, sem a leve inclinação de antes, com uma transição curta. No torno, a vista Topo é a vista de desenho: Z na horizontal e X para cima.
+- **Câmera ortográfica por padrão**, como no CAD, com opção de perspectiva.
+- **Cubo de vistas** clicável no canto: faces, arestas e cantos.
+- **Barra de vistas sobre o modelo:**
+  - Ajustar (tecla **F**);
+  - orientação;
+  - o que mostrar (rápidos, blank, usinagem, visão da máquina);
+  - projeção;
+  - seguir ferramenta;
+  - medir.
+- **Árvore do documento** à esquerda, com o programa embaixo:
+  - programa, máquina e comando;
+  - blank e zeros de peça, que abrem o editor;
+  - ferramentas e corretores;
+  - **operações**: o clique vai ao início e **destaca o trecho no 3D**;
+  - mensagens.
+- **Linha de alarme** vermelha na largura toda, acima da vista, com o número e o texto curto; um clique vai ao bloco.
+- O menu **Exibir → Vista 3D** ganhou o Ajustar.
+
+### English
+**3D model in the style of CAD programs.**
+- **Exact views:** Top, Front, Side and Isometric are really aligned, without the slight tilt of before, with a short transition. On lathes, the Top view is the drawing view: Z across and X up.
+- **Orthographic camera by default**, as in CAD, with perspective as an option.
+- **View cube** to click in the corner: faces, edges and corners.
+- **View toolbar over the model:**
+  - Fit (**F** key);
+  - orientation;
+  - what is shown (rapids, stock, machining, machine view);
+  - projection;
+  - follow tool;
+  - measure.
+- **Document tree** on the left, with the program under it:
+  - program, machine and control;
+  - stock and work offsets, which open their editor;
+  - tools and tool offsets;
+  - **operations**: a click goes to the start and **highlights that stretch in 3D**;
+  - messages.
+- **Alarm line** in red across the whole width, above the view, with the number and short text; a click goes to the block.
+- The **View → 3D view** menu now has Fit.
+
 ## 0.15.0 · 2026-10-26
 
 ### Português
