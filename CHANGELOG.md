@@ -4,6 +4,22 @@ Cada versão em português e inglês. · Each version in Portuguese and English.
 
 Downloads: https://github.com/ismael-figueiredo/cnc-simulator/releases
 
+## 0.19.0 · 2026-10-26
+
+### Português
+**Identidade visual nova.**
+- **Fonte industrial condensada** (Barlow Condensed, embutida no app e no site) no nome, nos títulos de painel, nas abas e nos nomes de arquivo, com o subtítulo **G-CODE · TORNO · FRESA** em amarelo espaçado.
+- **Fundo grafite neutro** e **amarelo de máquina** como cor de destaque (botões, seleção, aba ativa), combinando com o logo.
+- **Tela inicial** com o logo grande e a marca no canto da barra superior.
+- Telas do instalador, imagem do disco do macOS, imagem social e site no mesmo estilo.
+
+### English
+**New visual identity.**
+- **Industrial condensed face** (Barlow Condensed, bundled with the app and the website) for the name, panel titles, tabs and file names, with the **G-CODE · LATHE · MILL** tagline in spaced yellow.
+- **Neutral graphite background** and **machine yellow** as the accent (buttons, selection, active tab), matching the logo.
+- **Start screen** with the large logo, and the brand in the corner of the title bar.
+- Installer screens, macOS disk image, social image and website in the same style.
+
 ## 0.18.1 · 2026-10-26
 
 ### Português
