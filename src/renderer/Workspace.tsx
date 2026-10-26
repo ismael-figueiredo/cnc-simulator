@@ -46,7 +46,9 @@ import { CncModal } from './components/CncModal'
 import { Player, type PanelState, type Strip } from './components/Player'
 import { toolColor } from './toolColors'
 import { PositionAll } from './components/PositionPanel'
-import { SoftKeys, type Screen } from './components/SoftKeys'
+import { GROUPS, groupOf, SoftKeys, type Screen } from './components/SoftKeys'
+import { MdiKeypad } from './components/MdiKeypad'
+import { OperatorPanel } from './components/OperatorPanel'
 import { StatusHeader } from './components/StatusHeader'
 import { StockEditor } from './components/StockEditor'
 import { ToolEditor } from './components/ToolEditor'
@@ -113,6 +115,16 @@ function simInput(
   }
 }
 
+/** Page titles as the control shows them. */
+const PAGE_TITLES: Record<Screen, string> = {
+  pos: 'POSITION (ALL)',
+  prog: 'PROGRAM',
+  graph: 'PROGRAM CHECK',
+  offset: 'OFFSET',
+  work: 'WORK COORDINATES',
+  msg: 'ALARM MESSAGE',
+  setting: 'SYSTEM'
+}
 const FONT_KEY = 'cncsim.codeFontSize'
 const ORTHO_KEY = 'cncsim.ortho'
 const readFlag = (key: string, fallback: boolean) => {
@@ -252,6 +264,8 @@ interface Props {
   layout: Layout
   learn: boolean
   onLearn: (on: boolean) => void
+  /** HELP key: the shell shows the tour. */
+  onHelp: () => void
   onState: (state: DocState) => void
   /** Browser mode keeps recent files itself. */
   onRecord: (program: Program) => void
@@ -259,7 +273,7 @@ interface Props {
 }
 
 /** One open document: its program, machine, setup and simulation, shown in the machine or 3D model layout. */
-export function Workspace({ init, cfg, active, layout, learn, onLearn, onState, onRecord, ref }: Props) {
+export function Workspace({ init, cfg, active, layout, learn, onLearn, onHelp, onState, onRecord, ref }: Props) {
   const { t, l } = useI18n()
   // Everything the document starts with comes from what was opened
   const [start] = useState(() => {
@@ -330,7 +344,7 @@ export function Workspace({ init, cfg, active, layout, learn, onLearn, onState, 
   const [simulator] = useState(createSimulator)
   const [busy, setBusy] = useState(false)
   // Operator panel: single block, M01, block delete and overrides, as on the machine
-  const [panel, setPanel] = useState<PanelState>({ singleBlock: false, optionalStop: false, blockSkip: false, feed: 100, rapid: 100 })
+  const [panel, setPanel] = useState<PanelState>({ singleBlock: false, optionalStop: false, blockSkip: false, feed: 100, rapid: 100, spindle: 100 })
   /** Lines where playback stops before running them. */
   const [breakpoints, setBreakpoints] = useState<ReadonlySet<number>>(() => new Set())
   const [fontSize, setFontSize] = useState(() => readNumber(FONT_KEY, 11.5))
@@ -768,8 +782,9 @@ export function Workspace({ init, cfg, active, layout, learn, onLearn, onState, 
   }, [])
 
   // ---- pieces of the screen, laid out by the 3D model or the machine layout ----
-  const programPanel = (modalArea: boolean) => (
+  const programPanel = (modalArea: boolean, chrome = true) => (
       <section className="panel">
+        {chrome && (
         <div className="panel-title">
           <span className="file" title={`${program.name} · ${t('program.lines', { count: lines.length })}`}>
             {dirty && <span className="dirty" title={t('program.unsaved')}>● </span>}
@@ -797,6 +812,7 @@ export function Workspace({ init, cfg, active, layout, learn, onLearn, onState, 
             <button className="btn tiny" title={t('code.larger')} aria-label={t('code.larger')} onClick={() => changeFont(0.5)}>A+</button>
           </span>
         </div>
+        )}
         {/* Like the control: the modal state (F, S, T, active codes and cycle) above the running program */}
         {mode === 'mem' && modalArea && <CncModal move={move} />}
         {mode === 'edit' ? (
@@ -932,6 +948,25 @@ export function Workspace({ init, cfg, active, layout, learn, onLearn, onState, 
       panel={panel}
       onPanel={changePanel}
       strip={strip}
+    />
+  )
+  /** Machine screen: only the simulation controls (speed, timeline); the panel has the machine's keys. */
+  const simBar = (
+    <Player
+      time={sim.time}
+      total={tl?.total ?? 0}
+      playing={playing}
+      speed={speed}
+      disabled={!result?.moves.length}
+      runDisabled={mode === 'edit'}
+      onSeek={seek}
+      onTogglePlay={togglePlay}
+      onStep={step}
+      onSpeed={setSpeed}
+      panel={panel}
+      onPanel={changePanel}
+      strip={strip}
+      simOnly
     />
   )
   const projectBlock = (
@@ -1142,71 +1177,116 @@ export function Workspace({ init, cfg, active, layout, learn, onLearn, onState, 
             </section>
           </main>
         ) : (
-          // Machine layout: one control screen (status, page picked by the soft keys, program) over the operator panel
+          // Machine screen: the control's display with its soft keys and MDI keys, over the operator panel
           <main className="machine-panel" style={{ '--code-w': `${codeWidth}px` } as CSSProperties}>
-            <div className="mp-screen">
-              <StatusHeader
-                move={move}
-                position={position}
-                machinePosition={machinePosition}
-                distanceToGo={toGo}
-                axes={shownAxes}
-                maxRpm={maxRpm}
-                maxLiveRpm={maxLiveRpm}
-                feedOverride={panel.feed}
-                rapidOverride={panel.rapid}
-              />
-              <div className={`mp-body ${screen === 'prog' ? 'full' : ''}`}>
-                {screen !== 'prog' && (
-                  <section className="panel mp-page">
-                    {screen === 'graph' ? (
-                      <>
-                        {stage}
-                      </>
-                    ) : (
-                      <div className="mp-scroll">
-                        {screen === 'pos' && (
-                          <PositionAll
-                            position={position}
-                            machinePosition={machinePosition}
-                            distanceToGo={toGo}
-                            axes={shownAxes}
-                            block={move ? t('position.blockValue', { line: move.line + 1, move: index + 1, total: moves.length }) : '—'}
-                            runTime={formatTime(sim.time)}
-                            cycleTime={formatTime(tl?.total ?? 0)}
-                          />
+            <div className="mp-top">
+              <div className="mp-display">
+                <div className="mp-screen">
+                  <AlarmLine alarm={stoppedBy} onGo={jumpToDiagnostic} />
+                  <div className="cnc-title">
+                    <b>{PAGE_TITLES[screen]}</b>
+                    <span className="spacer" />
+                    <span className={`mode-box ${mode}`}>{mode === 'edit' ? 'EDIT' : 'MEM'}</span>
+                    <span className={playing ? 'on' : ''}>{playing ? 'STRT' : sim.time > 0 && sim.time < (tl?.total ?? 0) ? 'HOLD' : '****'}</span>
+                    {stoppedBy ? <span className="alm">ALM</span> : <span>***</span>}
+                  </div>
+                  {(screen === 'graph' || screen === 'prog') && (
+                    <StatusHeader
+                      move={move}
+                      position={position}
+                      machinePosition={machinePosition}
+                      distanceToGo={toGo}
+                      axes={shownAxes}
+                      maxRpm={maxRpm}
+                      maxLiveRpm={maxLiveRpm}
+                      feedOverride={panel.feed}
+                      rapidOverride={panel.rapid}
+                      spindleOverride={panel.spindle}
+                    />
+                  )}
+                  <div className={`mp-body ${screen === 'prog' ? 'full' : ''}`}>
+                    {screen !== 'prog' && (
+                      <section className="panel mp-page">
+                        {screen === 'graph' ? (
+                          stage
+                        ) : (
+                          <div className="mp-scroll">
+                            {screen === 'pos' && (
+                              <PositionAll
+                                position={position}
+                                machinePosition={machinePosition}
+                                distanceToGo={toGo}
+                                axes={shownAxes}
+                                block={move ? t('position.blockValue', { line: move.line + 1, move: index + 1, total: moves.length }) : '—'}
+                                runTime={formatTime(sim.time)}
+                                cycleTime={formatTime(tl?.total ?? 0)}
+                              />
+                            )}
+                            {screen === 'msg' && (
+                              <>
+                                {stoppedBy && (
+                                  <div className="alarm-detail">
+                                    <b>{stoppedBy.alarm?.code ?? t('severity.alarm')}</b>
+                                    {stoppedBy.alarm?.message && <span className="machine-msg">{stoppedBy.alarm.message}</span>}
+                                    <span>{t(`diag.${stoppedBy.code}`, stoppedBy.params)}</span>
+                                    <button className="btn tiny" onClick={() => jumpToDiagnostic(stoppedBy)}>
+                                      {t('alarm.line', { line: stoppedBy.line + 1 })} →
+                                    </button>
+                                  </div>
+                                )}
+                                {messagesBlock}
+                              </>
+                            )}
+                            {screen === 'offset' && toolOffsetsBlock}
+                            {screen === 'work' && offsetsBlock}
+                            {screen === 'setting' && (
+                              <>
+                                {projectBlock}
+                                {machineBlock}
+                                {controlBlock}
+                                {stockBlock}
+                                {toolsBlock}
+                              </>
+                            )}
+                          </div>
                         )}
-                        {screen === 'msg' && messagesBlock}
-                        {screen === 'offset' && (
-                          <>
-                            {toolOffsetsBlock}
-                            {offsetsBlock}
-                          </>
-                        )}
-                        {screen === 'setting' && (
-                          <>
-                            {projectBlock}
-                            {machineBlock}
-                            {controlBlock}
-                            {stockBlock}
-                            {toolsBlock}
-                          </>
-                        )}
-                      </div>
+                      </section>
                     )}
-                  </section>
-                )}
-                {screen !== 'prog' && (
-                  <div className="splitter" role="separator" aria-orientation="vertical" aria-label={t('layout.resize')} title={t('layout.resize')} onPointerDown={(e) => startResize(e, -1)} />
-                )}
-                {programPanel(false)}
+                    {screen !== 'prog' && (
+                      <div className="splitter" role="separator" aria-orientation="vertical" aria-label={t('layout.resize')} title={t('layout.resize')} onPointerDown={(e) => startResize(e, -1)} />
+                    )}
+                    {programPanel(false, false)}
+                  </div>
+                </div>
+                <SoftKeys group={groupOf(screen)} screen={screen} onScreen={setScreen} />
               </div>
-              <SoftKeys screen={screen} onScreen={setScreen} messages={messageCount} alarm={!!stoppedBy || chuckCollisions.length > 0} />
+              <MdiKeypad
+                current={groupOf(screen)}
+                onFunction={(k) => setScreen(GROUPS[k].page)}
+                alarm={!!stoppedBy || chuckCollisions.length > 0}
+                messages={messageCount}
+                onReset={() => seek(0)}
+                onStep={(n) => {
+                  for (let k = 0; k < Math.abs(n); k++) step(n > 0 ? 1 : -1)
+                }}
+                onHelp={onHelp}
+              />
             </div>
-            <div className="mp-operator">
-              {player}
-              <span className="muted small">{t('keys.hint')}</span>
-            </div>
+            <OperatorPanel
+              mode={mode}
+              onMode={(m) => (m === 'edit' ? startEdit() : runMem())}
+              playing={playing}
+              disabled={!result?.moves.length || mode === 'edit'}
+              onCycleStart={() => {
+                if (!playing) togglePlay()
+              }}
+              onFeedHold={() => {
+                if (playing) togglePlay()
+              }}
+              panel={panel}
+              onPanel={changePanel}
+            />
+            {simBar}
           </main>
         )
       }

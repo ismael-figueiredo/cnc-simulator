@@ -12,10 +12,10 @@ interface Step {
 // Scoped to the tab in front: the other tabs are in the page too, hidden
 const W = '.workspace.active'
 const STEPS: Step[] = [
-  { target: `${W} .mp-status, ${W} .sidebar .dro`, title: 'tour.statusTitle', text: 'tour.status' },
+  { target: `${W} .mp-status, ${W} .stage-dro`, title: 'tour.statusTitle', text: 'tour.status' },
   { target: `${W} .cnc-screen`, title: 'tour.programTitle', text: 'tour.program' },
-  { target: `${W} .mp-softkeys, ${W} .side-tabs`, title: 'tour.pagesTitle', text: 'tour.pages' },
-  { target: `${W} .player`, title: 'tour.panelTitle', text: 'tour.panel' },
+  { target: `${W} .mdi, ${W} .feature-tree`, title: 'tour.pagesTitle', text: 'tour.pages' },
+  { target: `${W} .operator-panel, ${W} .player`, title: 'tour.panelTitle', text: 'tour.panel' },
   { target: `${W} .status-bar`, title: 'tour.fileTitle', text: 'tour.file' },
   { target: '.titlebar', title: 'tour.layoutTitle', text: 'tour.layout' }
 ]

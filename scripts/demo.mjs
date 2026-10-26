@@ -47,7 +47,8 @@ void app.whenReady().then(async () => {
     s.dispatchEvent(new Event('change', { bubbles: true }))
   }`)
   await sleep(300)
-  await js(`document.querySelector('.player .play').click()`)
+  // Machine screen: CYCLE START on the operator panel (3D model: the player's Run)
+  await js(`(document.querySelector('.op-round.start') ?? document.querySelector('.player .play')).click()`)
   await record(win, 9.6, frames)
   await record(win, 1.5, frames) // hold the finished part
 

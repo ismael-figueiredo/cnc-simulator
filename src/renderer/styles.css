@@ -277,18 +277,6 @@ button, select, input { font: inherit; color: inherit; }
 .mp-page .stage { min-height: 200px; }
 .mp-scroll { flex: 1; min-height: 0; overflow: auto; font-family: var(--f-ui); }
 .mp-scroll .block h2 { color: #7f9bb5; }
-.mp-softkeys { display: flex; gap: 5px; padding: 6px; background: #0b1013; border-top: 2px solid #13324f; }
-.softkey { flex: 1; min-width: 0; padding: 7px 4px; border: 1px solid #3a4550; border-radius: 3px; background: linear-gradient(#2a3138, #181d21); color: #d6e6f5; font: 600 12.5px 'Share Tech Mono', var(--f-mono); letter-spacing: .06em; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.softkey:hover { border-color: #6fd3ff; }
-.softkey.on { background: #13324f; border-color: #6fd3ff; color: #fff; }
-.softkey.alm { color: #ff5a4e; border-color: #ff5a4e; }
-.softkey .count { margin-left: 6px; color: #f2c418; font-size: 11px; }
-.mp-operator { display: flex; flex-direction: column; gap: 2px; }
-.mp-operator .player { border-top: 0; padding: 2px 0; }
-.mp-operator .btn { background: linear-gradient(#3a4148, #262b30); border-color: #555e66; }
-.mp-operator .btn.primary { background: linear-gradient(#3fbf6b, #22803f); border-color: #4fe08a; color: #fff; }
-.mp-operator .btn.reset { background: linear-gradient(#c0392b, #8e2219); border-color: #ff7a70; color: #fff; }
-.mp-operator .muted.small { padding-left: 2px; }
 @media (max-width: 1100px) {
   .mp-pos .v { font-size: 22px; }
   .mp-pos .k { font-size: 19px; }
@@ -509,3 +497,84 @@ kbd { font: 12px var(--f-mono); padding: 1px 6px; border: 1px solid var(--line);
 .alarm-line .text { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .alarm-line .where { opacity: .8; }
 @media (max-width: 900px) { .model-layout { grid-template-columns: 1fr; grid-template-rows: minmax(360px, 60vh) auto; } .model-layout .splitter { display: none; } .model-layout > .view { order: -1; } }
+
+/* ---- machine screen: display in its bezel, soft keys under it, MDI keys beside it, operator panel below ---- */
+.mp-top { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; }
+.mp-display { min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: 6px; }
+.mp-display .mp-screen { flex: 1; }
+.cnc-title { flex: none; display: flex; align-items: center; gap: 10px; padding: 3px 10px; background: linear-gradient(#1d4a74, #13324f); color: #fff; font: 13px 'Share Tech Mono', var(--f-mono); letter-spacing: .04em; }
+.cnc-title b { font-weight: 400; }
+.cnc-title .spacer { flex: 1; }
+.cnc-title .mode-box { padding: 0 8px; background: #f2c418; color: #111; border-radius: 2px; }
+.cnc-title .mode-box.edit { background: #6fd3ff; }
+.cnc-title .on { color: #4fe08a; }
+.cnc-title .alm { color: #fff; background: #d23a2e; padding: 0 6px; animation: blink 1s steps(2, start) infinite; }
+.alarm-detail { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 14px; margin: 8px; padding: 10px 12px; border: 1px solid #ff5a4e; border-left-width: 4px; background: rgba(120, 20, 14, .35); font: 14px 'Share Tech Mono', var(--f-mono); }
+.alarm-detail b { color: #ff8a80; font-size: 16px; }
+.alarm-detail .machine-msg { color: #fff; font-size: 16px; }
+/* soft keys: blank physical keys under the display, labels as the screen draws them */
+.softkeys { flex: none; display: grid; grid-template-columns: 26px repeat(10, minmax(0, 1fr)) 26px; gap: 5px; padding: 0 6px; }
+.sk { height: 30px; padding: 0 2px; border: 1px solid #50585f; border-radius: 4px; background: linear-gradient(#5b636b, #3a4046); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .15), 0 2px 0 #15181b; color: #e9eef2; font: 600 12px 'Share Tech Mono', var(--f-mono); letter-spacing: .03em; cursor: pointer; white-space: nowrap; overflow: hidden; }
+.sk:disabled { cursor: default; color: #8b949c; }
+.sk.edge { font-size: 11px; }
+.sk.on { background: linear-gradient(#2c6a9e, #1d4a74); border-color: #6fd3ff; color: #fff; }
+.sk:active:not(:disabled) { transform: translateY(1px); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .1); }
+/* MDI keys */
+.mdi { flex: none; width: 262px; display: flex; flex-direction: column; gap: 8px; padding: 10px; background: linear-gradient(#2a2f34, #1c2024); border: 1px solid #454d55; border-radius: 8px; }
+.mdi-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 5px; }
+.mdi-key { position: relative; height: 30px; padding: 0 2px; border: 1px solid #111; border-radius: 4px; background: linear-gradient(#41484f, #2b3035); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .12), 0 2px 0 #0d0f11; color: #f1f4f6; font: 600 12px var(--f-ui); cursor: pointer; }
+.mdi-grid.address .mdi-key { font: 600 14px 'Share Tech Mono', var(--f-mono); cursor: help; }
+.mdi-key.fn { background: linear-gradient(#d9dde0, #b5bbc0); color: #1a1d20; font-size: 9px; letter-spacing: -.02em; }
+.mdi-key.fn.on { background: linear-gradient(#ffd44d, #e0a81a); }
+.mdi-key.fn.alm { box-shadow: 0 0 0 2px #ff5a4e, 0 2px 0 #0d0f11; }
+.mdi-key.edit { font-size: 9px; letter-spacing: -.02em; cursor: help; }
+.mdi-key .led { position: absolute; top: 3px; right: 3px; width: 5px; height: 5px; border-radius: 50%; background: #ff5a4e; box-shadow: 0 0 5px #ff5a4e; }
+.mdi-key:active { transform: translateY(1px); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .1); }
+.mdi-bottom { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
+.mdi-key.reset { background: linear-gradient(#e2564b, #b3261e); color: #fff; }
+.mdi-cursor { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; }
+.mdi-key.arrow { font-size: 15px; }
+/* operator panel */
+.operator-panel { flex: none; display: flex; flex-wrap: wrap; align-items: center; gap: 12px 26px; padding: 10px 16px; background: linear-gradient(#3a4047, #2a2f34); border: 1px solid #50585f; border-radius: 8px; box-shadow: inset 0 1px 0 rgba(255, 255, 255, .08); }
+.op-caption { display: block; margin-bottom: 4px; color: #aab4bc; font: 600 10.5px var(--f-ui); letter-spacing: .12em; }
+.op-mode-keys, .op-keys { display: flex; gap: 6px; }
+.op-key { position: relative; min-width: 56px; height: 40px; padding: 10px 8px 4px; border: 1px solid #111; border-radius: 4px; background: linear-gradient(#e6e9ec, #c4cacf); box-shadow: 0 2px 0 #15181b; color: #1a1d20; font: 700 10px var(--f-ui); letter-spacing: .02em; cursor: pointer; }
+.op-key:disabled { opacity: .45; cursor: not-allowed; }
+.op-key .led { position: absolute; top: 4px; left: 50%; width: 14px; height: 4px; margin-left: -7px; border-radius: 2px; background: #59636b; }
+.op-key.lit .led { background: #4fe08a; box-shadow: 0 0 6px #4fe08a; }
+.op-key:active:not(:disabled) { transform: translateY(1px); box-shadow: none; }
+.op-run { display: flex; gap: 14px; }
+.op-round { width: 62px; height: 62px; border-radius: 50%; border: 3px solid #15181b; box-shadow: 0 3px 0 #0d0f11, inset 0 2px 4px rgba(255, 255, 255, .35); color: #fff; font: 800 9.5px var(--f-ui); line-height: 1.15; cursor: pointer; }
+.op-round.start { background: radial-gradient(circle at 40% 35%, #5fdc87, #1f8a45); }
+.op-round.hold { background: radial-gradient(circle at 40% 35%, #f5b54a, #c7741a); color: #2a1600; }
+.op-round.lit { box-shadow: 0 0 14px 3px rgba(95, 220, 135, .65), 0 3px 0 #0d0f11; }
+.op-round.hold.lit { box-shadow: 0 0 14px 3px rgba(245, 181, 74, .55), 0 3px 0 #0d0f11; }
+.op-round:disabled { filter: grayscale(.7) brightness(.7); cursor: not-allowed; }
+.op-round:active:not(:disabled) { transform: translateY(2px); }
+.op-knobs { display: flex; gap: 18px; margin-left: auto; }
+.knob { display: flex; flex-direction: column; align-items: center; gap: 1px; color: #e2e7eb; }
+.knob button { width: 64px; height: 64px; padding: 0; border: 0; background: none; cursor: pointer; }
+.knob svg { width: 100%; height: 100%; }
+.knob .tick { stroke: #59636b; stroke-width: 2; }
+.knob .tick.on { stroke: #f2c418; }
+.knob-body { fill: #1b1f23; stroke: #0d0f11; stroke-width: 2; }
+.knob-pointer { fill: #f2c418; }
+.knob-value { font: 13px 'Share Tech Mono', var(--f-mono); }
+.knob-label { font: 600 9.5px var(--f-ui); letter-spacing: .1em; color: #aab4bc; }
+/* simulation controls of the simulator itself, kept apart from the machine's panel */
+.player.sim-only { padding: 4px 4px 0; border-top: 0; }
+.player.sim-only .sim-caption { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .08em; }
+@media (max-width: 1250px) {
+  .mp-top { grid-template-columns: 1fr; }
+  .mdi { width: auto; flex-direction: row; flex-wrap: wrap; align-items: center; padding: 6px; }
+  .mdi .address, .mdi .mdi-key.edit, .mdi .mdi-cursor { display: none; }
+  .mdi-grid.functions { display: flex; flex-wrap: wrap; }
+  .mdi-bottom { display: flex; }
+  .mdi-key { padding: 0 10px; }
+  .op-knobs { margin-left: auto; gap: 8px; }
+  .operator-panel { gap: 8px 14px; padding: 6px 10px; }
+  .op-key { min-width: 44px; height: 34px; padding: 9px 5px 3px; font-size: 9px; }
+  .op-round { width: 48px; height: 48px; font-size: 8px; }
+  .knob button { width: 46px; height: 46px; }
+  .op-caption { display: none; }
+}

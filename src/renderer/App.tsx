@@ -314,6 +314,7 @@ export function App() {
             layout={layout}
             learn={learn}
             onLearn={changeLearn}
+            onHelp={() => setTour(0)}
             onState={(s) => onDocState(tab.id, s)}
             onRecord={recent.record}
           />
