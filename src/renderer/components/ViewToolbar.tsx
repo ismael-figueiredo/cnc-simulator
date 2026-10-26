@@ -8,6 +8,8 @@ export interface DisplayOptions {
   machining: boolean
   /** Lathe only: chuck and part turn in C while the tool stays in X/Z. */
   machineView: boolean
+  /** The stock as the whole program leaves it, wherever playback is. */
+  finished: boolean
 }
 
 interface Props {
@@ -82,6 +84,7 @@ export function ViewToolbar({ lathe, onView, display, onDisplay, ortho, onOrtho,
     { key: 'rapids', label: t('layers.rapids') },
     { key: 'stock', label: t('layers.stock') },
     { key: 'machining', label: t('layers.machining'), hint: t('layers.machiningHint') },
+    { key: 'finished', label: t('layers.finished'), hint: t('layers.finishedHint') },
     ...(lathe ? [{ key: 'machineView' as const, label: t('layers.machineView'), hint: t('layers.machineViewHint') }] : [])
   ]
   return (

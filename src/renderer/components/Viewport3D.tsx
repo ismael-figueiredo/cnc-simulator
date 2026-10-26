@@ -64,6 +64,8 @@ interface Props {
   measuring: number
   /** Orthographic camera, as CAD programs use by default (false: perspective). */
   ortho: boolean
+  /** Show the stock as the whole program leaves it (the finished part), wherever playback is. */
+  finished: boolean
   /** Moves of the operation picked in the feature tree, drawn highlighted. */
   highlight: { first: number; last: number } | null
 }
@@ -414,6 +416,7 @@ export function Viewport3D({
   follow,
   measuring,
   ortho,
+  finished,
   highlight
 }: Props) {
   const { t } = useI18n()
@@ -533,7 +536,7 @@ export function Viewport3D({
         <group ref={part} rotation={[0, 0, turn]}>
           <Spin on={spinning && lathe && machineView}>
             {showStock && stock && (cutting && lathe ? null : <Stock stock={stock} faded={faded} zero={stockZero} />)}
-            {cutting && <Machining moves={result.moves} index={index} stock={stock} zero={stockZero} lathe={lathe} ballTools={ballTools} color={stock.color ?? COLORS.stock} />}
+            {cutting && <Machining moves={result.moves} index={finished ? result.moves.length - 1 : index} stock={stock} zero={stockZero} lathe={lathe} ballTools={ballTools} color={stock.color ?? COLORS.stock} />}
             {lathe && showStock && stock?.shape === 'cylinder' && <Chuck stock={stock} zero={stockZero} hit={chuckHit} />}
           </Spin>
           {Object.keys(workOffsets)

@@ -9,8 +9,10 @@ interface Props {
   onSection: (section: StartSection) => void
   recent: RecentItem[]
   /** Bundled examples (projects) and guided exercises. */
-  examples: { id: string; name: string; detail: string; machine: string }[]
-  exercises: { id: string; name: string; level: number; detail: string }[]
+  examples: { id: string; name: string; detail: string; machine: string; thumb?: string }[]
+  exercises: { id: string; name: string; level: number; detail: string; thumb?: string }[]
+  /** Picture of a recent file's part, if it was drawn when it was last open. */
+  recentThumb: (item: RecentItem) => string | undefined
   onNew: () => void
   onOpen: () => void
   onOpenRecent: (item: RecentItem) => void
@@ -43,9 +45,18 @@ export function FileIcon({ kind }: { kind: 'project' | 'program' | 'exercise' })
   )
 }
 
+/** The finished part when there is a picture of it, else the file kind's icon. */
+function Preview({ url, kind }: { url: string | undefined; kind: 'project' | 'program' | 'exercise' }) {
+  return (
+    <span className={`file-preview ${url ? 'has' : ''}`}>
+      {url ? <img src={url} alt="" /> : <FileIcon kind={kind} />}
+    </span>
+  )
+}
+
 /** Start screen, laid out like an office suite's File page: actions on the left, one list per tab. */
 export function StartScreen(props: Props) {
-  const { section, onSection, recent, examples, exercises, onNew, onOpen, onOpenRecent, onRemoveRecent, onOpenExample, onOpenExercise } = props
+  const { section, onSection, recent, examples, exercises, recentThumb, onNew, onOpen, onOpenRecent, onRemoveRecent, onOpenExample, onOpenExercise } = props
   const { t, lang } = useI18n()
   const when = (ms: number) => new Date(ms).toLocaleString(lang, { dateStyle: 'short', timeStyle: 'short' })
   const tabs: { id: StartSection; label: string; count: number }[] = [
@@ -77,7 +88,7 @@ export function StartScreen(props: Props) {
             {recent.map((item) => (
               <li key={item.path} className={item.missing ? 'missing' : ''}>
                 <button className="file-item" disabled={item.missing} onClick={() => onOpenRecent(item)}>
-                  <FileIcon kind={item.kind} />
+                  <Preview url={recentThumb(item)} kind={item.kind} />
                   <span className="file-text">
                     <span className="file-name">{item.name}</span>
                     <span className="muted">
@@ -100,7 +111,7 @@ export function StartScreen(props: Props) {
             {examples.map((ex) => (
               <li key={ex.id}>
                 <button className="file-item" onClick={() => onOpenExample(ex.id)}>
-                  <FileIcon kind="project" />
+                  <Preview url={ex.thumb} kind="project" />
                   <span className="file-text">
                     <span className="file-name">{ex.name}</span>
                     <span className="muted">{ex.detail}</span>
@@ -119,7 +130,7 @@ export function StartScreen(props: Props) {
               {exercises.map((ex) => (
                 <li key={ex.id}>
                   <button className="file-item" onClick={() => onOpenExercise(ex.id)}>
-                    <FileIcon kind="exercise" />
+                    <Preview url={ex.thumb} kind="exercise" />
                     <span className="file-text">
                       <span className="file-name">{ex.name}</span>
                       <span className="muted">{ex.detail}</span>

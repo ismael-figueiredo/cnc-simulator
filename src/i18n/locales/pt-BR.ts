@@ -569,8 +569,8 @@ export const ptBR: Record<MessageKey, string> = {
   'view.projection': 'Projeção',
   'view.toolbar': 'Vista',
   'mdi.title': 'Teclado MDI',
-  'mdi.addressHint': 'Teclas de endereço e números: na máquina digitam o programa no EDIT (aqui, use o editor)',
-  'mdi.editHint': 'Teclas de edição do comando (use o editor no EDIT)',
+  'mdi.addressHint': 'Digita no programa no modo EDIT (SHIFT: o caractere pequeno); uma letra começa uma palavra nova',
+  'mdi.editHint': 'Aqui as teclas digitam direto no programa, então INSERT, ALTER e INPUT não são necessários',
   'mdi.cursor': 'Cursor',
   'mdi.pos': 'POS: tela de posição (absoluta, máquina, distância a ir)',
   'mdi.prog': 'PROG: o programa; CHECK mostra junto com o gráfico',
@@ -588,5 +588,12 @@ export const ptBR: Record<MessageKey, string> = {
   'panel.feedHold': 'FEED HOLD: para os eixos, o cycle start continua (Espaço)',
   'panel.spindleHint': 'Override da árvore: muda a rotação mostrada (50–120 %)',
   'player.simulation': 'Simulação',
-  'softkey.label': 'Softkeys'
+  'softkey.label': 'Softkeys',
+  'mdi.shiftHint': 'SHIFT: a próxima tecla dá o caractere pequeno (P, Q, R, #, [ …)',
+  'mdi.canHint': 'CAN: apaga o caractere antes do cursor',
+  'mdi.deleteHint': 'DELETE: apaga o bloco (linha) do cursor',
+  'mdi.needEdit': 'MODO: EDIT para editar',
+  'layers.finished': 'Peça acabada',
+  'layers.finishedHint': 'Mostra o blank como o programa inteiro deixa, em qualquer ponto da execução',
+  'tree.preview': 'A peça acabada'
 }

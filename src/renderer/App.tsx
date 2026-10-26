@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useEffectEvent, useMemo, useRef, useState, type ChangeEvent } from 'react'
-import { loadProject, suggestSetup, type ConfigIssue, type LastChoice, type ProgramKind } from '@core/index'
+import { loadProject, suggestSetup, workShift, type ConfigIssue, type LastChoice, type Machine, type ProgramKind, type Stock, type WorkOffsets } from '@core/index'
 import { LANGUAGES, isLanguage } from '@i18n/index'
 import type { MenuCommand, OpenedFile, RecentItem } from '../preload/api'
 import { EXAMPLES, EXERCISES, loadBundled } from './bundled'
@@ -11,7 +11,10 @@ import { FileIcon, StartScreen, type StartSection } from './components/StartScre
 import { Tour } from './components/Tour'
 import { useI18n } from './i18n'
 import { useLibraries } from './libraries'
+import { defaultSetup, setupFromProject } from './project'
 import { useRecent } from './recent'
+import { readThumb, thumbKey } from './thumbnail'
+import { usePartThumbnails, type ThumbJob } from './useThumbnails'
 import { Workspace, type DocInit, type DocState, type Layout, type WorkspaceHandle } from './Workspace'
 
 const LAYOUT_KEY = 'cncsim.layout'
@@ -245,6 +248,31 @@ export function App() {
     return () => window.removeEventListener('keydown', key)
   }, [])
 
+  // Pictures of the finished parts: the examples, and what each exercise should become
+  const thumbJobs = useMemo(() => {
+    const job = (key: string, text: string, machine: Machine | undefined, controlId: string, stock: Stock | null | undefined, workOffsets: WorkOffsets, tools: ThumbJob['input']['tools'], toolOffsets: ThumbJob['input']['toolOffsets']): ThumbJob | null => {
+      const control = cfg.controls.find((c) => c.id === controlId)
+      if (!machine || !control || !stock) return null
+      const lathe = machine.kinematics.startsWith('lathe')
+      const s = workShift(workOffsets, stock.workOffset ?? 'G54')
+      const alarms = cfg.alarmCatalogs.find((a) => a.id === control.alarms) ?? null
+      return { key: thumbKey(key, text, machine.id, controlId, JSON.stringify(stock)), input: { text, machine, control, tools, alarms, workOffsets, toolOffsets }, stock, zero: lathe ? [0, 0, s.Z] : [s.X, s.Y, s.Z], lathe }
+    }
+    const examples = EXAMPLES.map((e) => {
+      const m = cfg.machines.find((x) => x.id === e.project.machine)
+      const setup = setupFromProject(e.project, m, cfg.libraries)
+      return [`example:${e.id}`, job(`example:${e.id}`, e.programText, m, e.project.control, setup.stock, setup.workOffsets, setup.tools, setup.toolOffsets)] as const
+    })
+    const exercises = EXERCISES.map((e) => {
+      const m = cfg.machines.find((x) => x.id === e.exercise.machine)
+      const setup = defaultSetup(m, cfg.libraries)
+      return [`exercise:${e.id}`, job(`exercise:${e.id}`, e.exercise.solution, m, e.exercise.control, e.exercise.stock, e.exercise.workOffsets ?? {}, setup.tools, setup.toolOffsets)] as const
+    })
+    const all = [...examples, ...exercises]
+    return { jobs: all.flatMap(([, j]) => (j ? [j] : [])), keys: new Map(all.flatMap(([id, j]) => (j ? [[id, j.key] as const] : []))) }
+  }, [cfg])
+  const thumbs = usePartThumbnails(thumbJobs.jobs)
+  const thumbOf = (kind: 'example' | 'exercise', id: string) => thumbs[thumbJobs.keys.get(`${kind}:${id}`) ?? '']
   const suggestion = useMemo(() => (pending ? suggestSetup(pending.text, cfg.machines, cfg.controls, readLast()) : null), [pending, cfg])
   const isDoc = active?.kind === 'doc'
 
@@ -328,9 +356,11 @@ export function App() {
               id: e.id,
               name: e.project.program,
               detail: l(e.project.description ?? ''),
-              machine: cfg.machines.find((m) => m.id === e.project.machine)?.name ?? e.project.machine
+              machine: cfg.machines.find((m) => m.id === e.project.machine)?.name ?? e.project.machine,
+              thumb: thumbOf('example', e.id)
             }))}
-            exercises={EXERCISES.map((e) => ({ id: e.id, name: l(e.exercise.title), level: e.exercise.level, detail: l(e.exercise.statement).split('\n')[0] ?? '' }))}
+            exercises={EXERCISES.map((e) => ({ id: e.id, name: l(e.exercise.title), level: e.exercise.level, detail: l(e.exercise.statement).split('\n')[0] ?? '', thumb: thumbOf('exercise', e.id) }))}
+            recentThumb={(item) => readThumb(thumbKey('path', item.path)) ?? undefined}
             onNew={() => setCreating(true)}
             onOpen={() => void pickFile()}
             onOpenRecent={openRecent}

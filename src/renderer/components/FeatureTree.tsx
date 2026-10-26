@@ -19,6 +19,8 @@ interface Props {
   alarm: boolean
   /** The messages list, shown under its node. */
   messageList: ReactNode
+  /** Picture of the finished part. */
+  preview?: string | null
   onStock: () => void
   onOffsets: () => void
   onTools: () => void
@@ -43,6 +45,7 @@ export const FeatureTree = memo(function FeatureTree(props: Props) {
   const { t } = useI18n()
   return (
     <nav className="feature-tree" aria-label={t('tree.title')}>
+      {props.preview && <img className="tree-preview" src={props.preview} alt={t('tree.preview')} title={t('tree.preview')} />}
       <Node icon="▤" label={program} detail={t('tree.program')} />
       <Node icon="⚙" label={machine} detail={control} title={t('status.machineHint')} />
       <Node icon="▣" label={t('stock.title')} detail={stock} onClick={props.onStock} title={t('tree.editHint')} />

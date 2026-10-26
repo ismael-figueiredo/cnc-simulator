@@ -569,8 +569,8 @@ export const en = {
   'view.projection': 'Projection',
   'view.toolbar': 'View',
   'mdi.title': 'MDI keys',
-  'mdi.addressHint': 'Address and number keys: on the machine they type the program in EDIT (here, use the editor)',
-  'mdi.editHint': 'Editing keys of the control (use the editor in EDIT)',
+  'mdi.addressHint': 'Types into the program in EDIT mode (SHIFT: the small character); a letter starts a new word',
+  'mdi.editHint': 'Here the keys type straight into the program, so INSERT, ALTER and INPUT are not needed',
   'mdi.cursor': 'Cursor',
   'mdi.pos': 'POS: position screen (absolute, machine, distance to go)',
   'mdi.prog': 'PROG: the program; CHECK shows it with the graphics',
@@ -588,7 +588,14 @@ export const en = {
   'panel.feedHold': 'FEED HOLD: stops the axes, cycle start goes on (Space)',
   'panel.spindleHint': 'Spindle override: changes the speed shown (50–120 %)',
   'player.simulation': 'Simulation',
-  'softkey.label': 'Soft keys'
+  'softkey.label': 'Soft keys',
+  'mdi.shiftHint': 'SHIFT: the next key gives its small character (P, Q, R, #, [ …)',
+  'mdi.canHint': 'CAN: erases the character before the cursor',
+  'mdi.deleteHint': 'DELETE: removes the block (line) at the cursor',
+  'mdi.needEdit': 'MODE: EDIT to edit',
+  'layers.finished': 'Finished part',
+  'layers.finishedHint': 'Show the stock as the whole program leaves it, wherever playback is',
+  'tree.preview': 'The finished part'
 } as const
 
 export type MessageKey = keyof typeof en

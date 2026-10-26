@@ -64,6 +64,7 @@ import { explainLine, helpForWord } from './help'
 import { useLibraries } from './libraries'
 import { defaultSetup, offsetsFor, projectData, setupFromProject, STOCK_COLOR, type Setup } from './project'
 import { createSimulator } from './simulation'
+import { renderPart, thumbKey, writeThumb } from './thumbnail'
 import {
   blockEnd,
   buildTimeline,
@@ -356,6 +357,12 @@ export function Workspace({ init, cfg, active, layout, learn, onLearn, onHelp, o
   const [ortho, setOrtho] = useState(() => readFlag(ORTHO_KEY, true))
   /** Operation picked in the feature tree (highlighted in 3D), -1 for none. */
   const [selectedOp, setSelectedOp] = useState(-1)
+  /** An MDI key was pressed outside EDIT: the title bar says to switch mode. */
+  const [mdiNotice, setMdiNotice] = useState(false)
+  /** Picture of the finished part (top of the feature tree, and the recent files list). */
+  const [partThumb, setPartThumb] = useState<string | null>(null)
+  /** 3D view: show the stock as the whole program leaves it, wherever playback is. */
+  const [finished, setFinished] = useState(false)
   const [follow, setFollow] = useState(false)
   /** Measuring session in the 3D view, 0 when off (each new session starts with no points). */
   const [measuring, setMeasuring] = useState(0)
@@ -480,6 +487,22 @@ export function Workspace({ init, cfg, active, layout, learn, onLearn, onHelp, o
     setProgram(p)
     setDirty(false)
     return p
+  }
+  /** The MDI keys only type in EDIT, as on the control: elsewhere the screen asks for it for a moment. */
+  function askEdit() {
+    setMdiNotice(true)
+    setTimeout(() => setMdiNotice(false), 2500)
+  }
+  /** An MDI key: a letter starts a new word (with a space), EOB ends the block. */
+  function mdiType(key: string) {
+    const ed = editor.current
+    if (mode !== 'edit' || !ed) {
+      askEdit()
+      return
+    }
+    if (key === 'EOB') ed.insert(control?.fileFormat?.eob === 'semicolon' ? ';\n' : '\n')
+    else if (/^[A-Z]$/.test(key) && !/[\s([]$|^$/.test(ed.textBeforeCursor())) ed.insert(` ${key}`)
+    else ed.insert(key)
   }
   /** EDIT, like on the control: a running program stops (it only runs in MEM). */
   function startEdit() {
@@ -730,6 +753,19 @@ export function Workspace({ init, cfg, active, layout, learn, onLearn, onHelp, o
     const input = simInput({ name: 'solution', path: '', text: exercise.exercise.solution }, machine, control, cfg, setup)
     return input ? simulate(input).moves : []
   }, [exercise, machine, control, cfg, setup])
+  // After each simulation, a picture of the finished part, a moment later so the screen comes first
+  useEffect(() => {
+    const stock = setup.stock
+    if (busy || !result?.moves.length || !stock) return
+    const id = setTimeout(() => {
+      const url = renderPart({ moves: result.moves, stock, zero: stockZero, lathe, ballTools })
+      if (!url) return
+      setPartThumb(url)
+      const path = projectPath ?? program.path
+      if (path) writeThumb(thumbKey('path', path), url)
+    }, 400)
+    return () => clearTimeout(id)
+  }, [result, busy, setup.stock, stockZero, lathe, ballTools, projectPath, program.path])
   function checkExercise() {
     const p = currentProgram()
     const input = simInput(p, machine, control, cfg, setup)
@@ -875,18 +911,20 @@ export function Workspace({ init, cfg, active, layout, learn, onLearn, onHelp, o
           follow={follow}
           measuring={measuring}
           ortho={ortho}
+          finished={finished}
           highlight={highlightOp ? { first: highlightOp.first, last: highlightOp.last } : null}
         />
       )}
       <ViewToolbar
         lathe={lathe}
         onView={(kind) => setView((v) => ({ kind, n: v.n + 1 }))}
-        display={{ rapids: showRapids, stock: showStock, machining, machineView }}
+        display={{ rapids: showRapids, stock: showStock, machining, machineView, finished }}
         onDisplay={(c) => {
           if (c.rapids !== undefined) setShowRapids(c.rapids)
           if (c.stock !== undefined) setShowStock(c.stock)
           if (c.machining !== undefined) setMachining(c.machining)
           if (c.machineView !== undefined) setMachineView(c.machineView)
+          if (c.finished !== undefined) setFinished(c.finished)
         }}
         ortho={ortho}
         onOrtho={(on) => {
@@ -1156,6 +1194,7 @@ export function Workspace({ init, cfg, active, layout, learn, onLearn, onHelp, o
                 messages={messageCount}
                 alarm={!!stoppedBy || chuckCollisions.length > 0}
                 messageList={messagesList}
+                preview={partThumb}
                 onStock={() => setEditingStock(true)}
                 onOffsets={() => setEditingOffsets(true)}
                 onTools={() => setEditingTools(true)}
@@ -1186,6 +1225,7 @@ export function Workspace({ init, cfg, active, layout, learn, onLearn, onHelp, o
                   <div className="cnc-title">
                     <b>{PAGE_TITLES[screen]}</b>
                     <span className="spacer" />
+                    {mdiNotice && <span className="mdi-notice">{t('mdi.needEdit')}</span>}
                     <span className={`mode-box ${mode}`}>{mode === 'edit' ? 'EDIT' : 'MEM'}</span>
                     <span className={playing ? 'on' : ''}>{playing ? 'STRT' : sim.time > 0 && sim.time < (tl?.total ?? 0) ? 'HOLD' : '****'}</span>
                     {stoppedBy ? <span className="alm">ALM</span> : <span>***</span>}
@@ -1270,6 +1310,9 @@ export function Workspace({ init, cfg, active, layout, learn, onLearn, onHelp, o
                   for (let k = 0; k < Math.abs(n); k++) step(n > 0 ? 1 : -1)
                 }}
                 onHelp={onHelp}
+                onType={mdiType}
+                onCancel={() => (mode === 'edit' ? editor.current?.backspace() : askEdit())}
+                onDeleteBlock={() => (mode === 'edit' ? editor.current?.deleteLine() : askEdit())}
               />
             </div>
             <OperatorPanel
