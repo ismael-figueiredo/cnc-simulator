@@ -40,6 +40,8 @@ Installers for every version are on the **[Releases page](https://github.com/ism
 - **Operator panel:** single block, M01 optional stop, block delete "/", feed and rapid overrides (the cycle time follows them), and breakpoints on any line.
 - **Screen like the machine:** the **Machine** screen is laid out like a control (no maker's branding): the display with its title bar (page, MEM/EDIT, STRT/HOLD, ALM), position with machine coordinates and distance to go, spindle and feed with load bars and overrides, the program; **soft keys** under it; the **MDI keys** beside it (POS, PROG, OFS/SET, SYSTEM, MESSAGE, GRAPH switch pages; RESET; the cursor and PAGE keys step through the program); and the **operator panel** below: MODE (EDIT/MEM), **CYCLE START** and **FEED HOLD**, SINGLE BLOCK, OPT STOP, BLOCK SKIP and the **feed, rapid and spindle override knobs**. An alarm shows across the top of the screen with its number and short text; the MESSAGE page has the full message. Keyboard: **Space** cycle start / feed hold, **Esc** reset, **S** single block. The simulation speed and timeline stay apart, under the panel.
 - **3D model, as in CAD programs:** a **feature tree** on the left (program, machine, stock, work offsets, tools, the operations the program makes and its messages; click an operation to go to it and highlight it in 3D), the program under it, and the model with a **view toolbar** (fit, iso/top/front/side, what is shown, orthographic or perspective, follow tool, measure) and a **view cube** to click. Views are exact (Top and Front are really flat) and the camera is **orthographic** by default; **F** fits the part. The **timeline** under the slider is colored by tool and marks M00/M01 stops, breakpoints, collisions and the alarm; an alarm also shows as a red line across the top of the view.
+- **Measure, with snapping as in CAD programs:** the pointer snaps to what the cut part has where playback is: corners (□) of shoulders, chamfers, pockets and steps, centers (○) of drilled holes and of the face, edges (△) at the top and floor of every wall, and the toolpath (◇). On lathes the distance is taken on the profile, as Ø and Z. The chuck, table and tool are never picked; Esc leaves the tool.
+- **Program end:** once playback reaches the end, the screen shows the end block (M30, M02) and the state the last blocks left: spindle stopped after M05, coolant off after M09.
 - **Picture of the finished part:** the examples, the exercises and the recent files show a small 3D picture of the part the program makes, so you know what a program is before opening it; the document tree shows it too, and **Finished part** in the view toolbar shows the stock as the whole program leaves it.
 - **First-use tour:** a short walk through the screen the first time a program opens, and again from the **?** at the top right (with learning mode and the keyboard shortcuts).
 - **Learning mode (?):** hover a G/M code, a #variable or a macro word in the program (or in the editor) to see what it does on the selected control; the block at the cursor is explained word by word under the program. G71 on a Fanuc lathe, M97 on a Haas: the help follows the control.
@@ -51,10 +53,10 @@ Installers for every version are on the **[Releases page](https://github.com/ism
 - **Projects (`.cncsim`):** keep the program with its machine, control, tools, stock and work offsets, to reopen or send the whole job.
 - **Tools in 3D:** each tool is drawn from its type and lengths with its holder and a faded spindle nose on machining centers. Rotary tools turn with the spindle (M03/M04 until M05, faster with S and the spindle override), and on lathes with the live tool. Taper holders show the flange V-groove, the 7:24 taper (BT, CAT, SK; short HSK taper) with its pull stud, and the ER collet nut; end mills and drills show their flute helices, face mills their inserts. Turning tools show their ISO insert (WNMG trigon, laydown thread insert with its 60° point square to the part) with the clamp screw on a square shank holder, a boring bar for internal tools, or a grooving blade.
 - **Machining view:** the stock changes color and shape where the tool cuts: a heightfield on blocks (flat and ball end mills) and the turned profile on bars. Holes from the drilling cycles are drawn round, with a straight wall, and the surface follows the edges of contours and pockets. On lathes, live tools cut too: axial work on the face (G12.1 contours, holes with C indexed, like the O1500 sprocket teeth) and radial work on the side (radial drilling, flats and slots with C and Z moves; G07.1 cylindrical interpolation is not simulated yet). Rapids do not cut.
-- **Chuck, table and vise:** lathes show a hydraulic three-jaw chuck (body, slots, stepped hard jaws) and machining centers a T-slot table with a vise holding the stock, both sized from the machine file. The table sits where G54 puts the part on the machine, or right under the stock without work offsets. **Chuck** / **Table and vise** in the view toolbar hides them.
+- **Chuck, table and vise:** lathes show a hydraulic three-jaw chuck (body, slots, stepped hard jaws) and machining centers a T-slot table with a vise holding the stock, both sized from the machine file. The table sits where G54 puts the part on the machine, or right under the stock without work offsets. The view toolbar's display menu hides the **Chuck** or **Table**, the **Vise** and the **Tailstock** one by one, and keeps the choice for the next documents.
 - **Possible collisions:** when a holder goes into the stock (the tool sticks out too little for the depth), the block is listed and the holder turns red. On lathes, a tool that reaches the jaws or the chuck body is listed and the jaws turn red.
 - **Stock tools:** fit the stock to what the program cuts with one click, and put the work zero on a corner or the center of the block.
-- **Tailstock:** lathes with `tailstock` in the machine file show a live center, quill and casting opposite the chuck. On the Romi GL, **M27** brings it against the part and **M26**/**M31** back it off (manual, section 11.3.4); facing to the axis or backing off along it while the center is there is listed as a collision.
+- **Tailstock:** lathes with `tailstock` in the machine file show a live center, quill and casting opposite the chuck. On the Romi GL, **M27** brings it against the part and **M26**/**M31** back it off (manual, section 11.3.4); facing to the axis or backing off along it while the center is there is listed as a collision. Hiding it is only visual: it still moves and its collisions are still listed.
 - **Lathe machine view:** the chuck and the part turn in C while the tool stays in X/Z, as on the machine; the chuck spins when turning.
 - **Tools:** create and edit tools (mount, side, hand, insert; helix and insert drawings in the editor), save them as libraries and reuse them in any project.
 - **Stock:** bar or block, size, position and material color.
@@ -243,20 +245,23 @@ The code base, config files and docs are in English. The UI is translated, with 
 
 ```
 src/
-  core/            no DOM: types, schemas and the interpreter
-    config/        schema.ts (zod), project.ts (.cncsim), load.ts (validation, issues as data)
-    interp/        simulate.ts (interpreter), cutterComp.ts, diagnostics.ts
+  core/            no DOM: types, schemas, the interpreter, material removal, collisions, part features
+    config/        schema.ts (zod), project.ts (.cncsim), load.ts (validation, issues as data), kinds.ts
+    interp/        simulate.ts (machine state) and its pure parts: words, variables, arcs, corner,
+                   dataSetting, loadChecks, flow, alarms; cutterComp.ts, latheCycles.ts, diagnostics.ts
   i18n/            languages, translate(), localize(); locales/en.ts is the source
   main/            Electron main process: window, menus, files
   preload/         safe typed bridge between window and system (api.ts)
-  renderer/        React UI (App.tsx, i18n.tsx, components/: CodeView, ProgramEditor, StartScreen, ToolEditor, StockEditor, WorkOffsetsEditor…)
+  renderer/        React UI: App.tsx, Workspace.tsx (one document), hooks (usePlayback, useCodePanel,
+                   useDisplayOptions), components/, geometry/ (3D meshes, paths, measuring),
+                   platform/ (desktop or browser: files, recent list, storage)
   server/          Fastify server (browser mode)
 configs/
   machines/        one machine per file: axes, spindles, turret, stock
   controls/        one control per file: dialect, G and M codes, rules
   tools/           tool libraries and holders (tapers)
 examples/          sample programs (O1500, ANSI 40 sprocket)
-tests/             Vitest tests
+tests/             Vitest: *.test.ts in node, components/*.test.tsx in jsdom (npm run test:coverage)
 scripts/           icons.mjs (icon and installer art), demo.mjs (README GIF)
 build/             icon source and installer artwork
 docs/legacy/       original HTML simulator, reference for the port
