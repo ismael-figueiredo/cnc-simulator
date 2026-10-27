@@ -8,6 +8,7 @@ export { Expr, MacroError, type MacroErrorKind, type Value, type VariableReader 
 export { DIAGNOSTIC_CODES, type DiagnosticCode } from './interp/diagnostics'
 export * from './tooling'
 export * from './fixtures'
+export * from './features'
 export * from './removal'
 export * from './exercise'
 export * from './suggest'

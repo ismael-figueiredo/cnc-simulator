@@ -39,23 +39,3 @@ export function buildLayer(moves: Move[], pick: (m: Move) => readonly Vec3[] | u
   starts[moves.length] = v
   return { positions, starts }
 }
-
-/** Nearest path vertex within `tol` of p (so a click on a line lands on its corner), else p itself. */
-export function snap(p: Vec3, layers: Layer[], tol: number): Vec3 {
-  let best = tol * tol
-  let out = p
-  for (const l of layers) {
-    const v = l.positions
-    for (let i = 0; i < v.length; i += 3) {
-      const dx = (v[i] ?? 0) - p[0]
-      const dy = (v[i + 1] ?? 0) - p[1]
-      const dz = (v[i + 2] ?? 0) - p[2]
-      const d = dx * dx + dy * dy + dz * dz
-      if (d < best) {
-        best = d
-        out = [v[i] ?? 0, v[i + 1] ?? 0, v[i + 2] ?? 0]
-      }
-    }
-  }
-  return out
-}

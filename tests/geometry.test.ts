@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { BufferAttribute, BufferGeometry, Uint32BufferAttribute } from 'three'
 import { createHeightfield, createProfile, type Move, type Vec3 } from '../src/core'
 import { barGeometry, copyProfile, holeGeometry, replayTo, seatHole, writeCells } from '../src/renderer/geometry/machined'
-import { buildLayer, rotateZ, snap, toScene } from '../src/renderer/geometry/paths'
+import { buildLayer, rotateZ, toScene } from '../src/renderer/geometry/paths'
 
 const move = (points: Vec3[], kind: Move['kind'] = 'feed'): Move => ({ kind, line: 0, points, durationS: 1, toolRadius: 1 }) as unknown as Move
 
@@ -12,12 +12,6 @@ describe('path layers', () => {
     const layer = buildLayer(moves, (m) => (m.kind === 'feed' ? m.points : undefined))
     expect([...layer.starts]).toEqual([0, 4, 4, 6])
     expect(layer.positions.length).toBe(6 * 3)
-  })
-
-  it('snaps to the nearest path vertex within the tolerance, else keeps the point', () => {
-    const layer = buildLayer([move([[0, 0, 0], [10, 0, 0]])], (m) => m.points)
-    expect(snap([9.6, 0.2, 0], [layer], 0.5)).toEqual([10, 0, 0])
-    expect(snap([5, 0, 0], [layer], 0.5)).toEqual([5, 0, 0])
   })
 
   it('draws machine Z up on mills and turns points around Z', () => {

@@ -500,7 +500,7 @@ export const en = {
   'view.follow': 'Follow',
   'view.followHint': 'Keep the tool in the middle of the view',
   'view.measure': 'Measure',
-  'view.measureHint': 'Click two points on the part or the path to see the distance between them (a third click starts over)',
+  'view.measureHint': 'Click two points on the part: the pointer snaps to corners (□), hole and face centers (○), edges (△) and the toolpath (◇). A third click starts over; Esc leaves',
   'strip.tool': '{tool} · {time} · click to go to its start',
   'strip.stop': 'Stop: M00, M01 or breakpoint',
   'strip.alarm': 'Alarm: the program stops here',

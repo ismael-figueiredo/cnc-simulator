@@ -2,7 +2,7 @@ import { useEffect, useEffectEvent, useMemo, useRef, useState, type ReactNode } 
 import { Canvas, useFrame, useThree, type ThreeEvent } from '@react-three/fiber'
 import { CameraControls, GizmoHelper, GizmoViewcube, Grid, Html, Line, OrthographicCamera, PerspectiveCamera } from '@react-three/drei'
 import type CameraControlsImpl from 'camera-controls'
-import { Box3, BufferAttribute, Sphere, BufferGeometry, Vector3, type Group } from 'three'
+import { Box3, BufferAttribute, Sphere, BufferGeometry, Vector3, type Group, type Object3D } from 'three'
 import {
   chuckGeometry,
   tableLayout,
@@ -20,11 +20,14 @@ import {
   type WorkOffsets,
   DEFAULT_STOCK,
   isLathe,
+  type Snap,
+  type SnapKind,
 } from '@core/index'
 import { Machining } from './Machining'
 import { ChuckModel, TableModel, TailstockModel } from './Fixtures'
 import { RotaryTool, TurningTool } from './ToolModels'
-import { buildLayer, rotateZ, scaled, snap, toScene, type Layer } from '../geometry/paths'
+import { onProfile, pathPoints, snapMeasure, type MeasurePart } from '../geometry/measure'
+import { buildLayer, rotateZ, scaled, toScene, type Layer } from '../geometry/paths'
 import { useI18n } from '../i18n'
 import { latheToolAngle, viewAngles, viewDirection, type ViewKind } from '../views'
 
@@ -119,10 +122,25 @@ function CameraRig({ view, lathe, box, follow, tip }: { view: { kind: ViewKind; 
 const fmt3 = (v: number) => (Math.abs(v) < 5e-7 ? 0 : v).toFixed(3)
 
 /** The two measured points, the line between them and the distance, in the drawing frame. */
-function Measure({ points, lathe, size }: { points: Vec3[]; lathe: boolean; size: number }) {
+/** The mark of each snap, as CAD programs draw them: corner, center, edge, path point, surface. */
+const SNAP_GLYPH: Record<SnapKind, string> = { vertex: '□', center: '○', edge: '△', path: '◇', surface: '·' }
+
+/** The point a click would take, under the pointer while measuring. */
+function SnapMarker({ snap }: { snap: Snap }) {
+  return (
+    <Html position={snap.point} center className={`snap-marker ${snap.kind}`}>
+      {SNAP_GLYPH[snap.kind]}
+    </Html>
+  )
+}
+
+function Measure({ picks, lathe, size }: { picks: Snap[]; lathe: boolean; size: number }) {
+  const points = lathe ? onProfile(picks.map((s) => s.point)) : picks.map((s) => s.point)
   const [a, b] = points
   const r = Math.max(0.4, size * 0.012)
-  const label = (p: Vec3) => (lathe ? `X${fmt3(p[0] * 2)} Z${fmt3(p[2])}` : `X${fmt3(p[0])} Y${fmt3(p[1])} Z${fmt3(p[2])}`)
+  /** Lathe: X as the diameter there. */
+  const dia = (p: Vec3) => 2 * Math.hypot(p[0], p[1])
+  const label = (p: Vec3) => (lathe ? `X${fmt3(dia(p))} Z${fmt3(p[2])}` : `X${fmt3(p[0])} Y${fmt3(p[1])} Z${fmt3(p[2])}`)
   return (
     <>
       {points.map((p, k) => (
@@ -132,7 +150,7 @@ function Measure({ points, lathe, size }: { points: Vec3[]; lathe: boolean; size
             <meshBasicMaterial color="#ffe14d" depthTest={false} />
           </mesh>
           <Html className="measure-label" center={false} style={{ transform: 'translate(8px, -8px)' }}>
-            P{k + 1} {label(p)}
+            P{k + 1} {SNAP_GLYPH[picks[k]?.kind ?? 'surface']} {label(p)}
           </Html>
         </group>
       ))}
@@ -143,7 +161,7 @@ function Measure({ points, lathe, size }: { points: Vec3[]; lathe: boolean; size
             <b>{fmt3(Math.hypot(b[0] - a[0], b[1] - a[1], b[2] - a[2]))} mm</b>
             <span>
               {lathe
-                ? `ΔX(Ø) ${fmt3((b[0] - a[0]) * 2)} ΔZ ${fmt3(b[2] - a[2])}`
+                ? `ΔX(Ø) ${fmt3(dia(b) - dia(a))} ΔZ ${fmt3(b[2] - a[2])}`
                 : `ΔX ${fmt3(b[0] - a[0])} ΔY ${fmt3(b[1] - a[1])} ΔZ ${fmt3(b[2] - a[2])}`}
             </span>
           </Html>
@@ -152,6 +170,14 @@ function Measure({ points, lathe, size }: { points: Vec3[]; lathe: boolean; size
     </>
   )
 }
+
+/** Objects the measure tool takes points on: the part, the stock and the path. */
+const MEASURABLE = { measurable: true }
+const isMeasurable = (o: Object3D | null): boolean => {
+  for (let x = o; x; x = x.parent) if (x.userData['measurable'] === true) return true
+  return false
+}
+const NO_TOOLS: ReadonlySet<number> = new Set()
 
 const COLORS = {
   feed: '#5ea4f2',
@@ -342,18 +368,6 @@ export function Viewport3D({
     () => (highlight && result ? buildLayer(result.moves.slice(highlight.first, highlight.last + 1), (m) => m.points) : null),
     [highlight, result]
   )
-  const [picks, setPicks] = useState<{ session: number; points: Vec3[] }>({ session: 0, points: [] })
-  const measured = measuring && picks.session === measuring ? picks.points : []
-  const part = useRef<Group>(null)
-  /** Measuring: a click (not a drag) on the part, stock or path picks a point; a third click starts over. */
-  function pick(e: ThreeEvent<MouseEvent>) {
-    if (!measuring || e.delta > 4 || !part.current) return
-    e.stopPropagation()
-    const local = part.current.worldToLocal(e.point.clone())
-    // Snaps to the cutting path only: rapids above the part would pull a click on its face up to the clearance plane
-    const p = snap([local.x, local.y, local.z], [layers.feed], Math.max(0.5, size * 0.03))
-    setPicks((prev) => ({ session: measuring, points: prev.session === measuring && prev.points.length < 2 ? [...prev.points, p] : [p] }))
-  }
   const toolLength = Math.max(20, size * 0.4)
   // Machine view (lathe): everything on the spindle turns by -C, so the tool stays in the X/Z plane
   const turn = lathe && machineView ? -spindleAngle : 0
@@ -373,6 +387,39 @@ export function Viewport3D({
   const table = useMemo(() => (stock ? tableLayout(machine, stock, workOffsets, stockZero) : null), [machine, stock, workOffsets, stockZero])
   // Removal is drawn on block stock (mills) and bars (lathes); other combinations keep the raw stock
   const cutting = machining && showStock && !!stock && !!result?.moves.length && (lathe ? stock.shape === 'cylinder' : stock.shape === 'block')
+  const [picks, setPicks] = useState<{ session: number; points: Snap[] }>({ session: 0, points: [] })
+  const measured = measuring && picks.session === measuring ? picks.points : []
+  const [hover, setHover] = useState<Snap | null>(null)
+  const part = useRef<Group>(null)
+  // The part as cut where playback is (the raw stock with machining off), replayed in a cache of its
+  // own the first time a click needs it; a new run or setup starts it over
+  const measureKey = useMemo(() => ({ result, stock, stockZero, ballTools, radialTools }), [result, stock, stockZero, ballTools, radialTools])
+  const measurePart: MeasurePart | null =
+    stock && (lathe ? stock.shape === 'cylinder' : stock.shape === 'block')
+      ? { moves: result?.moves ?? [], index: cutting ? (finished ? result.moves.length - 1 : index) : -1, stock, zero: stockZero, lathe, ballTools, radialTools: radialTools ?? NO_TOOLS }
+      : null
+  // Only the cutting path: rapids above the part would pull a click on its face up to the clearance plane
+  const feedPoints = useMemo(() => pathPoints(layers.feed.positions), [layers])
+  /** Where the pointer is on the part, stock or path (not the chuck, table, tool or axes), snapped. */
+  function snapAt(e: ThreeEvent<PointerEvent | MouseEvent>): Snap | null {
+    const hit = e.intersections.find((i) => isMeasurable(i.object))
+    if (!hit || !part.current) return null
+    const local = part.current.worldToLocal(hit.point.clone())
+    return snapMeasure(measureKey, measurePart, [local.x, local.y, local.z], Math.max(0.5, size * 0.03), feedPoints)
+  }
+  /** Measuring: a click (not a drag) picks the snapped point; a third click starts over. */
+  function pick(e: ThreeEvent<MouseEvent>) {
+    if (!measuring || e.delta > 4) return
+    const p = snapAt(e)
+    if (!p) return
+    e.stopPropagation()
+    setPicks((prev) => ({ session: measuring, points: prev.session === measuring && prev.points.length < 2 ? [...prev.points, p] : [p] }))
+  }
+  function hoverAt(e: ThreeEvent<PointerEvent>) {
+    // Not while orbiting the view
+    if (e.buttons) return
+    setHover(snapAt(e))
+  }
 
   let toolModel: ReactNode = null
   if (tip && tool) {
@@ -414,12 +461,19 @@ export function Viewport3D({
       <directionalLight position={[120, 200, 160]} intensity={1.1} />
       <directionalLight position={[-150, -60, -120]} intensity={0.35} />
       {/* Machine coordinates. Lathe: Z = spindle axis (scene Z). Mill: machine Z is up (scene Y). */}
-      <group rotation={lathe ? [0, 0, 0] : [-Math.PI / 2, 0, 0]} onClick={measuring ? pick : undefined}>
+      <group
+        rotation={lathe ? [0, 0, 0] : [-Math.PI / 2, 0, 0]}
+        onClick={measuring ? pick : undefined}
+        onPointerMove={measuring ? hoverAt : undefined}
+        onPointerOut={measuring ? () => setHover(null) : undefined}
+      >
         {/* Part side: stock, chuck, path and zeros turn together with the spindle in machine view */}
         <group ref={part} rotation={[0, 0, turn]}>
           <Spin rate={lathe && machineView ? spinRate : 0}>
-            {showStock && stock && (cutting && lathe ? null : <Stock stock={stock} faded={faded} zero={stockZero} />)}
-            {cutting && <Machining moves={result.moves} index={finished ? result.moves.length - 1 : index} stock={stock} zero={stockZero} lathe={lathe} ballTools={ballTools} radialTools={radialTools} color={stock.color ?? COLORS.stock} />}
+            <group userData={MEASURABLE}>
+              {showStock && stock && (cutting && lathe ? null : <Stock stock={stock} faded={faded} zero={stockZero} />)}
+              {cutting && <Machining moves={result.moves} index={finished ? result.moves.length - 1 : index} stock={stock} zero={stockZero} lathe={lathe} ballTools={ballTools} radialTools={radialTools} color={stock.color ?? COLORS.stock} />}
+            </group>
             {showHolding && chuck && <ChuckModel chuck={chuck} hit={chuckHit} />}
           </Spin>
           {Object.keys(workOffsets)
@@ -427,7 +481,9 @@ export function Viewport3D({
             .map((n) => (
               <WorkZero key={n} name={n} at={workZero(workOffsets, n, lathe)} size={size * 0.25} />
             ))}
-          <PathLayer layer={layers.feed} color={COLORS.feed} done={doneOf(layers.feed)} ghostOpacity={0.2} />
+          <group userData={MEASURABLE}>
+            <PathLayer layer={layers.feed} color={COLORS.feed} done={doneOf(layers.feed)} ghostOpacity={0.2} />
+          </group>
           <PathLayer layer={layers.center} color={COLORS.center} done={doneOf(layers.center)} ghostOpacity={0.2} />
           {showRapids && <PathLayer layer={layers.rapid} color={COLORS.rapid} done={doneOf(layers.rapid)} ghostOpacity={0.12} />}
           {highlighted && (
@@ -438,7 +494,8 @@ export function Viewport3D({
               <lineBasicMaterial color={COLORS.highlight} depthTest={false} transparent opacity={0.95} />
             </lineSegments>
           )}
-          {measured.length > 0 && <Measure points={measured} lathe={lathe} size={size} />}
+          {measured.length > 0 && <Measure picks={measured} lathe={lathe} size={size} />}
+          {measuring && hover && <SnapMarker snap={hover} />}
         </group>
         {table && (showHolding || showVise) && <TableModel layout={table} showTable={showHolding} showVise={showVise} />}
         {showTailstock && tailstock && <TailstockModel tailstock={tailstock} engaged={!!result?.moves[Math.max(index, 0)]?.state.tailstock && index >= 0} hit={tailstockHit} />}

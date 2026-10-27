@@ -500,7 +500,7 @@ export const es: Record<MessageKey, string> = {
   'view.follow': 'Seguir',
   'view.followHint': 'Mantener la herramienta en el centro de la vista',
   'view.measure': 'Medir',
-  'view.measureHint': 'Haga clic en dos puntos de la pieza o de la trayectoria para ver la distancia (el tercer clic empieza de nuevo)',
+  'view.measureHint': 'Haga clic en dos puntos de la pieza: el puntero se ajusta a esquinas (□), centros de agujero y de cara (○), aristas (△) y a la trayectoria (◇). El tercer clic empieza de nuevo; Esc sale',
   'strip.tool': '{tool} · {time} · clic para ir al inicio',
   'strip.stop': 'Parada: M00, M01 o punto de parada',
   'strip.alarm': 'Alarma: el programa se detiene aquí',

@@ -500,7 +500,7 @@ export const ptBR: Record<MessageKey, string> = {
   'view.follow': 'Seguir',
   'view.followHint': 'Manter a ferramenta no meio da vista',
   'view.measure': 'Medir',
-  'view.measureHint': 'Clique em dois pontos da peça ou do percurso para ver a distância entre eles (o terceiro clique recomeça)',
+  'view.measureHint': 'Clique em dois pontos da peça: o ponteiro se prende a cantos (□), centros de furo e de face (○), arestas (△) e ao percurso (◇). O terceiro clique recomeça; Esc sai',
   'strip.tool': '{tool} · {time} · clique para ir ao início',
   'strip.stop': 'Parada: M00, M01 ou ponto de parada',
   'strip.alarm': 'Alarme: o programa para aqui',

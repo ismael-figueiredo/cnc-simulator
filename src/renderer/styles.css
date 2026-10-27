@@ -341,6 +341,10 @@ button, select, input { font: inherit; color: inherit; }
 .measure-label { white-space: nowrap; pointer-events: none; padding: 2px 6px; border-radius: 3px; background: rgba(14, 18, 21, .85); color: #ffe14d; font: 11.5px 'Share Tech Mono', var(--f-mono); }
 .measure-label.total { display: flex; flex-direction: column; align-items: center; gap: 1px; border: 1px solid #ffe14d; }
 .measure-label.total b { font-size: 13px; }
+/* The snap under the pointer while measuring: corner, center, edge, path point, surface */
+.snap-marker { pointer-events: none; color: #ffe14d; font: 700 18px/1 var(--f-mono); text-shadow: 0 0 3px #000, 0 0 6px #000; }
+.snap-marker.surface { font-size: 22px; opacity: .7; }
+.snap-marker.vertex, .snap-marker.center { color: #3fd19c; }
 
 /* first-use tour */
 .tour { position: fixed; z-index: 30; left: 50%; bottom: 96px; transform: translateX(-50%); width: min(460px, calc(100% - 32px)); display: flex; flex-direction: column; gap: 6px; padding: 14px 16px; background: var(--panel); color: var(--ink); border: 1px solid var(--accent); border-radius: 8px; box-shadow: 0 16px 50px rgba(0, 0, 0, .5); }

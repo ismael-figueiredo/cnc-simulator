@@ -506,7 +506,11 @@ export function Workspace({ init, cfg, active, layout, learn, onLearn, onHelp, o
       // A focused button already answers Space by itself
       if (el?.closest('button') || mode === 'edit' || !result?.moves.length) return
       togglePlay()
-    } else if (e.key === 'Escape') seek(0)
+    } else if (e.key === 'Escape') {
+      // Esc leaves the measure tool first, then is RESET
+      if (measuring) setMeasuring(0)
+      else seek(0)
+    }
     else if (e.key.toLowerCase() === 's') changePanel({ singleBlock: !panel.singleBlock })
     // F: zoom to fit, as in CAD programs
     else if (e.key.toLowerCase() === 'f') setView((v) => ({ kind: 'fit', n: v.n + 1 }))
