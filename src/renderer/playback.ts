@@ -16,7 +16,7 @@ export interface Overrides {
   rapid: number
   spindle: number
 }
-export const NO_OVERRIDE: Overrides = { feed: 1, rapid: 1, spindle: 1 }
+const NO_OVERRIDE: Overrides = { feed: 1, rapid: 1, spindle: 1 }
 
 /**
  * How much faster a move runs with the overrides, as on the machine: rapids follow the rapid override;

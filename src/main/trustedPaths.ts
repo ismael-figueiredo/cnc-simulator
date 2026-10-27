@@ -17,5 +17,3 @@ export function createTrustedPaths(isRecent: (path: string) => boolean) {
     }
   }
 }
-
-export type TrustedPaths = ReturnType<typeof createTrustedPaths>

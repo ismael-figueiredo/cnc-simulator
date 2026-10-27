@@ -80,7 +80,6 @@ interface Props {
   highlight: { first: number; last: number } | null
 }
 
-export type { ViewKind } from '../views'
 
 /** Machine coordinates to the scene: mills draw machine Z up (scene Y). */
 const toScene = (p: Vec3, lathe: boolean): Vec3 => (lathe ? p : [p[0], p[2], -p[1]])

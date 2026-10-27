@@ -274,11 +274,9 @@ export const ToolLibrarySchema = z.object({
   tools: z.array(ToolSchema)
 })
 
-export type LocalizedTextValue = z.infer<typeof LocalizedTextSchema>
 export type Axis = z.infer<typeof AxisSchema>
 export type Spindle = z.infer<typeof SpindleSchema>
 export type AxisName = z.infer<typeof AxisNameSchema>
-export type StockShape = z.infer<typeof StockShapeSchema>
 export type Machine = z.infer<typeof MachineSchema>
 export type Control = z.infer<typeof ControlSchema>
 export type Holder = z.infer<typeof HolderSchema>

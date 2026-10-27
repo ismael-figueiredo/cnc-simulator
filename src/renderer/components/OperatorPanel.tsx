@@ -5,7 +5,7 @@ import type { PanelState } from './Player'
 // Override steps of a Fanuc panel: feed 0–150 % (here from 10 %), rapid F0/25/50/100 %, spindle 50–120 %
 export const FEED_STEPS = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150]
 export const RAPID_STEPS = [10, 25, 50, 100]
-export const SPINDLE_STEPS = [50, 60, 70, 80, 90, 100, 110, 120]
+const SPINDLE_STEPS = [50, 60, 70, 80, 90, 100, 110, 120]
 
 /** Operating modes of the selector; only EDIT and MEM (memory run) are simulated. */
 const MODES = ['EDIT', 'MEM', 'MDI', 'JOG', 'REF'] as const

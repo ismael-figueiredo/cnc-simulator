@@ -177,7 +177,7 @@ export function holderDrawing(holder: Holder, toolLength: number): Outline {
 }
 
 /** Radius of the holder where it meets the tool (the part that touches the stock first). */
-export const noseRadius = (holder: Holder) => {
+const noseRadius = (holder: Holder) => {
   const p = holder.profile ?? []
   const nose = Math.max(...p.map(([, l]) => l), 0)
   return Math.min(...p.filter(([, l]) => l === nose).map(([r]) => r), Infinity)

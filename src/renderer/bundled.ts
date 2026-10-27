@@ -19,7 +19,7 @@ const machineFiles = import.meta.glob<unknown>('../../configs/machines/*.json', 
 const controlFiles = import.meta.glob<unknown>('../../configs/controls/*.json', { eager: true, import: 'default' })
 const toolFiles = import.meta.glob<unknown>('../../configs/tools/*.json', { eager: true, import: 'default' })
 const alarmFiles = import.meta.glob<unknown>('../../configs/alarms/*.json', { eager: true, import: 'default' })
-export const fileName = (path: string) => path.slice(path.lastIndexOf('/') + 1)
+const fileName = (path: string) => path.slice(path.lastIndexOf('/') + 1)
 /** The Romi GL 250 M opens first: it is the machine of the bundled O1500 example. */
 const FIRST_MACHINE = 'romi-gl250-m'
 // Bundled examples: each is a project (examples/*.cncsim) next to its program
