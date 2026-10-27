@@ -12,11 +12,13 @@ import { Tour } from './components/Tour'
 import { useI18n } from './i18n'
 import { useLibraries } from './libraries'
 import { readJson, storage, usePlatform } from './platform'
-import { defaultSetup, setupFromProject } from './project'
+import { defaultSetup, setupFromProject, type Setup } from './project'
 import { useRecent } from './recent'
+import { simulationInput } from './simulationInput'
 import { readThumb, thumbKey } from './thumbnail'
 import { usePartThumbnails, type ThumbJob } from './useThumbnails'
-import { Workspace, type DocInit, type DocState, type Layout, type WorkspaceHandle } from './Workspace'
+import type { DocInit } from './documentStart'
+import { Workspace, type DocState, type Layout, type WorkspaceHandle } from './Workspace'
 
 const LAYOUT_KEY = 'cncsim.layout'
 const LEARN_KEY = 'cncsim.learn'
@@ -221,12 +223,12 @@ export function App() {
 
   // Pictures of the finished parts: the examples, and what each exercise should become
   const thumbJobs = useMemo(() => {
-    const job = (key: string, text: string, machine: Machine | undefined, controlId: string, stock: Stock | null | undefined, workOffsets: WorkOffsets, tools: ThumbJob['input']['tools'], toolOffsets: ThumbJob['input']['toolOffsets']): ThumbJob | null => {
+    const job = (key: string, text: string, machine: Machine | undefined, controlId: string, stock: Stock | null | undefined, workOffsets: WorkOffsets, tools: Setup['tools'], toolOffsets: Setup['toolOffsets']): ThumbJob | null => {
       const control = cfg.controls.find((c) => c.id === controlId)
       if (!machine || !control || !stock) return null
       const lathe = isLathe(machine)
-      const alarms = cfg.alarmCatalogs.find((a) => a.id === control.alarms) ?? null
-      return { key: thumbKey(key, text, machine.id, controlId, JSON.stringify(stock)), input: { text, machine, control, tools, alarms, workOffsets, toolOffsets }, stock, zero: workZero(workOffsets, stock.workOffset ?? 'G54', lathe), lathe }
+      const input = simulationInput(text, machine, control, cfg.alarmCatalogs, { tools, workOffsets, toolOffsets })
+      return { key: thumbKey(key, text, machine.id, controlId, JSON.stringify(stock)), input, stock, zero: workZero(workOffsets, stock.workOffset ?? 'G54', lathe), lathe }
     }
     const examples = EXAMPLES.map((e) => {
       const m = cfg.machines.find((x) => x.id === e.project.machine)

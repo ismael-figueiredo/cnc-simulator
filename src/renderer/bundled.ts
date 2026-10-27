@@ -7,12 +7,9 @@ import {
   loadMachine,
   loadProject,
   loadToolLibrary,
-  type AlarmCatalog,
-  type ConfigIssue,
-  type Control,
-  type Machine,
-  type ToolLibrary
+  type ConfigIssue
 } from '@core/index'
+import type { BundledConfigs } from './types'
 
 // Every JSON in configs/ ships with the app: dropping a file in the folder adds it.
 const machineFiles = import.meta.glob<unknown>('../../configs/machines/*.json', { eager: true, import: 'default' })
@@ -46,21 +43,7 @@ export const EXERCISES = Object.entries(exerciseFiles)
   .sort((a, b) => a.id.localeCompare(b.id))
 
 
-export interface Program {
-  name: string
-  /** File path on the desktop; the file name (or "example:…") in the browser. */
-  path: string
-  text: string
-}
-
-export interface BundledConfigs {
-  machines: Machine[]
-  controls: Control[]
-  library: ToolLibrary | null
-  libraries: ToolLibrary[]
-  alarmCatalogs: AlarmCatalog[]
-  issues: ConfigIssue[]
-}
+export type { BundledConfigs, Program } from './types'
 
 // Configs shipped with the app. Phase 3 adds loading the user's own JSON files.
 // Takes the language only so callers re-run it when validation messages must be translated again.

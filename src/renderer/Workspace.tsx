@@ -1,5 +1,4 @@
 import {
-  memo,
   useCallback,
   useEffect,
   useEffectEvent,
@@ -13,26 +12,17 @@ import {
 } from 'react'
 import {
   compareParts,
-  findChuckCollisions,
-  findTailstockCollisions,
-  findHolderCollisions,
   holderOf,
   keepStockOnTable,
-  programTemplate,
   simulate,
   stockFromPath,
   toolMount,
   workZero,
-  type ConfigIssue,
-  type ProgramKind,
   type Control,
   type Diagnostic,
   type Exercise,
   type Move,
   type Machine,
-  type Project,
-  type Severity,
-  type SimulationInput,
   type Stock,
   type Tool,
   type ToolLibrary,
@@ -63,11 +53,16 @@ import { ViewToolbar } from './components/ViewToolbar'
 import { FeatureTree } from './components/FeatureTree'
 import { AlarmLine } from './components/AlarmLine'
 import { useI18n } from './i18n'
+import { collisionsOf, fixtureHitAt, holderHitAt } from './collisions'
+import { Messages } from './components/Messages'
+import { documentStart, templateTexts, type DocInit } from './documentStart'
+import { lineMarks, sortDiagnostics } from './messages'
+import { simulationInput } from './simulationInput'
 import { ExerciseCard, type ExerciseCheck } from './components/ExerciseCard'
 import { explainLine, helpForWord } from './help'
 import { useLibraries } from './libraries'
 import { readFlag, readNumber, storage, usePlatform, writeFlag } from './platform'
-import { defaultSetup, offsetsFor, projectData, setupFromProject, STOCK_COLOR, type Setup } from './project'
+import { defaultSetup, offsetsFor, projectData, STOCK_COLOR, type Setup } from './project'
 import { createSimulator } from './simulation'
 import { renderPart, thumbKey, writeThumb } from './thumbnail'
 import {
@@ -99,28 +94,6 @@ const NO_SIMULATION: Simulation = { timeline: null, time: 0, playing: false }
 
 const overridesOf = (p: PanelState): Overrides => ({ feed: p.feed / 100, rapid: p.rapid / 100, spindle: p.spindle / 100 })
 
-function simInput(
-  program: Program | null,
-  machine: Machine | undefined,
-  control: Control | undefined,
-  cfg: BundledConfigs,
-  setup: Setup,
-  blockSkip = false
-): SimulationInput | null {
-  if (!program || !machine || !control) return null
-  const alarms = cfg.alarmCatalogs.find((a) => a.id === control.alarms) ?? null
-  return {
-    text: program.text,
-    machine,
-    control,
-    tools: setup.tools,
-    alarms,
-    workOffsets: setup.workOffsets,
-    toolOffsets: setup.toolOffsets,
-    options: { blockDelete: blockSkip }
-  }
-}
-
 /** Page titles as the control shows them. */
 const PAGE_TITLES: Record<Screen, string> = {
   pos: 'POSITION (ALL)',
@@ -135,85 +108,8 @@ const FONT_KEY = 'cncsim.codeFontSize'
 const ORTHO_KEY = 'cncsim.ortho'
 const WIDTH_KEY = 'cncsim.codeWidth'
 
-const SEVERITY_ORDER: Record<Severity, number> = { alarm: 0, warning: 1, info: 2 }
-
-type Translate = ReturnType<typeof useI18n>['t']
-const configIssueText = (t: Translate, i: ConfigIssue) =>
-  i.kind === 'invalid-json'
-    ? t('config.invalidJson', { source: i.source, message: i.message })
-    : t('config.issue', { source: i.source, path: i.path || t('config.root'), message: i.message })
-
-interface MessagesProps {
-  issues: ConfigIssue[]
-  diagnostics: Diagnostic[]
-  collisions: ReturnType<typeof findHolderCollisions>
-  chuckCollisions: ReturnType<typeof findChuckCollisions>
-  onDiagnostic: (d: Diagnostic) => void
-  onMove: (moveIndex: number) => void
-  /** Without the block and its heading (inside another panel). */
-  bare?: boolean
-}
-
-/**
- * Messages and alarms of the run. Memoized: playback re-renders the app on every frame, and a CAM
- * program can bring thousands of messages that would all be drawn again each time.
- */
-const Messages = memo(function Messages({ issues, diagnostics, collisions, chuckCollisions, onDiagnostic, onMove, bare }: MessagesProps) {
-  const { t } = useI18n()
-  const count = diagnostics.length + issues.length + collisions.length + chuckCollisions.length
-  return (
-    <div className={bare ? 'messages' : 'block'}>
-      {!bare && (
-        <h2>
-          {t('messages.title')}
-          {count > 0 && <span className="count">{count}</span>}
-        </h2>
-      )}
-      {issues.map((i, k) => (
-        <p key={`cfg${k}`} className="msg alarm">
-          <b>{t('severity.alarm')}</b>
-          <span>{configIssueText(t, i)}</span>
-        </p>
-      ))}
-      {diagnostics.map((d, k) => (
-        <button key={k} className={`msg ${d.severity}`} onClick={() => onDiagnostic(d)}>
-          <b>{d.alarm?.code ?? t(`severity.${d.severity}`)}</b>
-          <span>
-            L{d.line + 1} · {d.alarm?.message && <strong>{d.alarm.message} · </strong>}
-            {t(`diag.${d.code}`, d.params)}
-          </span>
-        </button>
-      ))}
-      {collisions.map((c) => (
-        <button key={`col${c.tool}|${c.line}`} className="msg warning" onClick={() => onMove(c.moveIndex)}>
-          <b>{t('collision.label')}</b>
-          <span>
-            L{c.line + 1} · {t('collision.holder', { tool: String(c.tool).padStart(2, '0'), depth: c.depth })}
-          </span>
-        </button>
-      ))}
-      {chuckCollisions.map((c) => (
-        <button key={`${c.part ?? 'chuck'}${c.tool}|${c.line}`} className="msg alarm" onClick={() => onMove(c.moveIndex)}>
-          <b>{t('collision.label')}</b>
-          <span>
-            L{c.line + 1} · {t(c.part === 'tailstock' ? 'collision.tailstock' : 'collision.chuck', { tool: String(c.tool).padStart(2, '0'), z: c.z })}
-          </span>
-        </button>
-      ))}
-      {!count && <p className="muted">{t('messages.none')}</p>}
-    </div>
-  )
-})
-
 /** Machine (one control screen with soft keys) or 3D model (program, 3D view, feature panel). */
 export type Layout = 'machine' | 'model'
-
-/** What a new tab opens: everything the document needs is decided before it is created. */
-export type DocInit =
-  | { kind: 'project'; program: Program; project: Project; projectPath: string }
-  | { kind: 'program'; program: Program; machineId: string; controlId: string; library: ToolLibrary | null }
-  | { kind: 'new'; machineId: string; controlId: string; programKind: ProgramKind; number: number }
-  | { kind: 'exercise'; id: string }
 
 /** What the tab strip and the status bar show about a document. */
 export interface DocState {
@@ -249,53 +145,7 @@ export function Workspace({ init, cfg, active, layout, learn, onLearn, onHelp, o
   const { t, l } = useI18n()
   const platform = usePlatform()
   // Everything the document starts with comes from what was opened
-  const [start] = useState(() => {
-    if (init.kind === 'project') {
-      const m = cfg.machines.find((x) => x.id === init.project.machine) ?? cfg.machines[0]
-      const c = cfg.controls.find((x) => x.id === init.project.control) ?? cfg.controls.find((x) => x.id === m?.defaultControl)
-      return { program: init.program, machineId: m?.id ?? '', controlId: c?.id ?? '', setup: setupFromProject(init.project, m, cfg.libraries), projectPath: init.projectPath, mode: 'mem' as const, dirty: false, exercise: null }
-    }
-    if (init.kind === 'program') {
-      const m = cfg.machines.find((x) => x.id === init.machineId)
-      const base = defaultSetup(m, cfg.libraries)
-      const tools = init.library ?? base.tools
-      const setup = { ...base, tools, toolOffsets: offsetsFor(tools, m) }
-      return { program: init.program, machineId: init.machineId, controlId: init.controlId, setup, projectPath: null, mode: 'mem' as const, dirty: false, exercise: null }
-    }
-    if (init.kind === 'new') {
-      const m = cfg.machines.find((x) => x.id === init.machineId)
-      const c = cfg.controls.find((x) => x.id === init.controlId)
-      // Header written with the selected control's own codes, in its file format
-      const text =
-        m && c
-          ? programTemplate(m, c, init.programKind, init.number, {
-              newProgram: t('template.newProgram'),
-              workZero: t('template.workZero'),
-              latheZero: t('template.latheZero'),
-              tool: t('template.tool'),
-              machineHere: t('template.machineHere'),
-              parameters: t('template.parameters'),
-              passes: t('template.passes'),
-              length: t('template.length'),
-              stepDown: t('template.stepDown'),
-              totalDepth: t('template.totalDepth'),
-              feed: t('template.feed'),
-              startDiameter: t('template.startDiameter'),
-              finalDiameter: t('template.finalDiameter')
-            })
-          : ''
-      const program = { name: `O${String(init.number).padStart(4, '0')}.nc`, path: '', text }
-      // A new program starts unsaved, in EDIT, on the machine's own setup
-      return { program, machineId: init.machineId, controlId: init.controlId, setup: defaultSetup(m, cfg.libraries), projectPath: null, mode: 'edit' as const, dirty: true, exercise: null }
-    }
-    const e = EXERCISES.find((x) => x.id === init.id)
-    const ex = e?.exercise
-    const m = cfg.machines.find((x) => x.id === ex?.machine) ?? cfg.machines[0]
-    const base = defaultSetup(m, cfg.libraries)
-    const setup: Setup = ex ? { ...base, stock: { ...ex.stock }, workOffsets: ex.workOffsets ?? {} } : base
-    const program = { name: `${init.id}.nc`, path: `example:learn/${init.id}.nc`, text: ex?.start ?? '' }
-    return { program, machineId: m?.id ?? '', controlId: ex?.control ?? m?.defaultControl ?? '', setup, projectPath: null, mode: 'edit' as const, dirty: false, exercise: e ?? null }
-  })
+  const [start] = useState(() => documentStart(init, cfg, EXERCISES, templateTexts(t)))
   const [machineId, setMachineId] = useState(start.machineId)
   const machine = cfg.machines.find((m) => m.id === machineId) ?? cfg.machines[0]
   const [controlId, setControlId] = useState(start.controlId)
@@ -376,7 +226,7 @@ export function Workspace({ init, cfg, active, layout, learn, onLearn, onHelp, o
    * the previous result stays on screen, with "Simulating…" over the 3D view.
    */
   function simulateWith(p: Program | null, m: Machine | undefined, c: Control | undefined, s: Setup = setup, pn: PanelState = panel) {
-    const input = simInput(p, m, c, cfg, s, pn.blockSkip)
+    const input = p && m && c ? simulationInput(p.text, m, c, cfg.alarmCatalogs, s, pn.blockSkip) : null
     if (!input) {
       simulator.cancel()
       setBusy(false)
@@ -634,18 +484,8 @@ export function Workspace({ init, cfg, active, layout, learn, onLearn, onHelp, o
   }, [editTick])
 
   // ---- derived lists ----
-  const diagnostics = useMemo(
-    () => (result?.diagnostics ?? []).slice().sort((a, b) => SEVERITY_ORDER[a.severity] - SEVERITY_ORDER[b.severity] || a.line - b.line),
-    [result]
-  )
-  const marks = useMemo(() => {
-    const m = new Map<number, Severity>()
-    for (const d of diagnostics) {
-      const prev = m.get(d.line)
-      if (!prev || SEVERITY_ORDER[d.severity] < SEVERITY_ORDER[prev]) m.set(d.line, d.severity)
-    }
-    return m
-  }, [diagnostics])
+  const diagnostics = useMemo(() => sortDiagnostics(result?.diagnostics ?? []), [result])
+  const marks = useMemo(() => lineMarks(diagnostics), [diagnostics])
   const hits = useMemo(() => new Set(tl?.movesByLine.keys() ?? []), [tl])
 
   /** A diagnostic on a line without moves (e.g. the alarm block) goes to where the machine stopped. */
@@ -678,20 +518,12 @@ export function Workspace({ init, cfg, active, layout, learn, onLearn, onHelp, o
   const mount = currentTool ? toolMount(currentTool, holder, lathe) : 'axial'
   // Where the stock's work offset puts its zero in the drawing frame
   const stockZero = useMemo(() => workZero(setup.workOffsets, setup.stock?.workOffset ?? 'G54', lathe), [setup, lathe])
-  const collisions = useMemo(
-    () => findHolderCollisions({ moves: result?.moves ?? [], tools: setup.tools, stock: setup.stock, stockZero, lathe }),
-    [result, setup, stockZero, lathe]
-  )
-  const colliding = !!move && collisions.some((c) => c.line === move.line && c.tool === move.state.tool)
-  const chuckCollisions = useMemo(() => {
-    if (!lathe) return []
-    const moves = result?.moves ?? []
-    return [...findChuckCollisions(moves, setup.stock, stockZero, machine?.chuck), ...findTailstockCollisions(moves, setup.stock, stockZero, machine?.tailstock)]
-  }, [result, setup, stockZero, lathe, machine])
-  const hitHere = (part: 'chuck' | 'tailstock') =>
-    !!move && chuckCollisions.some((c) => (c.part ?? 'chuck') === part && c.line === move.line && c.tool === move.state.tool)
-  const chuckHit = hitHere('chuck')
-  const tailstockHit = hitHere('tailstock')
+  const allCollisions = useMemo(() => collisionsOf(result?.moves ?? [], setup, stockZero, lathe, machine), [result, setup, stockZero, lathe, machine])
+  const collisions = allCollisions.holder
+  const chuckCollisions = allCollisions.fixture
+  const colliding = holderHitAt(allCollisions, move)
+  const chuckHit = fixtureHitAt(allCollisions, move, 'chuck')
+  const tailstockHit = fixtureHitAt(allCollisions, move, 'tailstock')
   const ballTools = useMemo(() => new Set(setup.tools?.tools.filter((x) => x.type === 'ball-endmill').map((x) => x.number) ?? []), [setup.tools])
   /** Lathe live tools whose axis points at the spindle axis: they mill and drill the side of the bar. */
   const radialTools = useMemo(
@@ -715,8 +547,7 @@ export function Workspace({ init, cfg, active, layout, learn, onLearn, onHelp, o
   // Guided exercise: the solution machined on the same setup, and the check of the student's program
   const reference = useMemo<readonly Move[]>(() => {
     if (!exercise) return []
-    const input = simInput({ name: 'solution', path: '', text: exercise.exercise.solution }, machine, control, cfg, setup)
-    return input ? simulate(input).moves : []
+    return machine && control ? simulate(simulationInput(exercise.exercise.solution, machine, control, cfg.alarmCatalogs, setup)).moves : []
   }, [exercise, machine, control, cfg, setup])
   // After each simulation, a picture of the finished part, a moment later so the screen comes first
   useEffect(() => {
@@ -732,10 +563,8 @@ export function Workspace({ init, cfg, active, layout, learn, onLearn, onHelp, o
     return () => clearTimeout(id)
   }, [result, busy, setup.stock, stockZero, lathe, ballTools, projectPath, program.path])
   function checkExercise() {
-    const p = currentProgram()
-    const input = simInput(p, machine, control, cfg, setup)
-    if (!exercise || !input || !setup.stock) return
-    const r = simulate(input)
+    if (!exercise || !machine || !control || !setup.stock) return
+    const r = simulate(simulationInput(currentProgram().text, machine, control, cfg.alarmCatalogs, setup))
     const d = compareParts(reference, r.moves, setup.stock, stockZero, lathe, ballTools)
     const alarms = r.diagnostics.filter((x) => x.severity === 'alarm').length
     const tol = exercise.exercise.tolerance

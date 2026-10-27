@@ -193,7 +193,7 @@ export interface HolderCollision {
 }
 
 export interface CollisionInput {
-  moves: Move[]
+  moves: readonly Move[]
   tools: ToolLibrary | null
   stock: Stock | null
   /** Scene position of the stock's work offset zero (see workShift). */
