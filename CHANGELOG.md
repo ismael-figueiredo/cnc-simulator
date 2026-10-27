@@ -4,6 +4,24 @@ Cada versão em português e inglês. · Each version in Portuguese and English.
 
 Downloads: https://github.com/ismael-figueiredo/cnc-simulator/releases
 
+## 0.22.0 · 2026-10-27
+
+### Português
+**Ferramenta acionada usinando a peça no torno.**
+- Antes, a vista de usinagem do torno só mostrava torneamento: a ferramenta acionada passava pelo caminho e a peça continuava lisa. Agora a peça mostra também:
+  - **trabalho axial na face:** contornos em G12.1 e furos com C indexado. O exemplo O1500 aparece como a coroa, com os 15 dentes fresados até 7,7 mm;
+  - **trabalho radial na lateral:** furação radial, faces planas com fresa radial e rasgos em G07.1.
+- **Como funciona:** a barra é modelada com dois mapas, o raio externo por ângulo (de 2 em 2°) e por Z, e a altura da face por X/Y. Cada superfície é desenhada só onde a outra deixa material, então o vão de um dente abre a lateral da barra.
+- **Desempenho:** programas só de torneamento continuam no modelo anterior, mais leve. O O1500 recalcula a peça inteira em cerca de 0,2 s.
+
+### English
+**Live tools cutting the part on lathes.**
+- The lathe machining view used to show turning only: a live tool went along its path and the part stayed smooth. The part now also shows:
+  - **axial work on the face:** G12.1 contours and holes with C indexed. The O1500 example shows as the sprocket, with its 15 teeth milled 7.7 mm deep;
+  - **radial work on the side:** radial drilling, flats with a radial end mill and G07.1 slots.
+- **How it works:** the bar is modeled with two maps, the outer radius by angle (every 2°) and Z, and the face height by X/Y. Each surface is drawn only where the other one leaves material, so a tooth gap opens the side of the bar.
+- **Speed:** turning-only programs keep the previous, lighter model. O1500 rebuilds the whole part in about 0.2 s.
+
 ## 0.21.2 · 2026-10-26
 
 ### Português
