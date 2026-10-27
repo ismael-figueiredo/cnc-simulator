@@ -7,7 +7,6 @@ import {
   useRef,
   useState,
   type CSSProperties,
-  type PointerEvent as ReactPointerEvent,
   type Ref
 } from 'react'
 import {
@@ -53,6 +52,7 @@ import { ViewToolbar } from './components/ViewToolbar'
 import { FeatureTree } from './components/FeatureTree'
 import { AlarmLine } from './components/AlarmLine'
 import { useI18n } from './i18n'
+import { useCodePanel } from './useCodePanel'
 import { usePlayback } from './usePlayback'
 import { collisionsOf, fixtureHitAt, holderHitAt } from './collisions'
 import { Messages } from './components/Messages'
@@ -62,7 +62,7 @@ import { simulationInput } from './simulationInput'
 import { ExerciseCard, type ExerciseCheck } from './components/ExerciseCard'
 import { explainLine, helpForWord } from './help'
 import { useLibraries } from './libraries'
-import { readFlag, readNumber, storage, usePlatform, writeFlag } from './platform'
+import { readFlag, storage, usePlatform, writeFlag } from './platform'
 import { defaultSetup, offsetsFor, projectData, STOCK_COLOR, type Setup } from './project'
 import { createSimulator } from './simulation'
 import { renderPart, thumbKey, writeThumb } from './thumbnail'
@@ -84,9 +84,7 @@ const PAGE_TITLES: Record<Screen, string> = {
   msg: 'ALARM MESSAGE',
   setting: 'SYSTEM'
 }
-const FONT_KEY = 'cncsim.codeFontSize'
 const ORTHO_KEY = 'cncsim.ortho'
-const WIDTH_KEY = 'cncsim.codeWidth'
 
 /** Machine (one control screen with soft keys) or 3D model (program, 3D view, feature panel). */
 export type Layout = 'machine' | 'model'
@@ -149,8 +147,7 @@ export function Workspace({ init, cfg, active, layout, learn, onLearn, onHelp, o
   const [panel, setPanel] = useState<PanelState>({ singleBlock: false, optionalStop: false, blockSkip: false, feed: 100, rapid: 100, spindle: 100 })
   /** Lines where playback stops before running them. */
   const [breakpoints, setBreakpoints] = useState<ReadonlySet<number>>(() => new Set())
-  const [fontSize, setFontSize] = useState(() => readNumber(storage, FONT_KEY, 11.5))
-  const [codeWidth, setCodeWidth] = useState(() => readNumber(storage, WIDTH_KEY, 300))
+  const { fontSize, codeWidth, changeFont, startResize } = useCodePanel()
   /** Page of the machine layout picked with the soft keys. */
   const [screen, setScreen] = useState<Screen>('graph')
   const [view, setView] = useState<{ kind: ViewKind; n: number }>({ kind: 'iso', n: 0 })
@@ -214,32 +211,6 @@ export function Workspace({ init, cfg, active, layout, learn, onLearn, onHelp, o
       setBusy(false)
       playback.load(result, overridesOf(pn))
     })
-  }
-  const changeFont = useCallback((delta: number) => {
-    setFontSize((f) => {
-      const next = Math.min(22, Math.max(8, Math.round((f + delta) * 2) / 2))
-      storage.set(FONT_KEY, String(next))
-      return next
-    })
-  }, [])
-  /** Drag the divider to widen the program panel; `dir` is -1 when the program is on the right. */
-  function startResize(e: ReactPointerEvent<HTMLDivElement>, dir: 1 | -1) {
-    const startX = e.clientX
-    const startW = codeWidth
-    const el = e.currentTarget
-    el.setPointerCapture(e.pointerId)
-    let w = startW
-    const move = (ev: PointerEvent) => {
-      w = Math.min(window.innerWidth * 0.6, Math.max(200, startW + dir * (ev.clientX - startX)))
-      setCodeWidth(w)
-    }
-    const up = () => {
-      el.removeEventListener('pointermove', move)
-      el.removeEventListener('pointerup', up)
-      storage.set(WIDTH_KEY, String(Math.round(w)))
-    }
-    el.addEventListener('pointermove', move)
-    el.addEventListener('pointerup', up)
   }
   /** The program with the text being edited, if any. */
   function currentProgram(): Program {
