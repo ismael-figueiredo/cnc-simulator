@@ -29,6 +29,7 @@ import {
   type WorkOffsets,
   isLathe,
   machineKind,
+  tableLayout,
 } from '@core/index'
 import type { MenuCommand } from '../preload/api'
 import { EXERCISES, isExample, type BundledConfigs, type Program } from './bundled'
@@ -53,6 +54,7 @@ import { FeatureTree } from './components/FeatureTree'
 import { AlarmLine } from './components/AlarmLine'
 import { useI18n } from './i18n'
 import { useCodePanel } from './useCodePanel'
+import { useDisplayOptions } from './useDisplayOptions'
 import { usePlayback } from './usePlayback'
 import { collisionsOf, fixtureHitAt, holderHitAt } from './collisions'
 import { Messages } from './components/Messages'
@@ -161,7 +163,6 @@ export function Workspace({ init, cfg, active, layout, learn, onLearn, onHelp, o
   /** Picture of the finished part (top of the feature tree, and the recent files list). */
   const [partThumb, setPartThumb] = useState<string | null>(null)
   /** 3D view: show the stock as the whole program leaves it, wherever playback is. */
-  const [finished, setFinished] = useState(false)
   const [follow, setFollow] = useState(false)
   /** Measuring session in the 3D view, 0 when off (each new session starts with no points). */
   const [measuring, setMeasuring] = useState(0)
@@ -169,13 +170,7 @@ export function Workspace({ init, cfg, active, layout, learn, onLearn, onHelp, o
   const [exercise, setExercise] = useState<{ id: string; exercise: Exercise } | null>(start.exercise)
   const [exerciseCheck, setExerciseCheck] = useState<ExerciseCheck | null>(null)
   const [speed, setSpeed] = useState(20)
-  const [showRapids, setShowRapids] = useState(true)
-  const [showStock, setShowStock] = useState(true)
-  const [showFixture, setShowFixture] = useState(true)
-  /** Lathe: chuck and part turn in C while the tool stays in X/Z (off: the part stands still). */
-  const [machineView, setMachineView] = useState(true)
-  /** Show the stock being cut where the tool passes. */
-  const [machining, setMachining] = useState(true)
+  const { display, changeDisplay } = useDisplayOptions()
   const libraries = useLibraries()
   const [editingTools, setEditingTools] = useState(false)
   const [editingStock, setEditingStock] = useState(false)
@@ -406,6 +401,8 @@ export function Workspace({ init, cfg, active, layout, learn, onLearn, onHelp, o
   const mount = currentTool ? toolMount(currentTool, holder, lathe) : 'axial'
   // Where the stock's work offset puts its zero in the drawing frame
   const stockZero = useMemo(() => workZero(setup.workOffsets, setup.stock?.workOffset ?? 'G54', lathe), [setup, lathe])
+  /** The vise is drawn (and can be hidden) only when the stock sits in one on this machine's table. */
+  const hasVise = useMemo(() => !!machine && !!setup.stock && !!tableLayout(machine, setup.stock, setup.workOffsets, stockZero)?.vise, [machine, setup, stockZero])
   const allCollisions = useMemo(() => collisionsOf(result?.moves ?? [], setup, stockZero, lathe, machine), [result, setup, stockZero, lathe, machine])
   const collisions = allCollisions.holder
   const chuckCollisions = allCollisions.fixture
@@ -603,38 +600,35 @@ export function Workspace({ init, cfg, active, layout, learn, onLearn, onHelp, o
           holder={holder}
           mount={mount}
           colliding={colliding}
-          machineView={machineView}
+          machineView={display.machineView}
           spindleAngle={spindleAngle}
           spinRate={spinRate}
           toolSpinRate={toolSpinRate}
-          machining={machining}
+          machining={display.machining}
           ballTools={ballTools}
           radialTools={radialTools}
           chuckHit={chuckHit}
           tailstockHit={tailstockHit}
-          showRapids={showRapids}
-          showStock={showStock}
-          showFixture={showFixture}
+          showRapids={display.rapids}
+          showStock={display.stock}
+          showHolding={display.holding}
+          showVise={display.vise}
+          showTailstock={display.tailstock}
           view={view}
           follow={follow}
           measuring={measuring}
           ortho={ortho}
-          finished={finished}
+          finished={display.finished}
           highlight={highlightOp ? { first: highlightOp.first, last: highlightOp.last } : null}
         />
       )}
       <ViewToolbar
         lathe={lathe}
         onView={(kind) => setView((v) => ({ kind, n: v.n + 1 }))}
-        display={{ rapids: showRapids, stock: showStock, fixture: showFixture, machining, machineView, finished }}
-        onDisplay={(c) => {
-          if (c.rapids !== undefined) setShowRapids(c.rapids)
-          if (c.stock !== undefined) setShowStock(c.stock)
-          if (c.fixture !== undefined) setShowFixture(c.fixture)
-          if (c.machining !== undefined) setMachining(c.machining)
-          if (c.machineView !== undefined) setMachineView(c.machineView)
-          if (c.finished !== undefined) setFinished(c.finished)
-        }}
+        hasVise={hasVise}
+        hasTailstock={!!machine?.tailstock && setup.stock?.shape === 'cylinder'}
+        display={display}
+        onDisplay={changeDisplay}
         ortho={ortho}
         onOrtho={(on) => {
           setOrtho(on)

@@ -602,6 +602,9 @@ export const es: Record<MessageKey, string> = {
   'offsets.keepStockOn': 'Como en la máquina: cambiar el cero cambia dónde corta el programa en la pieza (un cero equivocado corta en el aire o dentro de la pieza).',
   'offsets.keepStockOff': 'El bruto sigue al cero: úselo para corregir dónde está realmente la pieza.',
   'layers.chuck': 'Plato',
-  'layers.table': 'Mesa y mordaza',
+  'layers.table': 'Mesa',
+  'layers.vise': 'Mordaza',
+  'layers.tailstock': 'Contrapunto',
+  'layers.tailstockHint': 'Solo lo oculta: el programa lo sigue posicionando y las colisiones con él siguen en la lista',
   'collision.tailstock': 'La T{tool} puede chocar con el contrapunto en Z{z}.'
 }

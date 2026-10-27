@@ -1,21 +1,13 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { useI18n } from '../i18n'
+import type { DisplayOptions } from '../useDisplayOptions'
 import type { ViewKind } from '../views'
-
-export interface DisplayOptions {
-  rapids: boolean
-  stock: boolean
-  /** Chuck (lathes) or table and vise (machining centers). */
-  fixture: boolean
-  machining: boolean
-  /** Lathe only: chuck and part turn in C while the tool stays in X/Z. */
-  machineView: boolean
-  /** The stock as the whole program leaves it, wherever playback is. */
-  finished: boolean
-}
 
 interface Props {
   lathe: boolean
+  /** The setup has these to show or hide. */
+  hasVise: boolean
+  hasTailstock: boolean
   onView: (kind: ViewKind) => void
   display: DisplayOptions
   onDisplay: (change: Partial<DisplayOptions>) => void
@@ -74,7 +66,7 @@ function Menu({ icon, label, children }: { icon: string; label: string; children
 }
 
 /** Heads-up toolbar over the 3D model, as in CAD programs: fit, standard views, what is shown, projection, follow and measure. */
-export function ViewToolbar({ lathe, onView, display, onDisplay, ortho, onOrtho, follow, onFollow, measuring, onMeasure }: Props) {
+export function ViewToolbar({ lathe, hasVise, hasTailstock, onView, display, onDisplay, ortho, onOrtho, follow, onFollow, measuring, onMeasure }: Props) {
   const { t } = useI18n()
   const views: { kind: ViewKind; label: string; icon: string }[] = [
     { kind: 'iso', label: t('view.iso'), icon: ICONS.iso },
@@ -85,7 +77,9 @@ export function ViewToolbar({ lathe, onView, display, onDisplay, ortho, onOrtho,
   const layers: { key: keyof DisplayOptions; label: string; hint?: string }[] = [
     { key: 'rapids', label: t('layers.rapids') },
     { key: 'stock', label: t('layers.stock') },
-    { key: 'fixture', label: lathe ? t('layers.chuck') : t('layers.table') },
+    { key: 'holding', label: lathe ? t('layers.chuck') : t('layers.table') },
+    ...(hasVise ? [{ key: 'vise' as const, label: t('layers.vise') }] : []),
+    ...(hasTailstock ? [{ key: 'tailstock' as const, label: t('layers.tailstock'), hint: t('layers.tailstockHint') }] : []),
     { key: 'machining', label: t('layers.machining'), hint: t('layers.machiningHint') },
     { key: 'finished', label: t('layers.finished'), hint: t('layers.finishedHint') },
     ...(lathe ? [{ key: 'machineView' as const, label: t('layers.machineView'), hint: t('layers.machineViewHint') }] : [])

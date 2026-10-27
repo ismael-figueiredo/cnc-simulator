@@ -56,8 +56,10 @@ interface Props {
   toolSpinRate?: number
   showRapids: boolean
   showStock: boolean
-  /** Show what holds the part: the chuck on lathes, the table (and vise) on machining centers. */
-  showFixture: boolean
+  /** What holds the part, each shown or hidden: chuck (lathes) or table, the vise, the tailstock. */
+  showHolding: boolean
+  showVise: boolean
+  showTailstock: boolean
   /** Show the stock being cut (heightfield on mills, turned profile on lathes). */
   machining: boolean
   /** Tools with a ball end. */
@@ -262,7 +264,9 @@ export function Viewport3D({
   toolSpinRate = 0,
   showRapids,
   showStock,
-  showFixture,
+  showHolding,
+  showVise,
+  showTailstock,
   machining,
   ballTools,
   radialTools,
@@ -416,7 +420,7 @@ export function Viewport3D({
           <Spin rate={lathe && machineView ? spinRate : 0}>
             {showStock && stock && (cutting && lathe ? null : <Stock stock={stock} faded={faded} zero={stockZero} />)}
             {cutting && <Machining moves={result.moves} index={finished ? result.moves.length - 1 : index} stock={stock} zero={stockZero} lathe={lathe} ballTools={ballTools} radialTools={radialTools} color={stock.color ?? COLORS.stock} />}
-            {showFixture && chuck && <ChuckModel chuck={chuck} hit={chuckHit} />}
+            {showHolding && chuck && <ChuckModel chuck={chuck} hit={chuckHit} />}
           </Spin>
           {Object.keys(workOffsets)
             .filter((n) => n !== 'G54')
@@ -436,13 +440,13 @@ export function Viewport3D({
           )}
           {measured.length > 0 && <Measure points={measured} lathe={lathe} size={size} />}
         </group>
-        {showFixture && table && <TableModel layout={table} />}
-        {showFixture && tailstock && <TailstockModel tailstock={tailstock} engaged={!!result?.moves[Math.max(index, 0)]?.state.tailstock && index >= 0} hit={tailstockHit} />}
+        {table && (showHolding || showVise) && <TableModel layout={table} showTable={showHolding} showVise={showVise} />}
+        {showTailstock && tailstock && <TailstockModel tailstock={tailstock} engaged={!!result?.moves[Math.max(index, 0)]?.state.tailstock && index >= 0} hit={tailstockHit} />}
         {toolModel}
         <axesHelper args={[size * 0.75]} />
       </group>
       <Grid
-        position={[0, lathe ? -size / 2 - 5 : showFixture && table ? table.top - table.height - 1 : -dims.z - 0.01, 0]}
+        position={[0, lathe ? -size / 2 - 5 : showHolding && table ? table.top - table.height - 1 : -dims.z - 0.01, 0]}
         args={[1000, 1000]}
         cellSize={5}
         sectionSize={50}

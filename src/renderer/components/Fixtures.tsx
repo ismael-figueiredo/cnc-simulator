@@ -195,7 +195,7 @@ const ALONG_X = new Matrix4().set(0, 0, 1, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1
  * Machining center table (machine coordinates, Z up): a cast iron slab with its T-slots along X and
  * dowel holes at the ends, and the vise holding the stock when there is one.
  */
-export function TableModel({ layout: t }: { layout: TableLayout }) {
+export function TableModel({ layout: t, showTable = true, showVise = true }: { layout: TableLayout; showTable?: boolean; showVise?: boolean }) {
   const parts = useMemo(() => {
     const W = t.width
     const sw = t.slotWidth
@@ -233,7 +233,7 @@ export function TableModel({ layout: t }: { layout: TableLayout }) {
 
   return (
     <group>
-      <group position={[t.center[0], t.center[1], t.top - GAP]}>
+      <group position={[t.center[0], t.center[1], t.top - GAP]} visible={showTable}>
         <mesh geometry={parts.slab}>
           <meshStandardMaterial color={COLORS.table} metalness={0.35} roughness={0.6} />
         </mesh>
@@ -243,7 +243,7 @@ export function TableModel({ layout: t }: { layout: TableLayout }) {
           </mesh>
         )}
       </group>
-      {t.vise && <Vise vise={t.vise} />}
+      {t.vise && showVise && <Vise vise={t.vise} />}
     </group>
   )
 }
