@@ -24,8 +24,15 @@ export default defineConfig(
       // Interfaces declare callbacks as properties (`fn: () => void`), so methods are never unbound
       '@typescript-eslint/method-signature-style': ['error', 'property'],
       eqeqeq: ['error', 'always'],
-      'no-console': ['warn', { allow: ['warn', 'error'] }]
+      'no-console': ['warn', { allow: ['warn', 'error'] }],
+      // A file past this does more than one thing: split it rather than raise the limit
+      'max-lines': ['error', { max: 600, skipBlankLines: true, skipComments: true }]
     }
+  },
+  {
+    // Still to be split: the interpreter's machine state (one closure) and the document screen
+    files: ['src/core/interp/simulate.ts', 'src/renderer/Workspace.tsx'],
+    rules: { 'max-lines': 'off' }
   },
   {
     files: ['src/renderer/**/*.{ts,tsx}'],
