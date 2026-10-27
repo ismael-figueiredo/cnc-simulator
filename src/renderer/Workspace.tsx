@@ -187,10 +187,14 @@ export function Workspace({ init, cfg, active, layout, learn, onLearn, onHelp, o
   const startLine = useMemo(() => Math.max(0, lines.findIndex((l) => l.trim() !== '' && l.trim() !== '%')), [lines])
   // Simulated in the worker as soon as the tab opens (below), then played back like the control does
   const playback = usePlayback({ speed, singleBlock: panel.singleBlock, optionalStop: panel.optionalStop, breakpoints })
-  const { timeline: tl, time, playing, atReset, index, fraction, runState, seek, seekMove, step, togglePlay, jumpToLine } = playback
+  const { timeline: tl, time, playing, atReset, index, fraction, runState, ended, seek, seekMove, step, togglePlay, jumpToLine } = playback
   const result = tl?.result ?? null
   const moves = result?.moves ?? []
   const move = moves[index]
+  // At the end of the program the screen shows the end block and the state it left (spindle stopped):
+  // the blocks after the last move make no move of their own
+  const programEnd = ended ? result?.end : undefined
+  const shown = move && programEnd ? { ...move, line: programEnd.line, state: programEnd.state } : move
   const position = move ? positionAlong(moves[index - 1], move, fraction) : undefined
   const machinePosition = move ? positionAlong(moves[index - 1], move, fraction, (m) => m.machinePosition) : undefined
 
@@ -421,12 +425,12 @@ export function Workspace({ init, cfg, active, layout, learn, onLearn, onHelp, o
   // The spindle turns while it is on (M03/M04 until M05), also in feed hold and single block stops,
   // as on the machine; faster with the speed and the spindle override (drawn slowed down)
   const drawnRate = (rpm: number) => Math.min(14, Math.max(1.2, (rpm * panel.spindle) / 100 / 250))
-  const spinRate = move?.state.spindleOn && !move.state.liveToolOn ? drawnRate(move.state.spindleSpeed) : 0
+  const spinRate = shown?.state.spindleOn && !shown.state.liveToolOn ? (shown.state.spindleCcw ? -1 : 1) * drawnRate(shown.state.spindleSpeed) : 0
   // The tool turns with the spindle on machining centers, and with the live tool (S2) on lathes
-  const toolSpinRate = lathe ? (move?.state.liveToolOn ? drawnRate(move.state.liveToolSpeed) : 0) : spinRate
+  const toolSpinRate = lathe ? (shown?.state.liveToolOn ? drawnRate(shown.state.liveToolSpeed) : 0) : spinRate
   // Learning mode: help for a word on this control, and the words of the block at the cursor
   const help = useCallback((word: string) => helpForWord(word, control, l), [control, l])
-  const helpLine = move?.line ?? (atReset ? startLine : -1)
+  const helpLine = shown?.line ?? (atReset ? startLine : -1)
   const blockHelp = useMemo(() => (learn && helpLine >= 0 ? explainLine(lines[helpLine] ?? '', control, l) : []), [learn, helpLine, lines, control, l])
   // Guided exercise: the solution machined on the same setup, and the check of the student's program
   // Both run in workers of their own, so neither blocks the window nor replaces the main simulation
@@ -550,13 +554,13 @@ export function Workspace({ init, cfg, active, layout, learn, onLearn, onHelp, o
         </div>
         )}
         {/* Like the control: the modal state (F, S, T, active codes and cycle) above the running program */}
-        {mode === 'mem' && modalArea && <CncModal move={move} />}
+        {mode === 'mem' && modalArea && <CncModal move={shown} ended={programEnd?.code} />}
         {mode === 'edit' ? (
           <ProgramEditor ref={editor} text={program.text} fontSize={fontSize} onEdit={edited} help={learn ? help : undefined} />
         ) : (
           <CodeView
             lines={lines}
-            currentLine={move?.line ?? (atReset ? startLine : -1)}
+            currentLine={shown?.line ?? (atReset ? startLine : -1)}
             alarmLine={stoppedBy?.line ?? -1}
             marks={marks}
             hits={hits}
@@ -761,7 +765,7 @@ export function Workspace({ init, cfg, active, layout, learn, onLearn, onHelp, o
                   </div>
                   {(screen === 'graph' || screen === 'prog') && (
                     <StatusHeader
-                      move={move}
+                      move={shown}
                       position={position}
                       machinePosition={machinePosition}
                       distanceToGo={toGo}

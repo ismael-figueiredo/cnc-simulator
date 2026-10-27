@@ -192,6 +192,7 @@ export const ptBR: Record<MessageKey, string> = {
   'modal.reset': 'RESET · nada executando',
   'modal.spindle': 'placa/árvore',
   'modal.live': 'acionada',
+  'modal.end': 'Fim de programa ({code})',
   'code.breakpointHint': 'Clique no número da linha para parar antes deste bloco (ponto de parada)',
   'panel.singleBlock': 'BLOCO A BLOCO',
   'panel.singleBlockHint': 'Para no fim de cada bloco; Executar segue para o próximo',

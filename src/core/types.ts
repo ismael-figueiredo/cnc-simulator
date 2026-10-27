@@ -46,7 +46,11 @@ export interface ModalState {
   spindleSpeed: number
   liveToolSpeed: number
   spindleOn: boolean
+  /** M04: the spindle turns counterclockwise (M03 clockwise). */
+  spindleCcw: boolean
   liveToolOn: boolean
+  /** M08 until M09. */
+  coolant: boolean
   tool: number
   offset: number
   cAxisEnabled: boolean
@@ -119,6 +123,16 @@ export interface Program {
   text: string
 }
 
+/**
+ * The end of the program. Blocks without moves after the last move (M05, M09, M30) change the state
+ * too, so the screen shows this once playback reaches the end.
+ */
+export interface ProgramEnd {
+  line: number
+  code: string
+  state: ModalState
+}
+
 export interface SimulationResult {
   moves: Move[]
   diagnostics: Diagnostic[]
@@ -126,6 +140,8 @@ export interface SimulationResult {
   finished: boolean
   /** The alarm that stopped the program, if any. */
   stoppedBy?: Diagnostic
+  /** Where a finished program ended (M30, M02, or M99 in the main program). */
+  end?: ProgramEnd
   totalTimeS: number
   tools: ToolUse[]
   variables: VariableChange[]

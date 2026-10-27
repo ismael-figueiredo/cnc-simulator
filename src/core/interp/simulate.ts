@@ -14,6 +14,7 @@ import type {
   MachineAlarm,
   ModalState,
   Move,
+  ProgramEnd,
   MoveKind,
   PlaneElement,
   ProgramPosition,
@@ -242,7 +243,10 @@ export function simulate(input: SimulationInput): SimulationResult {
     liveToolSpeed: 0,
     lastSpeedWasLive: false,
     spindleOn: false,
+    /** M04: the spindle turns counterclockwise. */
+    spindleCcw: false,
     liveToolOn: false,
+    coolant: false,
     tool: 0,
     offset: 0,
     pendingTool: null as { t: number; comment: string } | null,
@@ -411,7 +415,9 @@ export function simulate(input: SimulationInput): SimulationResult {
       spindleSpeed: st.spindleSpeed,
       liveToolSpeed: st.liveToolSpeed,
       spindleOn: st.spindleOn,
+      spindleCcw: st.spindleCcw,
       liveToolOn: st.liveToolOn,
+      coolant: st.coolant,
       tool: st.tool,
       offset: st.offset,
       cAxisEnabled: st.cAxisEnabled,
@@ -454,7 +460,7 @@ export function simulate(input: SimulationInput): SimulationResult {
     else if (kind === 'feed') {
       if (!(st.feed > 0)) diag('alarm', 'feed-undefined', undefined, line)
       let perMin = st.feed
-      if (!st.feedPerMinute) perMin = st.feed * (st.liveToolOn ? st.liveToolSpeed : st.spindleSpeed)
+      if (!st.feedPerMinute) perMin = st.feed * (st.liveToolOn ? st.liveToolSpeed : st.spindleOn ? st.spindleSpeed : 0)
       if (!(perMin > 0)) {
         // Feed per revolution with the spindle stopped: the machine waits instead of moving
         diag('warning', 'spindle-not-running', { feed: st.feed }, line)
@@ -670,19 +676,18 @@ export function simulate(input: SimulationInput): SimulationResult {
     const cornerNoComma = cornerWithoutComma(gs, W)
     const g = applyGCodes(gs, W)
     applyPolar(g.polarCmd, g.polarCode)
-    const flow = applyMCodes(ms, W, b, liveSpeedWord)
+    const m = applyMCodes(ms, W, b, liveSpeedWord)
     applyModalWords(W, ms, b)
     applyCompCommand(g.compCmd)
     for (const ax of AXES) if (W[ax] !== undefined && !machineAxes.has(ax)) diag('warning', 'axis-not-on-machine', { axis: ax }, ax)
     if (!g.skipMotion) runMotion(g.oneShot, W)
     // Lathe multiple repetitive cycles (G70–G73, G76)
-    if (g.latheCycle) {
-      const cycleFlow = runLatheCycle(g.latheCycle.fn, g.latheCycle.code, W, () => targetOf(W))
-      if (cycleFlow) return cycleFlow
-    }
+    const cycleFlow = g.latheCycle ? runLatheCycle(g.latheCycle.fn, g.latheCycle.code, W, () => targetOf(W)) : null
+    for (const f of m.after) f()
+    if (cycleFlow) return cycleFlow
     applyCorner(movesBefore, cornerBefore, W, cornerNoComma)
     trackCompLookAhead(movesBefore)
-    return flow
+    return m.flow
   }
 
   /** The block's words, with decimal point and range checks; G and M codes apart. */
@@ -1015,8 +1020,13 @@ export function simulate(input: SimulationInput): SimulationResult {
     }
   }
 
-  function applyMCodes(ms: number[], W: Words, b: Block, liveSpeedWord: boolean): Flow {
+  /**
+   * The block's M codes. Stops, the spindle stop and coolant off take effect after the block's move,
+   * as on the control (M00 in a G00 block stops at its end point): they come back in `after`.
+   */
+  function applyMCodes(ms: number[], W: Words, b: Block, liveSpeedWord: boolean): { flow: Flow; after: (() => void)[] } {
     let flow: Flow = null
+    const after: (() => void)[] = []
     // ---- M codes ----
     for (const mNum of ms) {
       const fn = codes.m.get(mNum)
@@ -1030,7 +1040,10 @@ export function simulate(input: SimulationInput): SimulationResult {
         case 'spindle-ccw':
           // With a live-tool speed in the block (e.g. S2=), M3/M4 drive the live tool
           if (liveSpeedWord || (st.lastSpeedWasLive && W['S'] === undefined)) st.liveToolOn = true
-          else st.spindleOn = true
+          else {
+            st.spindleOn = true
+            st.spindleCcw = fn === 'spindle-ccw'
+          }
           break
         case 'live-tool-cw':
         case 'live-tool-ccw':
@@ -1040,9 +1053,11 @@ export function simulate(input: SimulationInput): SimulationResult {
           st.liveToolOn = false
           break
         case 'spindle-stop':
-          st.spindleOn = false
-          st.liveToolOn = false
-          st.brake = false
+          after.push(() => {
+            st.spindleOn = false
+            st.liveToolOn = false
+            st.brake = false
+          })
           break
         case 'c-axis-on':
           st.cAxisEnabled = true
@@ -1102,18 +1117,22 @@ export function simulate(input: SimulationInput): SimulationResult {
           flow = 'end'
           break
         case 'stop':
-          diag('info', 'program-stop', { code })
+          after.push(() => diag('info', 'program-stop', { code }))
           break
         case 'optional-stop':
-          diag('info', 'optional-stop', { code })
+          after.push(() => diag('info', 'optional-stop', { code }))
           break
         case 'coolant-on':
+          st.coolant = true
+          break
         case 'coolant-off':
+          after.push(() => (st.coolant = false))
+          break
         case 'other':
           break
       }
     }
-    return flow
+    return { flow, after }
   }
 
   /** S, F, D, H and T words: speeds, feed, offsets and the tool. */
@@ -1567,6 +1586,17 @@ export function simulate(input: SimulationInput): SimulationResult {
 
   // ---------- run ----------
   let finished = false
+  /** The block that ended the program and the state it left, for the screen after the last move. */
+  let end: ProgramEnd | undefined
+  /** "M30", "M02" or "M99": the end code as written in that block. */
+  const endCode = (b: Block): string => {
+    for (const m of b.text.matchAll(/M(\d+)/g)) {
+      const n = Number(m[1])
+      const fn = codes.m.get(n)
+      if (fn === 'end' || fn === 'end-rewind' || fn === 'subprogram-return') return formatCode('M', n)
+    }
+    return ''
+  }
   let steps = 0
   const mainStart = blocks.findIndex((b) => b.programNumber !== undefined)
   if (mainStart >= 0) pc = mainStart + 1
@@ -1607,6 +1637,7 @@ export function simulate(input: SimulationInput): SimulationResult {
         if (flow === 'jump') continue
         if (flow === 'end') {
           finished = true
+          end = { line: b.line, code: endCode(b), state: snapshot().state }
           break
         }
         if (flow === 'call') {
@@ -1618,6 +1649,7 @@ export function simulate(input: SimulationInput): SimulationResult {
           if (!c) {
             diag('info', 'm99-in-main')
             finished = true
+            end = { line: b.line, code: endCode(b), state: snapshot().state }
             break
           }
           if (--c.count > 0) {
@@ -1697,5 +1729,6 @@ export function simulate(input: SimulationInput): SimulationResult {
     variables
   }
   if (stoppedBy) result.stoppedBy = stoppedBy
+  if (finished && end) result.end = end
   return result
 }

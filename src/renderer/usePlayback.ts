@@ -33,6 +33,8 @@ export function usePlayback({ speed, singleBlock, optionalStop, breakpoints }: P
   const fraction = timeline && index >= 0 ? fractionOf(timeline, index, time) : 1
   /** As the control's status line shows it: running, stopped part-way (feed hold), or at RESET. */
   const runState: 'start' | 'hold' | 'reset' = playing ? 'start' : time > 0 && time < (timeline?.total ?? 0) ? 'hold' : 'reset'
+  /** Played to the end of a program that finished: the blocks after the last move (M05, M30) have run. */
+  const ended = !playing && !!timeline?.result.end && time > 0 && time >= timeline.total
   const stops = useMemo(() => (timeline ? stopTimes(timeline, { optionalStop, breakpoints }) : []), [timeline, optionalStop, breakpoints])
 
   useEffect(() => {
@@ -105,5 +107,5 @@ export function usePlayback({ speed, singleBlock, optionalStop, breakpoints }: P
     })
   }, [])
 
-  return { timeline, time, playing, atReset, index, fraction, runState, load, clear, pause, retime, seek, seekMove, step, togglePlay, jumpToLine }
+  return { timeline, time, playing, atReset, index, fraction, runState, ended, load, clear, pause, retime, seek, seekMove, step, togglePlay, jumpToLine }
 }

@@ -191,6 +191,7 @@ export const en = {
   'modal.reset': 'RESET · nothing running',
   'modal.spindle': 'spindle',
   'modal.live': 'live tool',
+  'modal.end': 'Program end ({code})',
   'code.breakpointHint': 'Click the line number to stop before this block (breakpoint)',
   'panel.singleBlock': 'SINGLE BLOCK',
   'panel.singleBlockHint': 'Stop at the end of every block; Run goes on to the next one',

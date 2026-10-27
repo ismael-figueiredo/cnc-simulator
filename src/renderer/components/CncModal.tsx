@@ -17,6 +17,8 @@ export function modalCodes(move: Move): [string, boolean][] {
   ]
   if (s.polar) codes.push(['G12.1', true])
   if (s.cycle) codes.push([s.cycle, true])
+  // Spindle and coolant as the M codes that set them
+  codes.push([s.spindleOn ? (s.spindleCcw ? 'M04' : 'M03') : 'M05', false], [s.coolant ? 'M08' : 'M09', false])
   return codes
 }
 
@@ -24,7 +26,7 @@ export function modalCodes(move: Move): [string, boolean][] {
  * The control's MODAL area above the running program: active G codes, F, S, T and the canned cycle,
  * as on the Fanuc PROGRAM CHECK screen. Re-renders only when the move changes.
  */
-export const CncModal = memo(function CncModal({ move }: { move: Move | undefined }) {
+export const CncModal = memo(function CncModal({ move, ended }: { move: Move | undefined; /** The end code (M30…) once the program has ended. */ ended?: string }) {
   const { t } = useI18n()
   if (!move) return <div className="cnc-modal muted-row">{t('modal.reset')}</div>
   const s = move.state
@@ -37,6 +39,7 @@ export const CncModal = memo(function CncModal({ move }: { move: Move | undefine
           <span key={c} className={on ? 'on' : ''}>{c}</span>
         ))}
       </div>
+      {ended && <div className="cnc-end">{t('modal.end', { code: ended })}</div>}
       <div className="act">
         <span>
           <b>F</b> {move.kind === 'rapid' ? t('position.rapid') : `${fmt(s.feed)} ${s.feedPerMinute ? t('unit.mmMin') : t('unit.mmRev')}`}

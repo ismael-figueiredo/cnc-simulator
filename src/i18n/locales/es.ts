@@ -192,6 +192,7 @@ export const es: Record<MessageKey, string> = {
   'modal.reset': 'RESET · nada en ejecución',
   'modal.spindle': 'husillo',
   'modal.live': 'motorizada',
+  'modal.end': 'Fin de programa ({code})',
   'code.breakpointHint': 'Haga clic en el número de línea para parar antes de este bloque (punto de parada)',
   'panel.singleBlock': 'BLOQUE A BLOQUE',
   'panel.singleBlockHint': 'Para al final de cada bloque; Ejecutar sigue con el siguiente',

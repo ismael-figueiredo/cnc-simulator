@@ -52,6 +52,7 @@
   "mCodes": {
     "M00": { "function": "stop" },
     "M01": { "function": "optional-stop" },
+    "M02": { "function": "end" },
     "M03": { "function": "spindle-cw" },
     "M04": { "function": "spindle-ccw" },
     "M05": { "function": "spindle-stop" },
