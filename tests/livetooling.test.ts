@@ -48,6 +48,15 @@ describe('bar cut with live tools', () => {
     expect(radiusAt(b, 90, -30)).toBe(30)
   })
 
+  it('mills a slot along Z with the radial end mill at C0', () => {
+    const radialTools: ToolLibrary = { id: 'r', name: 'r', units: 'mm', holders: [], tools: [{ number: 3, name: 'Ø8 radial', type: 'flat-endmill', diameter: 8, length: 40, mount: 'radial' }] }
+    const moves = run(['O0001', 'G21 G18 G94', 'T0303', 'M19', 'G0 C0', 'G97 S2=1000 M3', 'G0 X70 Z-10', 'G1 X54 F100', 'G1 Z-30', 'G0 X70', 'M5'], radialTools)
+    const b = cutAll(createBarModel(bar, [0, 0, 0]), moves, new Set([3]))
+    for (const z of [-12, -20, -28]) expect(radiusAt(b, 0, z)).toBeCloseTo(27, 3)
+    expect(radiusAt(b, 0, -36)).toBe(30)
+    expect(radiusAt(b, 180, -20)).toBe(30)
+  })
+
   it('cuts the O1500 sprocket teeth in the face map, and the turned bar has no live cuts', () => {
     const moves = simulate({ text: read('examples/O1500_COROA_ANSI40.nc'), control: fanucT, machine: romi, tools: library }).moves
     const b = cutAll(createBarModel({ shape: 'cylinder', diameter: 67.37, length: 30 }, [0, 0, 0]), moves)
