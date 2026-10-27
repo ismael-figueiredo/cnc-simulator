@@ -12,7 +12,6 @@ import {
   workZero,
   type Holder,
   type Machine,
-  type Move,
   type SimulationResult,
   type Stock as StockData,
   type Tool,
@@ -25,6 +24,7 @@ import {
 import { Machining } from './Machining'
 import { ChuckModel, TableModel, TailstockModel } from './Fixtures'
 import { RotaryTool, TurningTool } from './ToolModels'
+import { buildLayer, rotateZ, scaled, snap, toScene, type Layer } from '../geometry/paths'
 import { useI18n } from '../i18n'
 import { latheToolAngle, viewAngles, viewDirection, type ViewKind } from '../views'
 
@@ -82,13 +82,8 @@ interface Props {
   highlight: { first: number; last: number } | null
 }
 
-
-/** Machine coordinates to the scene: mills draw machine Z up (scene Y). */
-const toScene = (p: Vec3, lathe: boolean): Vec3 => (lathe ? p : [p[0], p[2], -p[1]])
-
 /** Camera far from the part on its view line: the orthographic view zooms instead of moving closer. */
 const CAMERA_DISTANCE = 3000
-const scaled = ([x, y, z]: [number, number, number], k: number): Vec3 => [x * k, y * k, z * k]
 
 /**
  * Turns the camera to a standard view and fits the part, with a short transition (camera-controls
@@ -156,26 +151,6 @@ function Measure({ points, lathe, size }: { points: Vec3[]; lathe: boolean; size
   )
 }
 
-/** Nearest path vertex within `tol` of p (so a click on a line lands on its corner), else p itself. */
-function snap(p: Vec3, layers: Layer[], tol: number): Vec3 {
-  let best = tol * tol
-  let out = p
-  for (const l of layers) {
-    const v = l.positions
-    for (let i = 0; i < v.length; i += 3) {
-      const dx = (v[i] ?? 0) - p[0]
-      const dy = (v[i + 1] ?? 0) - p[1]
-      const dz = (v[i + 2] ?? 0) - p[2]
-      const d = dx * dx + dy * dy + dz * dz
-      if (d < best) {
-        best = d
-        out = [v[i] ?? 0, v[i + 1] ?? 0, v[i + 2] ?? 0]
-      }
-    }
-  }
-  return out
-}
-
 const COLORS = {
   feed: '#5ea4f2',
   center: '#f0b43a',
@@ -189,36 +164,6 @@ const COLORS = {
   chuck: '#4b545e'
 }
 
-
-/** All segments of one layer in a single buffer; starts[k] = vertices before move k. */
-interface Layer {
-  positions: Float32Array
-  starts: Int32Array
-}
-
-function buildLayer(moves: Move[], pick: (m: Move) => readonly Vec3[] | undefined): Layer {
-  let count = 0
-  for (const m of moves) {
-    const p = pick(m)
-    if (p && p.length > 1) count += (p.length - 1) * 2
-  }
-  const positions = new Float32Array(count * 3)
-  const starts = new Int32Array(moves.length + 1)
-  let v = 0
-  moves.forEach((m, k) => {
-    starts[k] = v
-    const p = pick(m)
-    if (!p) return
-    for (let i = 0; i + 1 < p.length; i++) {
-      for (const q of [p[i] as Vec3, p[i + 1] as Vec3]) {
-        positions.set(q, v * 3)
-        v++
-      }
-    }
-  })
-  starts[moves.length] = v
-  return { positions, starts }
-}
 
 function PathLayer({ layer, color, done, ghostOpacity }: { layer: Layer; color: string; done: number; ghostOpacity: number }) {
   // Ghost (path still to run) and done part share one vertex buffer: uploaded to the GPU once, not twice.
@@ -298,7 +243,6 @@ function Spin({ rate, axis = 'z', children }: { rate: number; axis?: 'y' | 'z'; 
   return <group ref={ref}>{children}</group>
 }
 
-const rotateZ = (p: Vec3, a: number): Vec3 => [p[0] * Math.cos(a) - p[1] * Math.sin(a), p[0] * Math.sin(a) + p[1] * Math.cos(a), p[2]]
 
 export function Viewport3D({
   machine,

@@ -18,6 +18,7 @@
     "src/renderer/help.ts",
     "src/renderer/views.ts",
     "src/renderer/editing.ts",
+    "src/renderer/geometry/**/*",
     "src/renderer/collisions.ts",
     "src/renderer/documentStart.ts",
     "src/renderer/messages.ts",

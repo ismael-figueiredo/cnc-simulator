@@ -6,7 +6,7 @@ import { Line } from '@react-three/drei'
 import { BoxGeometry, BufferGeometry, CylinderGeometry, ExtrudeGeometry, Shape, Vector2 } from 'three'
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 import { holderDrawing, holderOutline, insertOutline, toolOutline, type Holder, type Outline, type Tool, type Vec3 } from '@core/index'
-import { sharpLathe } from './sharpLathe'
+import { sharpLathe } from '../geometry/sharpLathe'
 
 const COLORS = {
   carbide: '#a3adb7',

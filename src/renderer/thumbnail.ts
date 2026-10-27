@@ -2,7 +2,7 @@
 // machined with every move of the program and drawn once, off screen, as an isometric view.
 import { AmbientLight, Box3, BufferAttribute, BufferGeometry, Color, DirectionalLight, Group, Mesh, MeshStandardMaterial, OrthographicCamera, Scene, Sphere, Vector3, WebGLRenderer } from 'three'
 import { createHeightfield, createProfile, cutHeightfield, cutProfile, type Heightfield, type Move, type Stock, type Vec3 } from '@core/index'
-import { barGeometry } from './components/Machining'
+import { barGeometry } from './geometry/machined'
 import { storage } from './platform/storage'
 
 export interface PartSource {
