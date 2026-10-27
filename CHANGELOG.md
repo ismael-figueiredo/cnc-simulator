@@ -4,6 +4,18 @@ Cada versão em português e inglês. · Each version in Portuguese and English.
 
 Downloads: https://github.com/ismael-figueiredo/cnc-simulator/releases
 
+## 0.21.2 · 2026-10-26
+
+### Português
+**A ferramenta gira no centro de usinagem.**
+- Fresas, brocas, cabeçote e o cone giram com a árvore ligada (M03/M04 até o M05), também no FEED HOLD e no bloco a bloco, como a placa do torno. A velocidade do giro segue o S e o override da árvore.
+- No torno, a ferramenta acionada gira com o S2 enquanto está ligada.
+
+### English
+**The tool turns on machining centers.**
+- End mills, drills, the face mill and the taper turn while the spindle is on (M03/M04 until M05), also in FEED HOLD and single block, like the lathe chuck. They turn faster with S and the spindle override.
+- On lathes, the live tool turns with S2 while it is on.
+
 ## 0.21.1 · 2026-10-26
 
 ### Português
