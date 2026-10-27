@@ -37,6 +37,7 @@ import { illegalProgramNumber, loadIssues } from './loadChecks'
 import { findLoopEnd, findLoopStart, findSequence, isNcBlock, usesMacro } from './flow'
 import { isIgnoredWrite, isReadOnly, isValidVariable, LAST_COMMON, LAST_LOCAL, MODAL, positionVariable, SYSTEM } from './variables'
 import { createWordReader, DIMENSION } from './words'
+import { readSiemensBlock, SIMULATED_CYCLES, type SiemensBlock, type SiemensCycle } from './siemens'
 
 export interface SimulationOptions {
   /** Skip blocks that start with "/". */
@@ -160,6 +161,13 @@ export function simulate(input: SimulationInput): SimulationResult {
   const maxBlocks = opt.maxBlocks ?? 3_000_000
 
   const { blocks, programs, layout } = parseProgram(input.text, dialect.comment)
+  // Siemens: each block read once into its parts; labels ("START:", "L230:") point to their blocks
+  const siemens = dialect.macro === 'siemens'
+  const siemensBlocks: SiemensBlock[] = siemens ? blocks.map((b) => readSiemensBlock(b.raw)) : []
+  const labels = new Map<string, number>()
+  siemensBlocks.forEach((sb, k) => {
+    if (sb.label) labels.set(sb.label, k)
+  })
   const moves: Move[] = []
   const diagnostics: Diagnostic[] = []
   const variables: VariableChange[] = []
@@ -712,7 +720,7 @@ export function simulate(input: SimulationInput): SimulationResult {
           W['S2'] = v
           liveSpeedWord = true
         } else W['S'] = v
-      } else if (w.addr === ',C' || w.addr === ',R') W[w.addr] = v
+      } else if (w.addr === ',C' || w.addr === ',R' || w.addr === ',F') W[w.addr] = v
       else if (w.addr.startsWith(',')) diag('warning', 'direct-corner-not-simulated', { word: w.addr }, line)
       else W[w.addr] = v
     }
@@ -1300,12 +1308,14 @@ export function simulate(input: SimulationInput): SimulationResult {
       makeCorner(cornerBefore, next)
     }
     const cWord = W[',C']
+    const fWord = W[',F']
     const rWord = W[',R']
-    if (cWord !== undefined || rWord !== undefined) {
-      if (cWord !== undefined && rWord !== undefined) fatal('corner-both')
+    const given = [cWord, fWord, rWord].filter((w) => w !== undefined).length
+    if (given > 0) {
+      if (given > 1) fatal('corner-both')
       const m = made[made.length - 1]
       if (!m || m.kind !== 'feed') fatal('corner-next-not-linear')
-      corner = { kind: cWord !== undefined ? 'C' : 'R', size: cWord ?? rWord ?? 0, move: m, perpendicular: cornerNoComma }
+      corner = { kind: cWord !== undefined ? 'C' : fWord !== undefined ? 'F' : 'R', size: cWord ?? fWord ?? rWord ?? 0, move: m, perpendicular: cornerNoComma }
     }
   }
 
@@ -1350,7 +1360,7 @@ export function simulate(input: SimulationInput): SimulationResult {
   function runBlocks(from: number, to: number): void {
     const saved = line
     for (let k = from; k <= to; k++) {
-      const b = blocks[k]
+      const b = ncBlock(k)
       if (!isNcBlock(b)) continue
       line = b.line
       execWords(b)
@@ -1363,14 +1373,14 @@ export function simulate(input: SimulationInput): SimulationResult {
    * and thrown away, and the machine state put back, as the control reads the shape program.
    */
   function readContour(from: number, to: number, code: string): P2[] {
-    if (!/(^|[^\d.])G0*[01](?![\d.])/i.test(blocks[from]?.text ?? '')) fatal('cycle-contour-first-block', { code })
+    if (!/(^|[^\d.])G0*[01](?![\d.])/i.test(ncBlock(from)?.text ?? '')) fatal('cycle-contour-first-block', { code })
     const saved = { pos: { ...pos }, st: { ...st }, shift: { ...shift }, line, corner, count: moves.length }
     let captured: Move[] = []
     let ok = true
     quiet++
     try {
       for (let k = from; k <= to; k++) {
-        const b = blocks[k]
+        const b = ncBlock(k)
         if (!isNcBlock(b)) continue
         line = b.line
         execWords(b)
@@ -1584,6 +1594,158 @@ export function simulate(input: SimulationInput): SimulationResult {
     return false
   }
 
+  // ---------- Siemens ----------
+  /** MCALL: the cycle repeated after every positioning move, until MCALL alone. */
+  let modalCycle: SiemensCycle | null = null
+
+  /** A Siemens block with its words in the interpreter's form (contours run through this). */
+  const ncBlock = (k: number): Block | undefined => {
+    const b = blocks[k]
+    const sb = siemensBlocks[k]
+    return b && sb ? { ...b, text: sb.nc } : b
+  }
+
+  /**
+   * What a Siemens block does before its NC words: assignments, jumps, subprogram calls and cycles.
+   * Returns where to go next, or the block to run as NC words (none when it has no words left).
+   */
+  function siemensStatements(b: Block, sb: SiemensBlock): { goto?: number; block?: Block } {
+    for (const w of sb.notSimulated) diag('warning', 'function-not-simulated', { code: w }, w)
+    for (const a of sb.assigns) assign(a)
+    if (sb.jump && (sb.jump.condition === null || (ex.at(sb.jump.condition, 0).compare() ?? 0) !== 0)) return { goto: siemensTarget(sb.jump.target) }
+    if (sb.call) {
+      const start = labels.get(`L${sb.call.program}`)
+      if (start === undefined) fatal('subprogram-missing', { o: sb.call.program })
+      if (calls.filter((c) => !c.macro).length >= limits.subprogramNesting) fatal('subprogram-nesting', { max: limits.subprogramNesting })
+      calls.push({ ret: pc + 1, count: sb.call.repeat, start, macro: false })
+      return { goto: start }
+    }
+    if (sb.modalCall === 'cancel') modalCycle = null
+    if (sb.cycle) {
+      if (sb.modalCall === 'set') modalCycle = sb.cycle
+      else runSiemensCycle(sb.cycle)
+    }
+    const text = sb.nc + toolWords(sb)
+    return text ? { block: { ...b, text } } : {}
+  }
+
+  /** A label, or a block number (N100). */
+  function siemensTarget(target: string): number {
+    const k = labels.get(target)
+    if (k !== undefined) return k
+    const n = /^N?(\d+)$/.exec(target)?.[1]
+    if (n) return jumpTarget(Number(n))
+    return fatal('goto-target-missing', { n: target })
+  }
+
+  /**
+   * T and D. Lathes: T n D d is the interpreter's T with tool and offset (D1 when not given). Machining
+   * centers: T selects the tool (M6 changes it), D activates its length and radius at once.
+   */
+  function toolWords(sb: SiemensBlock): string {
+    const pad = (n: number) => String(n).padStart(2, '0')
+    if (sb.tool === null && sb.edge === null) return ''
+    if (latheControl) return `T${pad(sb.tool ?? st.tool)}${pad(sb.edge ?? (sb.tool !== null ? 1 : st.offset))}`
+    if (sb.edge !== null) {
+      const tool = sb.tool ?? st.pendingTool?.t ?? st.tool
+      st.lengthComp = sb.edge === 0 ? null : tool
+      st.dNumber = sb.edge === 0 ? null : tool
+      updateOffsets()
+    }
+    return sb.tool !== null ? `T${sb.tool}` : ''
+  }
+
+  /** The cycle's numeric arguments (null where left empty, or a quoted name). */
+  const cycleArgs = (cy: SiemensCycle) => cy.args.map((a) => (a === null || a.startsWith('"') ? null : ex.at(a, 0).compare()))
+
+  function runSiemensCycle(cy: SiemensCycle): void {
+    if (!SIMULATED_CYCLES.has(cy.name)) {
+      diag('warning', 'cycle-not-simulated', { code: cy.name }, cy.name)
+      return
+    }
+    if (cy.name === 'CYCLE95') runCycle95(cy)
+    else drillCycle(cy.name, cycleArgs(cy))
+  }
+
+  /**
+   * CYCLE81/82/83 along Z at the current position: rapid to the reference plane plus the safety
+   * distance, drill to depth (CYCLE83 in steps), back to the retract plane. Planes are absolute Z.
+   */
+  function drillCycle(name: string, [RTP, RFP, SDIS, DP, DPR, FDEP, FDPR, DAM, DTB, DTS, FRF, VARI]: (number | null)[]): void {
+    const z = (v: number) => atPos({ Z: v + shift.Z })
+    // Marked as a drilling cycle while it runs, as the canned cycles are (holes drawn round, modal area)
+    const savedCycle = st.cycle
+    st.cycle = { fn: name === 'CYCLE83' ? 'peck-drill' : 'drill', code: name, initial: pos.Z }
+    const rfp = RFP ?? 0
+    const clear = rfp + Math.abs(SDIS ?? 0)
+    const bottom = DP ?? rfp - Math.abs(DPR ?? 0)
+    const dwell = (s: number | null | undefined) => {
+      if (s) pushMove('dwell', [worldNow(), worldNow()], {}, s)
+    }
+    linear('rapid', z(clear))
+    if (name === 'CYCLE83') {
+      const feed = st.feed
+      let depth = Math.max(bottom, FDEP ?? (FDPR !== null && FDPR !== undefined ? rfp - Math.abs(FDPR) : bottom))
+      let step = rfp - depth
+      st.feed = feed * (FRF ?? 1)
+      for (;;) {
+        linear('feed', z(depth))
+        st.feed = feed
+        if (depth <= bottom + NO_LENGTH) break
+        // VARI 1: out to the reference plane to clear the chips; 0: back 1 mm to break them
+        if (VARI === 1) {
+          linear('rapid', z(clear))
+          dwell(DTS)
+          linear('rapid', z(depth + 1))
+        } else linear('rapid', z(depth + 1))
+        step = DAM ? Math.max(step - DAM, DAM) : step
+        depth = Math.max(bottom, depth - Math.max(step, 0.1))
+      }
+    } else linear('feed', z(bottom))
+    if (name === 'CYCLE82' || name === 'CYCLE83') dwell(DTB)
+    linear('rapid', z(RTP ?? clear))
+    st.cycle = savedCycle
+  }
+
+  /**
+   * CYCLE95: stock removal parallel to the axis, along the contour between two labels ("START:END") or
+   * after a label of its own name up to its M17. VARI 1–4 rough, 5–8 finish, 9–12 both; drawn for
+   * outside turning (1, 5, 9) and outside facing (2, 6, 10).
+   */
+  function runCycle95(cy: SiemensCycle): void {
+    const [, MID, FALZ, FALX, FAL, FF1, , FF3, VARI] = cycleArgs(cy)
+    const npp = (cy.args[0] ?? '').replace(/"/g, '')
+    const [first, last] = npp.split(':')
+    const from = labels.get(first ?? '')
+    let to = last ? labels.get(last) : undefined
+    if (from !== undefined && !last) {
+      to = from
+      while (to + 1 < blocks.length && !/M17|^RET$/.test(siemensBlocks[to + 1]?.nc ?? '')) to++
+    }
+    if (from === undefined || to === undefined) return fatal('cycle-sequence-missing', { code: 'CYCLE95', n: npp })
+    const vari = VARI ?? 1
+    const kind = (vari - 1) % 4
+    if (kind > 1) {
+      diag('warning', 'cycle-not-simulated', { code: `CYCLE95 VARI=${vari}` }, `c95-${vari}`)
+      return
+    }
+    const start = here()
+    const feed = st.feed
+    if (vari <= 4 || vari >= 9) {
+      const contour = readContour(from, to, 'CYCLE95')
+      if (!(MID && MID > 0)) fatal('cycle-depth-invalid', { code: 'CYCLE95' })
+      const finish = { finishX: FALX ?? FAL ?? 0, finishZ: FALZ ?? FAL ?? 0 }
+      st.feed = FF1 ?? feed
+      runSteps(kind === 0 ? roughTurn(start, contour, { depth: MID, retract: 0.5, ...finish }) : roughFace(start, contour, { depth: MID, retract: 0.5, ...finish }))
+    }
+    if (vari >= 5) {
+      st.feed = FF3 ?? feed
+      runBlocks(from, to)
+      runSteps([{ kind: 'rapid', to: start }])
+    }
+    st.feed = feed
+  }
+
   // ---------- run ----------
   let finished = false
   /** The block that ended the program and the state it left, for the screen after the last move. */
@@ -1615,7 +1777,7 @@ export function simulate(input: SimulationInput): SimulationResult {
 
     while (pc < blocks.length) {
       if (++steps > maxBlocks) fatal('endless-loop', { max: maxBlocks })
-      const b = blocks[pc] as Block
+      let b = blocks[pc] as Block
       line = b.line
       if (b.programNumber !== undefined) {
         if (calls.length === 0 && pc !== mainStart) {
@@ -1629,11 +1791,28 @@ export function simulate(input: SimulationInput): SimulationResult {
         pc++
         continue
       }
-      const s = b.text
-      if (dialect.macro === 'none' && usesMacro(s)) diag('warning', 'macro-not-in-dialect', undefined, 'macro')
       try {
+        if (siemens) {
+          const step = siemensStatements(b, siemensBlocks[pc] as SiemensBlock)
+          if (step.goto !== undefined) {
+            pc = step.goto
+            continue
+          }
+          if (!step.block) {
+            pc++
+            continue
+          }
+          b = step.block
+        }
+        const s = b.text
+        if (dialect.macro === 'none' && usesMacro(s)) diag('warning', 'macro-not-in-dialect', undefined, 'macro')
         if (runMacroStatement(s)) continue
+        const movesBefore = moves.length
         const flow = execWords(b)
+        // MCALL: the cycle runs again at every position the program moves to (set inside the block's
+        // statements, which the compiler's narrowing does not follow)
+        const modal = modalCycle as SiemensCycle | null
+        if (siemens && modal && moves.length > movesBefore) runSiemensCycle(modal)
         if (flow === 'jump') continue
         if (flow === 'end') {
           finished = true

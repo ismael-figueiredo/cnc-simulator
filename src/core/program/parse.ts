@@ -6,6 +6,8 @@ export interface Block {
   line: number
   /** Upper-case text without spaces or comments. Empty for a program-number marker. */
   text: string
+  /** The same with its spaces, for dialects whose words need them (Siemens: "X=R1 CR=5"). */
+  raw: string
   /** Sequence number (N), if any. */
   n: number | null
   /** Starts with "/" (skipped when block delete is on). */
@@ -100,7 +102,7 @@ export function parseProgram(text: string, commentStyle: Control['dialect']['com
     if (m) {
       const num = Number(m[1])
       programs.set(num, blocks.length)
-      blocks.push({ line, text: '', n: null, blockDelete: false, comment, programNumber: num })
+      blocks.push({ line, text: '', raw: '', n: null, blockDelete: false, comment, programNumber: num })
       t = t.slice(m[0].length)
       if (!t) continue
     }
@@ -110,7 +112,7 @@ export function parseProgram(text: string, commentStyle: Control['dialect']['com
       n = Number(m[1])
       t = t.slice(m[0].length)
     }
-    blocks.push({ line, text: t.replace(/\s+/g, ''), n, blockDelete, comment })
+    blocks.push({ line, text: t.replace(/\s+/g, ''), raw: t, n, blockDelete, comment })
   }
   return { blocks, programs, layout }
 }

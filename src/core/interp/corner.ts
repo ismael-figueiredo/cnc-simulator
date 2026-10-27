@@ -6,7 +6,8 @@ import type { DiagnosticCode } from './diagnostics'
 
 /** A ",C"/",R" block waits for the next move to know the corner it rounds or chamfers. */
 export interface Corner {
-  kind: 'C' | 'R'
+  /** C: chamfer by its legs (Fanuc ,C / Siemens CHR); F: chamfer by its own length (Siemens CHF); R: round. */
+  kind: 'C' | 'F' | 'R'
   size: number
   move: Move
   /** C/R without comma (lathe option): the next move must be at 90°. */
@@ -45,7 +46,7 @@ export function cutCorner(c: Corner, next: Move): CornerResult {
   const phi = Math.acos(cos)
   if (phi < 1e-9) return { kind: 'straight' }
   // How far the corner starts from the programmed intersection, along each line
-  const t = c.kind === 'C' ? c.size : c.size * Math.tan(phi / 2)
+  const t = c.kind === 'C' ? c.size : c.kind === 'F' ? c.size / (2 * Math.cos(phi / 2)) : c.size * Math.tan(phi / 2)
   if (t > L1 + NO_LENGTH || t > L2 + NO_LENGTH) return { kind: 'error', code: 'corner-too-large', params: { size: c.size } }
   const A = add(P, mul(d1, -t))
   const B = add(P, mul(d2, t))

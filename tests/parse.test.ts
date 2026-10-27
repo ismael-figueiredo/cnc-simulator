@@ -7,8 +7,8 @@ describe('program parser', () => {
   it('strips spaces, comments and block numbers, and keeps the comment text', () => {
     const { blocks } = fanuc('%\nO1000 (EIXO);\nN10 g0 x10. z2. (DESBASTE) ;\n%')
     expect(blocks).toEqual([
-      { line: 1, text: '', n: null, blockDelete: false, comment: 'EIXO', programNumber: 1000 },
-      { line: 2, text: 'G0X10.Z2.', n: 10, blockDelete: false, comment: 'DESBASTE' }
+      { line: 1, text: '', raw: '', n: null, blockDelete: false, comment: 'EIXO', programNumber: 1000 },
+      { line: 2, text: 'G0X10.Z2.', raw: 'G0 X10. Z2.', n: 10, blockDelete: false, comment: 'DESBASTE' }
     ])
   })
 
@@ -39,7 +39,7 @@ describe('program parser', () => {
 
   it('reads ";" comments for controls that use them (Siemens-style)', () => {
     const { blocks, layout } = parseProgram('N10 G0 X0 ; rapid to zero\n; only a comment\n', 'semicolon')
-    expect(blocks).toEqual([{ line: 0, text: 'G0X0', n: 10, blockDelete: false, comment: 'rapid to zero' }])
+    expect(blocks).toEqual([{ line: 0, text: 'G0X0', raw: 'G0 X0', n: 10, blockDelete: false, comment: 'rapid to zero' }])
     expect(layout.missingEob).toEqual([])
   })
 })
