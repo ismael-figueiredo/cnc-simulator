@@ -705,7 +705,10 @@ export function Workspace({ init, cfg, active, layout, learn, onLearn, onHelp, o
   const spindleAngle = move ? (move.state.polar && toolTip ? Math.atan2(toolTip[1], toolTip[0]) : ((position?.C ?? 0) * Math.PI) / 180) : 0
   // The spindle turns while it is on (M03/M04 until M05), also in feed hold and single block stops,
   // as on the machine; faster with the speed and the spindle override (drawn slowed down)
-  const spinRate = move?.state.spindleOn && !move.state.liveToolOn ? Math.min(14, Math.max(1.2, (move.state.spindleSpeed * panel.spindle) / 100 / 250)) : 0
+  const drawnRate = (rpm: number) => Math.min(14, Math.max(1.2, (rpm * panel.spindle) / 100 / 250))
+  const spinRate = move?.state.spindleOn && !move.state.liveToolOn ? drawnRate(move.state.spindleSpeed) : 0
+  // The tool turns with the spindle on machining centers, and with the live tool (S2) on lathes
+  const toolSpinRate = lathe ? (move?.state.liveToolOn ? drawnRate(move.state.liveToolSpeed) : 0) : spinRate
   // Learning mode: help for a word on this control, and the words of the block at the cursor
   const help = useCallback((word: string) => helpForWord(word, control, l), [control, l])
   const helpLine = move?.line ?? (atReset ? startLine : -1)
@@ -869,6 +872,7 @@ export function Workspace({ init, cfg, active, layout, learn, onLearn, onHelp, o
           machineView={machineView}
           spindleAngle={spindleAngle}
           spinRate={spinRate}
+          toolSpinRate={toolSpinRate}
           machining={machining}
           ballTools={ballTools}
           chuckHit={chuckHit}

@@ -49,6 +49,8 @@ interface Props {
   spindleAngle: number
   /** Main spindle speed as drawn, radians per second (0: stopped); the chuck turns at it in machine view. */
   spinRate: number
+  /** Rotary tool speed as drawn, radians per second: the spindle on machining centers, the live tool on lathes. */
+  toolSpinRate?: number
   showRapids: boolean
   showStock: boolean
   /** Show what holds the part: the chuck on lathes, the table (and vise) on machining centers. */
@@ -290,11 +292,14 @@ function Stock({ stock: s, faded, zero }: { stock: StockData; faded: boolean; ze
 }
 
 /** Solid of revolution around +Y (three.js LatheGeometry); the parent rotates it onto the tool axis. */
-/** Turns its children around the spindle axis at `rate` radians per second (0: stopped). */
-function Spin({ rate, children }: { rate: number; children: ReactNode }) {
+/**
+ * Turns its children at `rate` radians per second (0: stopped), clockwise seen from the spindle:
+ * around Z for the lathe spindle, around Y for a rotary tool drawn from its tip up.
+ */
+function Spin({ rate, axis = 'z', children }: { rate: number; axis?: 'y' | 'z'; children: ReactNode }) {
   const ref = useRef<Group>(null)
   useFrame((_s, dt) => {
-    if (rate > 0 && ref.current) ref.current.rotation.z -= dt * rate
+    if (rate > 0 && ref.current) ref.current.rotation[axis] -= dt * rate
   })
   return <group ref={ref}>{children}</group>
 }
@@ -316,6 +321,7 @@ export function Viewport3D({
   machineView,
   spindleAngle,
   spinRate,
+  toolSpinRate = 0,
   showRapids,
   showStock,
   showFixture,
@@ -435,7 +441,9 @@ export function Viewport3D({
       toolModel = (
         // LatheGeometry runs along +Y: axial → +Z (mill spindle, lathe face), radial → outward from the axis
         <group position={tip} rotation={mount === 'radial' ? [0, 0, radialAngle - Math.PI / 2] : [Math.PI / 2, 0, 0]}>
-          <RotaryTool tool={tool} holder={holder} colliding={colliding} spindleNose={!lathe} />
+          <Spin rate={toolSpinRate} axis="y">
+            <RotaryTool tool={tool} holder={holder} colliding={colliding} spindleNose={!lathe} />
+          </Spin>
         </group>
       )
   } else if (tip) {
