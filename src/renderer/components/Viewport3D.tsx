@@ -62,6 +62,8 @@ interface Props {
   machining: boolean
   /** Tools with a ball end. */
   ballTools: Set<number>
+  /** Lathe live tools mounted radially. */
+  radialTools?: Set<number>
   /** The tool may hit the chuck at this move: the jaws turn red. */
   chuckHit: boolean
   /** The tool may hit the tailstock center at this move: the center turns red. */
@@ -319,6 +321,7 @@ export function Viewport3D({
   showFixture,
   machining,
   ballTools,
+  radialTools,
   chuckHit,
   tailstockHit = false,
   view,
@@ -468,7 +471,7 @@ export function Viewport3D({
         <group ref={part} rotation={[0, 0, turn]}>
           <Spin rate={lathe && machineView ? spinRate : 0}>
             {showStock && stock && (cutting && lathe ? null : <Stock stock={stock} faded={faded} zero={stockZero} />)}
-            {cutting && <Machining moves={result.moves} index={finished ? result.moves.length - 1 : index} stock={stock} zero={stockZero} lathe={lathe} ballTools={ballTools} color={stock.color ?? COLORS.stock} />}
+            {cutting && <Machining moves={result.moves} index={finished ? result.moves.length - 1 : index} stock={stock} zero={stockZero} lathe={lathe} ballTools={ballTools} radialTools={radialTools} color={stock.color ?? COLORS.stock} />}
             {showFixture && chuck && <ChuckModel chuck={chuck} hit={chuckHit} />}
           </Spin>
           {Object.keys(workOffsets)

@@ -693,6 +693,11 @@ export function Workspace({ init, cfg, active, layout, learn, onLearn, onHelp, o
   const chuckHit = hitHere('chuck')
   const tailstockHit = hitHere('tailstock')
   const ballTools = useMemo(() => new Set(setup.tools?.tools.filter((x) => x.type === 'ball-endmill').map((x) => x.number) ?? []), [setup.tools])
+  /** Lathe live tools whose axis points at the spindle axis: they mill and drill the side of the bar. */
+  const radialTools = useMemo(
+    () => new Set(lathe ? (setup.tools?.tools.filter((x) => toolMount(x, holderOf(x, setup.tools, true), true) === 'radial').map((x) => x.number) ?? []) : []),
+    [setup.tools, lathe]
+  )
   /** Stock wrapping what the program cuts, offered in the stock editor. */
   const programStock = useMemo(() => stockFromPath(result?.moves ?? [], lathe), [result, lathe])
   // C angle: from the tip in polar interpolation (C is not tracked as an angle there), else the C position
@@ -865,6 +870,7 @@ export function Workspace({ init, cfg, active, layout, learn, onLearn, onHelp, o
           toolSpinRate={toolSpinRate}
           machining={machining}
           ballTools={ballTools}
+          radialTools={radialTools}
           chuckHit={chuckHit}
           tailstockHit={tailstockHit}
           showRapids={showRapids}
