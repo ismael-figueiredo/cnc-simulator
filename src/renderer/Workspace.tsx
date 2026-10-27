@@ -56,6 +56,7 @@ import { useCodePanel } from './useCodePanel'
 import { usePlayback } from './usePlayback'
 import { collisionsOf, fixtureHitAt, holderHitAt } from './collisions'
 import { Messages } from './components/Messages'
+import { ControlBlock, MachineBlock, ProjectBlock, StockBlock, stockSummary, ToolOffsetsBlock, ToolsBlock, WorkOffsetsBlock } from './components/SetupBlocks'
 import { documentStart, templateTexts, type DocInit } from './documentStart'
 import { lineMarks, sortDiagnostics } from './messages'
 import { simulationInput } from './simulationInput'
@@ -63,7 +64,7 @@ import { ExerciseCard, type ExerciseCheck } from './components/ExerciseCard'
 import { explainLine, helpForWord } from './help'
 import { useLibraries } from './libraries'
 import { readFlag, storage, usePlatform, writeFlag } from './platform'
-import { defaultSetup, offsetsFor, projectData, STOCK_COLOR, type Setup } from './project'
+import { defaultSetup, offsetsFor, projectData, type Setup } from './project'
 import { createSimulator } from './simulation'
 import { renderPart, thumbKey, writeThumb } from './thumbnail'
 import { distanceToGo, formatTime, operations, pointAlong, positionAlong, stopTimes, type Overrides } from './playback'
@@ -671,7 +672,8 @@ export function Workspace({ init, cfg, active, layout, learn, onLearn, onHelp, o
       )}
     </div>
   )
-  const player = (
+  /** simOnly: the machine screen's bar (speed, timeline); its operator panel has the machine's keys. */
+  const playerBar = (simOnly: boolean) => (
     <Player
       time={time}
       total={tl?.total ?? 0}
@@ -686,39 +688,13 @@ export function Workspace({ init, cfg, active, layout, learn, onLearn, onHelp, o
       panel={panel}
       onPanel={changePanel}
       strip={strip}
+      simOnly={simOnly}
     />
   )
-  /** Machine screen: only the simulation controls (speed, timeline); the panel has the machine's keys. */
-  const simBar = (
-    <Player
-      time={time}
-      total={tl?.total ?? 0}
-      playing={playing}
-      speed={speed}
-      disabled={!result?.moves.length}
-      runDisabled={mode === 'edit'}
-      onSeek={seek}
-      onTogglePlay={togglePlay}
-      onStep={step}
-      onSpeed={setSpeed}
-      panel={panel}
-      onPanel={changePanel}
-      strip={strip}
-      simOnly
-    />
-  )
-  const projectBlock = (
-    <div className="block">
-      <h2>{t('project.title')}</h2>
-      <p className="muted">
-        {projectPath ? projectPath.slice(Math.max(projectPath.lastIndexOf('/'), projectPath.lastIndexOf('\\'), projectPath.indexOf(':')) + 1) : t('project.none')}
-      </p>
-      <button className="btn" title={t('project.explain')} onClick={() => void saveProject(false)}>{t(projectPath ? 'project.save' : 'project.create')}</button>
-      <p className="muted small">{t('project.explain')}</p>
-    </div>
-  )
-  const messagesBlock = (
+  /** bare: without the heading, under the feature tree's Messages node. */
+  const messages = (bare: boolean) => (
     <Messages
+      bare={bare}
       issues={cfg.issues}
       diagnostics={diagnostics}
       collisions={collisions}
@@ -726,147 +702,6 @@ export function Workspace({ init, cfg, active, layout, learn, onLearn, onHelp, o
       onDiagnostic={jumpToDiagnostic}
       onMove={seekMove}
     />
-  )
-  /** The same messages without their heading, under the feature tree's Messages node. */
-  const messagesList = (
-    <Messages
-      bare
-      issues={cfg.issues}
-      diagnostics={diagnostics}
-      collisions={collisions}
-      chuckCollisions={chuckCollisions}
-      onDiagnostic={jumpToDiagnostic}
-      onMove={seekMove}
-    />
-  )
-  const machineBlock = machine && (
-    <div className="block">
-    <h2>{t('machine.title')}</h2>
-    <p className="muted">
-      {machine.manufacturer ? `${machine.manufacturer} · ` : ''}
-      {t(`machineType.${machine.type}`)} · {machine.kinematics}
-    </p>
-    <table className="table">
-      <thead>
-        <tr><th>{t('machine.axis')}</th><th>{t('machine.travel')}</th><th>{t('machine.rapid')}</th></tr>
-      </thead>
-      <tbody>
-        {machine.axes.map((a) => (
-          <tr key={a.name}>
-            <td>{a.name}{a.diameter ? ' (Ø)' : ''}</td>
-            <td>{a.type === 'rotary' ? t('machine.continuous') : `${a.min} … ${a.max}`}</td>
-            <td>{a.rapid}{a.type === 'rotary' ? ' °/min' : ''}</td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
-    <p className="muted">
-      {t('machine.spindles')}: {machine.spindles.map((s) => `${l(s.name)} ${s.maxRpm} rpm`).join(' · ')}
-    </p>
-    {machine.notes && <p className="note">{l(machine.notes)}</p>}
-    </div>
-  )
-  const controlBlock = control && (
-    <div className="block">
-    <h2>{t('control.title')}</h2>
-    <p className="muted">
-      {t('control.summary', {
-        family: control.family,
-        system: control.dialect.gCodeSystem,
-        macro: control.dialect.macro,
-        g: Object.keys(control.gCodes).length,
-        m: Object.keys(control.mCodes).length
-      })}
-    </p>
-    {machine && kind !== control.machineType && (
-      <p className="warning">
-        {t('control.mismatch', {
-          controlType: t(`machineType.${control.machineType}`),
-          machineType: t(`machineType.${machine.type}`)
-        })}
-      </p>
-    )}
-    </div>
-  )
-  const stockBlock = (
-    <div className="block">
-      <h2>
-        {t('stock.title')}
-        <button className="btn tiny head-action" onClick={() => setEditingStock(true)}>{t('tools.edit')}</button>
-      </h2>
-      {setup.stock ? (
-        <p className="stock-summary">
-          <i style={{ background: setup.stock.color ?? STOCK_COLOR }} />
-          {setup.stock.shape === 'cylinder'
-            ? t('stock.summaryCylinder', { diameter: setup.stock.diameter ?? 0, length: setup.stock.length ?? 0 })
-            : t('stock.summaryBlock', { x: setup.stock.x ?? 0, y: setup.stock.y ?? 0, z: setup.stock.z ?? 0 })}
-          <span className="muted"> · {setup.stock.workOffset ?? 'G54'}</span>
-        </p>
-      ) : (
-        <p className="muted">{t('stock.none')}</p>
-      )}
-    </div>
-  )
-  const offsetsBlock = (
-    <div className="block">
-      <h2>
-        {t('offsets.title')}
-        <button className="btn tiny head-action" onClick={() => setEditingOffsets(true)}>{t('tools.edit')}</button>
-      </h2>
-      {Object.keys(setup.workOffsets).length ? (
-        <ul className="list mono">
-          {Object.entries(setup.workOffsets).map(([name, o]) => (
-            <li key={name}>
-              <b>{name}</b>{' '}
-              {Object.entries(o)
-                .map(([ax, v]) => `${ax}${v}`)
-                .join(' ')}
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <p className="muted">{t('offsets.none')}</p>
-      )}
-    </div>
-  )
-  const toolOffsetsBlock = (
-    <div className="block">
-      <h2>
-        {t('toolOffsets.title')}
-        <button className="btn tiny head-action" onClick={() => setEditingToolOffsets(true)}>{t('tools.edit')}</button>
-      </h2>
-      <ul className="list mono">
-        {Object.entries(setup.toolOffsets)
-          .sort(([a], [b]) => Number(a) - Number(b))
-          .slice(0, 8)
-          .map(([n, o]) => (
-            <li key={n}>
-              <b>{n.padStart(2, '0')}</b>{' '}
-              {lathe
-                ? `X${o.x ?? 0} Z${o.z ?? 0}${o.nose !== undefined ? ` R${o.nose}` : ''}${o.xWear || o.zWear ? ` · Δ X${o.xWear ?? 0} Z${o.zWear ?? 0}` : ''}`
-                : `H${o.length ?? '—'}${o.lengthWear ? `${o.lengthWear > 0 ? '+' : ''}${o.lengthWear}` : ''} D${o.radius ?? '—'}${o.radiusWear ? `${o.radiusWear > 0 ? '+' : ''}${o.radiusWear}` : ''}`}
-            </li>
-          ))}
-      </ul>
-      {!Object.keys(setup.toolOffsets).length && <p className="muted">{t('toolOffsets.none')}</p>}
-    </div>
-  )
-  const toolsBlock = (
-    <div className="block">
-      <h2>
-        {t('tools.title')}
-        <button className="btn tiny head-action" onClick={() => setEditingTools(true)}>{t('tools.edit')}</button>
-      </h2>
-      {!setup.tools?.tools.length && <p className="muted">{t('tools.none')}</p>}
-      <ul className="list">
-        {setup.tools?.tools.map((tool) => (
-          <li key={tool.number}>
-            <b>T{String(tool.number).padStart(2, '0')}</b> {l(tool.name)}
-            <span className="muted"> · {t('tools.radius', { radius: tool.diameter / 2 })} · {tool.holder ?? t('tools.noHolder')}</span>
-          </li>
-        ))}
-      </ul>
-    </div>
   )
 
   return (
@@ -879,13 +714,7 @@ export function Workspace({ init, cfg, active, layout, learn, onLearn, onHelp, o
                 program={program.name}
                 machine={machine?.name ?? ''}
                 control={control?.name ?? ''}
-                stock={
-                  setup.stock
-                    ? setup.stock.shape === 'cylinder'
-                      ? t('stock.summaryCylinder', { diameter: setup.stock.diameter ?? 0, length: setup.stock.length ?? 0 })
-                      : t('stock.summaryBlock', { x: setup.stock.x ?? 0, y: setup.stock.y ?? 0, z: setup.stock.z ?? 0 })
-                    : t('stock.none')
-                }
+                stock={stockSummary(t, setup.stock)}
                 offsets={Object.keys(setup.workOffsets)}
                 tools={setup.tools?.tools.map((x) => ({ number: x.number, name: l(x.name) })) ?? []}
                 operations={ops}
@@ -893,7 +722,7 @@ export function Workspace({ init, cfg, active, layout, learn, onLearn, onHelp, o
                 selected={selectedOp}
                 messages={messageCount}
                 alarm={!!stoppedBy || chuckCollisions.length > 0}
-                messageList={messagesList}
+                messageList={messages(true)}
                 preview={partThumb}
                 onStock={() => setEditingStock(true)}
                 onOffsets={() => setEditingOffsets(true)}
@@ -912,7 +741,7 @@ export function Workspace({ init, cfg, active, layout, learn, onLearn, onHelp, o
             <section className="panel view">
               <AlarmLine alarm={stoppedBy} onGo={jumpToDiagnostic} />
               {stage}
-              {player}
+              {playerBar(false)}
             </section>
           </main>
         ) : (
@@ -974,18 +803,18 @@ export function Workspace({ init, cfg, active, layout, learn, onLearn, onHelp, o
                                     </button>
                                   </div>
                                 )}
-                                {messagesBlock}
+                                {messages(false)}
                               </>
                             )}
-                            {screen === 'offset' && toolOffsetsBlock}
-                            {screen === 'work' && offsetsBlock}
+                            {screen === 'offset' && <ToolOffsetsBlock offsets={setup.toolOffsets} lathe={lathe} onEdit={() => setEditingToolOffsets(true)} />}
+                            {screen === 'work' && <WorkOffsetsBlock offsets={setup.workOffsets} onEdit={() => setEditingOffsets(true)} />}
                             {screen === 'setting' && (
                               <>
-                                {projectBlock}
-                                {machineBlock}
-                                {controlBlock}
-                                {stockBlock}
-                                {toolsBlock}
+                                <ProjectBlock path={projectPath} onSave={() => void saveProject(false)} />
+                                {machine && <MachineBlock machine={machine} />}
+                                {control && <ControlBlock control={control} machine={machine} />}
+                                <StockBlock stock={setup.stock} onEdit={() => setEditingStock(true)} />
+                                <ToolsBlock tools={setup.tools} onEdit={() => setEditingTools(true)} />
                               </>
                             )}
                           </div>
@@ -1029,7 +858,7 @@ export function Workspace({ init, cfg, active, layout, learn, onLearn, onHelp, o
               panel={panel}
               onPanel={changePanel}
             />
-            {simBar}
+            {playerBar(true)}
           </main>
         )
       }
