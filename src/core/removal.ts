@@ -1,6 +1,7 @@
-// Material removal for the 3D view: a heightfield on block stock (machining centers) and a radius
-// profile on bar stock (turning). Moves are applied one at a time, so the view can follow playback.
-// Rapids and live tooling on lathes do not remove material here.
+// Material removal for the 3D view: a heightfield on block stock (machining centers), a radius
+// profile on bar stock (turning), and for bars cut with live tools a model of two maps (the outer
+// radius by angle and Z, and the face height by X/Y). Moves are applied one at a time, so the view
+// can follow playback. Rapids do not remove material.
 import { stockSize, type Stock } from './config/project'
 import type { Move, Vec3 } from './types'
 
@@ -178,6 +179,137 @@ export function stockFromPath(moves: readonly Move[], lathe: boolean, margin = 2
   const ox = Math.floor(x0 - margin)
   const oy = Math.floor(y0 - margin)
   return { shape: 'block', x: ceil(x1 + margin - ox), y: ceil(y1 + margin - oy), z: ceil(top - z0 + margin * 2), offset: { X: ox, Y: oy, Z: top } }
+}
+
+/**
+ * Bar cut with live tools: material is where both maps allow it, inside the outer radius at its angle
+ * and Z (`radii`, turned and radial-milled) and under the face height at its X/Y (`face`, the axial
+ * work: G12.1 contours, axial holes). Turning lowers the radius all around; a radial tool only where
+ * it reaches; an axial tool cuts the face heightfield as an end mill cuts a block.
+ */
+export interface BarModel {
+  /** Z of the bar face (row 0) and the step toward the chuck between rows. */
+  face: number
+  cell: number
+  radius: number
+  /** Angles around the axis (columns) and rows along Z. */
+  nTheta: number
+  nz: number
+  /** radii[row * nTheta + column]: the outer radius there. */
+  radii: Float32Array
+  /** Rows changed since the view last read them, as [row0, row1] (null: none). */
+  dirtyRows: [number, number] | null
+  faceMap: Heightfield
+}
+
+/** Columns around the bar: 2° each. */
+const BAR_ANGLES = 180
+
+export function createBarModel(s: Stock, zero: Vec3): BarModel {
+  const o = stockOrigin(s, zero)
+  const { length: L, diameter } = stockSize(s)
+  const radius = diameter / 2
+  const cell = Math.max(0.2, L / 300)
+  const nz = Math.ceil(L / cell) + 1
+  // The face map covers the bar's cross-section, from its face down the whole length
+  const fc = Math.max(0.2, (2 * radius) / MAX_CELLS)
+  const n = Math.ceil((2 * radius) / fc) + 1
+  const faceMap: Heightfield = { nx: n, ny: n, x0: -radius, y0: -radius, cell: fc, top: o[2], bottom: o[2] - L, heights: new Float32Array(n * n).fill(o[2]), dirty: null }
+  return { face: o[2], cell, radius, nTheta: BAR_ANGLES, nz, radii: new Float32Array(BAR_ANGLES * nz).fill(radius), dirtyRows: null, faceMap }
+}
+
+export const copyBarModel = (b: BarModel): BarModel => ({ ...b, radii: b.radii.slice(), faceMap: { ...b.faceMap, heights: b.faceMap.heights.slice() } })
+
+/** Moves cut with a live tool (axial or radial milling and drilling on a lathe). */
+export const hasLiveCuts = (moves: readonly Move[]) => moves.some((m) => m.kind === 'feed' && m.state.liveToolOn)
+
+function markRows(b: BarModel, r0: number, r1: number) {
+  const d = b.dirtyRows
+  b.dirtyRows = d ? [Math.min(d[0], r0), Math.max(d[1], r1)] : [r0, r1]
+}
+
+/** The rows changed since the last call (null: none), and starts tracking again. */
+export function takeDirtyRows(b: BarModel): [number, number] | null {
+  const d = b.dirtyRows
+  b.dirtyRows = null
+  return d
+}
+
+/**
+ * Applies a move to the bar: turning (spindle on, no live tool) lowers the radius all around; a live
+ * tool cuts the face map when `radial` is false (along Z) or the radius near its angle when true.
+ */
+export function cutBar(b: BarModel, m: Move, radial: boolean, ball = false): boolean {
+  if (m.kind !== 'feed') return false
+  if (!m.state.liveToolOn) return m.state.spindleOn ? turnBar(b, m) : false
+  return radial ? radialCut(b, m) : cutHeightfield(b.faceMap, m, ball)
+}
+
+function turnBar(b: BarModel, m: Move): boolean {
+  let changed = false
+  let faced = -1
+  const row = (r: number, value: number) => {
+    let hit = false
+    for (let c = 0; c < b.nTheta; c++) {
+      const k = r * b.nTheta + c
+      if (value < (b.radii[k] ?? b.radius)) {
+        b.radii[k] = value
+        hit = true
+      }
+    }
+    if (hit) markRows(b, r, r)
+    return hit
+  }
+  for (const [x, y, z] of samples(m.points, b.cell)) {
+    const i = Math.round((b.face - z) / b.cell)
+    if (i >= b.nz) continue
+    const r = Math.hypot(x, y)
+    if (i >= 0 && row(i, r)) changed = true
+    if (r <= FACED_TO_CENTER) faced = Math.max(faced, Math.min(i, b.nz - 1))
+  }
+  for (let i = 0; i < faced; i++) if (row(i, 0)) changed = true
+  return changed
+}
+
+/**
+ * Radial live tool (its axis toward the spindle axis): the flat end at the tip's radius leaves a flat
+ * face, so at an angle Δθ from the tip the radius becomes r / cos Δθ, within the tool's circle.
+ */
+function radialCut(b: BarModel, m: Move): boolean {
+  const tr = Math.max(m.toolRadius, b.cell / 2)
+  const step = (2 * Math.PI) / b.nTheta
+  let changed = false
+  for (const [x, y, z] of samples(m.toolCenter ?? m.points, Math.min(b.cell, tr * 0.3))) {
+    const r = Math.hypot(x, y)
+    if (r < 1e-6) continue
+    const t = Math.atan2(y, x)
+    const half = Math.atan(tr / r)
+    const c0 = Math.floor((t - half) / step)
+    const c1 = Math.ceil((t + half) / step)
+    const i0 = Math.max(0, Math.floor((b.face - (z + tr)) / b.cell))
+    const i1 = Math.min(b.nz - 1, Math.ceil((b.face - (z - tr)) / b.cell))
+    for (let i = i0; i <= i1; i++) {
+      const dz = b.face - i * b.cell - z
+      let hit = false
+      for (let cc = c0; cc <= c1; cc++) {
+        const d = cc * step - t
+        const w = r * Math.tan(d)
+        if (w * w + dz * dz > tr * tr) continue
+        const c = ((cc % b.nTheta) + b.nTheta) % b.nTheta
+        const k = i * b.nTheta + c
+        const value = r / Math.cos(d)
+        if (value < (b.radii[k] ?? b.radius)) {
+          b.radii[k] = value
+          hit = true
+        }
+      }
+      if (hit) {
+        markRows(b, i, i)
+        changed = true
+      }
+    }
+  }
+  return changed
 }
 
 /** Where the work zero sits on a block: a top corner or the top center. */
