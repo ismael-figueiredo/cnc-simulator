@@ -53,6 +53,7 @@ import { ViewToolbar } from './components/ViewToolbar'
 import { FeatureTree } from './components/FeatureTree'
 import { AlarmLine } from './components/AlarmLine'
 import { useI18n } from './i18n'
+import { usePlayback } from './usePlayback'
 import { collisionsOf, fixtureHitAt, holderHitAt } from './collisions'
 import { Messages } from './components/Messages'
 import { documentStart, templateTexts, type DocInit } from './documentStart'
@@ -65,32 +66,10 @@ import { readFlag, readNumber, storage, usePlatform, writeFlag } from './platfor
 import { defaultSetup, offsetsFor, projectData, STOCK_COLOR, type Setup } from './project'
 import { createSimulator } from './simulation'
 import { renderPart, thumbKey, writeThumb } from './thumbnail'
-import {
-  blockEnd,
-  buildTimeline,
-  distanceToGo,
-  formatTime,
-  fractionOf,
-  moveAt,
-  nextStop,
-  operations,
-  pointAlong,
-  positionAlong,
-  sameMoment,
-  stopTimes,
-  type Overrides,
-  type Timeline
-} from './playback'
+import { distanceToGo, formatTime, operations, pointAlong, positionAlong, stopTimes, type Overrides } from './playback'
 
 
 
-interface Simulation {
-  timeline: Timeline | null
-  time: number
-  playing: boolean
-}
-
-const NO_SIMULATION: Simulation = { timeline: null, time: 0, playing: false }
 const NO_MOVES: readonly Move[] = []
 
 const overridesOf = (p: PanelState): Overrides => ({ feed: p.feed / 100, rapid: p.rapid / 100, spindle: p.spindle / 100 })
@@ -162,8 +141,6 @@ export function Workspace({ init, cfg, active, layout, learn, onLearn, onHelp, o
   const [setup, setSetup] = useState<Setup>(start.setup)
   /** The .cncsim file the setup came from, or null for a program opened alone. */
   const [projectPath, setProjectPath] = useState<string | null>(start.projectPath)
-  // Simulated in the worker as soon as the tab opens (below)
-  const [sim, setSim] = useState<Simulation>(NO_SIMULATION)
   // One worker for the tab's lifetime: closing the tab stops it
   const [simulator] = useState(createSimulator)
   useEffect(() => simulator.dispose, [simulator])
@@ -210,12 +187,10 @@ export function Workspace({ init, cfg, active, layout, learn, onLearn, onHelp, o
   const lines = useMemo(() => program.text.replace(/\r/g, '').split('\n'), [program])
   /** First block of the program (skips the % leader and blank lines): where RESET puts the cursor. */
   const startLine = useMemo(() => Math.max(0, lines.findIndex((l) => l.trim() !== '' && l.trim() !== '%')), [lines])
-  const tl = sim.timeline
+  // Simulated in the worker as soon as the tab opens (below), then played back like the control does
+  const playback = usePlayback({ speed, singleBlock: panel.singleBlock, optionalStop: panel.optionalStop, breakpoints })
+  const { timeline: tl, time, playing, atReset, index, fraction, runState, seek, seekMove, step, togglePlay, jumpToLine } = playback
   const result = tl?.result ?? null
-  /** RESET: at the start and not running, nothing has been executed yet. */
-  const atReset = sim.time <= 0 && !sim.playing
-  const index = tl && !atReset ? moveAt(tl, sim.time) : -1
-  const fraction = tl && index >= 0 ? fractionOf(tl, index, sim.time) : 1
   const moves = result?.moves ?? []
   const move = moves[index]
   const position = move ? positionAlong(moves[index - 1], move, fraction) : undefined
@@ -231,14 +206,13 @@ export function Workspace({ init, cfg, active, layout, learn, onLearn, onHelp, o
     if (!input) {
       simulator.cancel()
       setBusy(false)
-      setSim(NO_SIMULATION)
+      playback.clear()
       return
     }
     setBusy(true)
     void simulator.run(input).then((result) => {
       setBusy(false)
-      // Like the control after loading a program: RESET, cursor at the top, nothing run yet
-      setSim({ timeline: buildTimeline(result, overridesOf(pn)), time: 0, playing: false })
+      playback.load(result, overridesOf(pn))
     })
   }
   const changeFont = useCallback((delta: number) => {
@@ -317,7 +291,7 @@ export function Workspace({ init, cfg, active, layout, learn, onLearn, onHelp, o
   }
   /** EDIT, like on the control: a running program stops (it only runs in MEM). */
   function startEdit() {
-    setSim((s) => ({ ...s, playing: false }))
+    playback.pause()
     setMode('edit')
   }
   function edited() {
@@ -374,44 +348,7 @@ export function Workspace({ init, cfg, active, layout, learn, onLearn, onHelp, o
     setEditingToolOffsets(false)
     simulateWith(currentProgram(), machine, control, s)
   }
-  const seek = useCallback((time: number) => {
-    setSim((s) => ({ ...s, playing: false, time: Math.max(0, Math.min(s.timeline?.total ?? 0, time)) }))
-  }, [])
-  /** Shows move k just finished. A hair before its end: exactly at the end the next move would be current. */
-  const seekMove = useCallback((k: number) => {
-    setSim((s) => {
-      const end = s.timeline?.cumulative[k + 1] ?? 0
-      const start = s.timeline?.cumulative[k] ?? 0
-      return { ...s, playing: false, time: Math.max(start, end - 1e-6) }
-    })
-  }, [])
-  function step(dir: -1 | 1) {
-    if (!tl?.result.moves.length) return
-    const atEnd = fraction >= 1
-    let k = dir > 0 ? (atEnd ? index + 1 : index) : atEnd ? index - 1 : index - 1
-    k = Math.max(-1, Math.min(tl.result.moves.length - 1, k))
-    if (k < 0) seek(0)
-    else seekMove(k)
-  }
-  function togglePlay() {
-    // Playing from the end starts over
-    setSim((s) => (s.playing ? { ...s, playing: false } : { ...s, playing: true, time: s.time >= (s.timeline?.total ?? 0) ? 0 : s.time }))
-  }
 
-  // Clicking a line starts from its next execution (loops run the same line many times):
-  // the tool goes to the start of that move, so Play runs that block first.
-  // Reads the current move from the state itself, so the callback never changes and the program
-  // screen does not re-render just because playback moved on.
-  const jumpToLine = useCallback((line: number) => {
-    setSim((s) => {
-      const hits = s.timeline?.movesByLine.get(line)
-      if (!s.timeline || !hits?.length) return s
-      const current = s.time <= 0 && !s.playing ? -1 : moveAt(s.timeline, s.time)
-      const next = hits.find((h) => h > current) ?? hits[0] ?? 0
-      // A hair past the start, so the block counts as the current one and not as RESET
-      return { ...s, playing: false, time: (s.timeline.cumulative[next] ?? 0) + 1e-6 }
-    })
-  }, [])
 
   // ---- operator panel ----
   function changePanel(change: Partial<PanelState>) {
@@ -420,12 +357,7 @@ export function Workspace({ init, cfg, active, layout, learn, onLearn, onHelp, o
     // Block delete changes which blocks run: simulate again
     if (change.blockSkip !== undefined && change.blockSkip !== panel.blockSkip) simulateWith(currentProgram(), machine, control, setup, next)
     // Overrides change the times: same point of the program on the new timeline
-    else if (change.feed !== undefined || change.rapid !== undefined || change.spindle !== undefined)
-      setSim((s) => {
-        if (!s.timeline) return s
-        const timeline = buildTimeline(s.timeline.result, overridesOf(next))
-        return { ...s, timeline, time: sameMoment(s.timeline, timeline, s.time) }
-      })
+    else if (change.feed !== undefined || change.rapid !== undefined || change.spindle !== undefined) playback.retime(overridesOf(next))
   }
   const toggleBreakpoint = useCallback((line: number) => {
     setBreakpoints((b) => {
@@ -434,33 +366,12 @@ export function Workspace({ init, cfg, active, layout, learn, onLearn, onHelp, o
       return next
     })
   }, [])
-  const stops = useMemo(() => (tl ? stopTimes(tl, { optionalStop: panel.optionalStop, breakpoints }) : []), [tl, panel.optionalStop, breakpoints])
 
-  // ---- playback loop ----
-  // Runs until the end, the next stop (M00, M01 with OPTIONAL STOP, a breakpoint) or, in single block,
-  // the end of the current block; Run again goes on from there, as cycle start does.
-  const playing = sim.playing
-  const singleBlock = panel.singleBlock
-  useEffect(() => {
-    if (!playing) return
-    let last = 0
-    let frame = requestAnimationFrame(function tick(ts) {
-      const dt = last ? (ts - last) / 1000 : 0
-      last = ts
-      setSim((s) => {
-        if (!s.playing || !s.timeline) return s
-        const total = s.timeline.total
-        const limit = Math.min(nextStop(stops, s.time, total), singleBlock ? blockEnd(s.timeline, s.time) : total)
-        const time = Math.min(limit, s.time + dt * speed)
-        return { ...s, time, playing: time < limit - 1e-12 }
-      })
-      frame = requestAnimationFrame(tick)
-    })
-    return () => cancelAnimationFrame(frame)
-  }, [playing, speed, stops, singleBlock])
 
   // The tab opens on RESET with its program simulated, like the control after loading it
   const simulateOnOpen = useEffectEvent(() => simulateWith(program, machine, control, setup))
+  // Starting the worker run is the effect; the state it sets at once only marks the tab as simulating
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => simulateOnOpen(), [])
   // Menus and keys reach only the tab in front (the shell forwards them)
   useImperativeHandle(ref, () => ({
@@ -678,7 +589,7 @@ export function Workspace({ init, cfg, active, layout, learn, onLearn, onHelp, o
             marks={marks}
             hits={hits}
             fontSize={fontSize}
-            state={playing ? 'start' : sim.time > 0 && sim.time < (tl?.total ?? 0) ? 'hold' : 'reset'}
+            state={runState}
             onZoom={changeFont}
             onLineClick={jumpToLine}
             breakpoints={breakpoints}
@@ -791,7 +702,7 @@ export function Workspace({ init, cfg, active, layout, learn, onLearn, onHelp, o
   )
   const player = (
     <Player
-      time={sim.time}
+      time={time}
       total={tl?.total ?? 0}
       playing={playing}
       speed={speed}
@@ -809,7 +720,7 @@ export function Workspace({ init, cfg, active, layout, learn, onLearn, onHelp, o
   /** Machine screen: only the simulation controls (speed, timeline); the panel has the machine's keys. */
   const simBar = (
     <Player
-      time={sim.time}
+      time={time}
       total={tl?.total ?? 0}
       playing={playing}
       speed={speed}
@@ -1045,7 +956,7 @@ export function Workspace({ init, cfg, active, layout, learn, onLearn, onHelp, o
                     <span className="spacer" />
                     {mdiNotice && <span className="mdi-notice">{t('mdi.needEdit')}</span>}
                     <span className={`mode-box ${mode}`}>{mode === 'edit' ? 'EDIT' : 'MEM'}</span>
-                    <span className={playing ? 'on' : ''}>{playing ? 'STRT' : sim.time > 0 && sim.time < (tl?.total ?? 0) ? 'HOLD' : '****'}</span>
+                    <span className={playing ? 'on' : ''}>{runState === 'start' ? 'STRT' : runState === 'hold' ? 'HOLD' : '****'}</span>
                     {stoppedBy ? <span className="alm">ALM</span> : <span>***</span>}
                   </div>
                   {(screen === 'graph' || screen === 'prog') && (
@@ -1076,7 +987,7 @@ export function Workspace({ init, cfg, active, layout, learn, onLearn, onHelp, o
                                 distanceToGo={toGo}
                                 axes={shownAxes}
                                 block={move ? t('position.blockValue', { line: move.line + 1, move: index + 1, total: moves.length }) : '—'}
-                                runTime={formatTime(sim.time)}
+                                runTime={formatTime(time)}
                                 cycleTime={formatTime(tl?.total ?? 0)}
                               />
                             )}
