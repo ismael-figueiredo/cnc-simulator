@@ -2,11 +2,11 @@
   "format": "cnc-simulator-project",
   "version": 1,
   "description": {
-    "en": "ANSI 40 sprocket · Romi GL 250 M, Fanuc 0i-TF · live tool, Macro B, G12.1 and G41/G42",
-    "pt-BR": "Coroa ANSI 40 · Romi GL 250 M, Fanuc 0i-TF · ferramenta acionada, Macro B, G12.1 e G41/G42",
-    "es": "Piñón ANSI 40 · Romi GL 250 M, Fanuc 0i-TF · herramienta motorizada, Macro B, G12.1 y G41/G42"
+    "en": "ANSI 40 sprocket · Romi E280, Fanuc 21i-TB · live tool, Macro B, G12.1 and G41/G42",
+    "pt-BR": "Coroa ANSI 40 · Romi E280, Fanuc 21i-TB · ferramenta acionada, Macro B, G12.1 e G41/G42",
+    "es": "Piñón ANSI 40 · Romi E280, Fanuc 21i-TB · herramienta motorizada, Macro B, G12.1 y G41/G42"
   },
   "program": "O1500_COROA_ANSI40.nc",
-  "machine": "romi-gl250-m",
-  "control": "fanuc-0i-tf-system-b"
+  "machine": "romi-e280",
+  "control": "fanuc-21i-tb-system-b"
 }

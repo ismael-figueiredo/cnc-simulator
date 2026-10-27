@@ -10,16 +10,21 @@ const kindOf = (id: string | undefined) => machines.find((m) => m.id === id)?.ki
 
 describe('machine suggested for a program opened alone', () => {
   it('takes a lathe for lathe programs', () => {
-    for (const f of ['O1001_EIXO_GL300.nc', 'O1002_CICLOS_GL300.nc', 'O1500_COROA_ANSI40.nc']) {
+    for (const [f, control] of [
+      ['O1001_EIXO_GL300.nc', 'fanuc-0i-tf-system-b'],
+      ['O1002_CICLOS_GL300.nc', 'fanuc-0i-tf-system-b'],
+      ['O1500_COROA_ANSI40.nc', 'fanuc-21i-tb-system-b']
+    ] as const) {
       const s = suggestSetup(read(`examples/${f}`), machines, controls)
       expect(kindOf(s?.machineId), f).toBe(true)
-      expect(s?.controlId, f).toBe('fanuc-0i-tf-system-b')
+      expect(s?.controlId, f).toBe(control)
     }
   })
 
   it('takes a lathe with a C axis only when the program uses it', () => {
     expect(suggestSetup(read('examples/O1001_EIXO_GL300.nc'), machines, controls)?.machineId).toBe('romi-gl300')
-    expect(suggestSetup(read('examples/O1500_COROA_ANSI40.nc'), machines, controls)?.machineId).toBe('romi-gl250-m')
+    // Romi E280 and GL 250 M both have one; the first one in the list is taken
+    expect(suggestSetup(read('examples/O1500_COROA_ANSI40.nc'), machines, controls)?.machineId).toBe('romi-e280')
   })
 
   it('takes a machining center for mill programs, a Haas for Haas programs', () => {

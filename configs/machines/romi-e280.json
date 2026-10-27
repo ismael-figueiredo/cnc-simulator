@@ -1,0 +1,27 @@
+{
+  "id": "romi-e280",
+  "name": "Romi E280",
+  "manufacturer": "Romi",
+  "type": "mill-turn",
+  "kinematics": "lathe-xzc",
+  "axes": [
+    { "name": "X", "type": "linear", "min": -2, "max": 320, "rapid": 30000, "diameter": true },
+    { "name": "Z", "type": "linear", "min": -420, "max": 10, "rapid": 30000 },
+    { "name": "C", "type": "rotary", "min": -99999, "max": 99999, "rapid": 18000, "direction": 1 }
+  ],
+  "spindles": [
+    { "id": "S1", "name": { "en": "Main spindle", "pt-BR": "Placa", "es": "Husillo principal" }, "type": "main", "maxRpm": 4000 },
+    { "id": "S2", "name": { "en": "Live tool", "pt-BR": "Ferramenta acionada", "es": "Herramienta motorizada" }, "type": "live", "maxRpm": 4000 }
+  ],
+  "turret": { "positions": 12, "type": "disc" },
+  "toolChangePosition": { "X": 260, "Z": 150 },
+  "defaultControl": "fanuc-21i-tb-system-b",
+  "defaultTools": "sample-library",
+  "defaultStock": { "shape": "cylinder", "diameter": 67.37, "length": 30 },
+  "notes": {
+    "en": "Romi E280 from 2006 with Fanuc 21i-TB, G-code system B, C axis and live tools. From machine listings: Ø280 mm turning diameter, 400 mm turning length (540 mm on other units), 4000 rpm, 12-station servo turret, 30 m/min rapids, Ø60 mm spindle bore. Not confirmed: X travel, C and live tool speeds, the chuck (an 8\" hydraulic chuck is assumed) and the live tool, C axis and brake M codes (S2=, M19, M85 as on the Romi GL). Check against the machine plate and its manual.",
+    "pt-BR": "Romi E280 de 2006 com Fanuc 21i-TB, sistema de códigos G B, eixo C e ferramentas acionadas. Dos anúncios da máquina: Ø280 mm torneável, 400 mm de comprimento torneável (540 mm em outras unidades), 4000 rpm, torre servo de 12 posições, rápido de 30 m/min, passagem de Ø60 mm no eixo-árvore. Não confirmado: curso X, rotações do eixo C e da acionada, a placa (supõe-se hidráulica de 8\") e os códigos M da acionada, do eixo C e do freio (S2=, M19, M85 como na Romi GL). Conferir com a placa da máquina e o manual dela.",
+    "es": "Romi E280 de 2006 con Fanuc 21i-TB, sistema de códigos G B, eje C y herramientas motorizadas. De anuncios de la máquina: Ø280 mm torneable, 400 mm de longitud torneable (540 mm en otras unidades), 4000 rpm, torreta servo de 12 posiciones, rápidos de 30 m/min, paso de Ø60 mm en el husillo. Sin confirmar: carrera X, velocidades del eje C y de la motorizada, el plato (se supone hidráulico de 8\") y los códigos M de la motorizada, del eje C y del freno (S2=, M19, M85 como en la Romi GL). Verificar con la placa y el manual de la máquina."
+  },
+  "chuck": { "diameter": 210, "length": 95, "jaws": 3, "jawHeight": 50, "jawWidth": 26, "jawLength": 25, "bore": 60 }
+}
