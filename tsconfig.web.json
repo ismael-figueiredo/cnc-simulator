@@ -6,5 +6,5 @@
     "jsx": "react-jsx",
     "types": ["vite/client"]
   },
-  "include": ["src/renderer/**/*", "src/core/**/*", "src/i18n/**/*", "src/preload/api.ts"]
+  "include": ["src/renderer/**/*", "src/core/**/*", "src/i18n/**/*", "src/preload/api.ts", "tests/components/**/*"]
 }

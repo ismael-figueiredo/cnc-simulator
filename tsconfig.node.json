@@ -29,6 +29,6 @@
     "src/renderer/platform/electron.ts",
     "src/renderer/platform/storage.ts",
     "src/renderer/platform/types.ts",
-    "tests/**/*"
+    "tests/**/*.ts"
   ]
 }
