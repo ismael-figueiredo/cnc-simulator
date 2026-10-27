@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import type { Control, Machine, SetupSuggestion, ToolLibrary } from '@core/index'
+import { Dialog } from './Dialog'
 import { useI18n } from '../i18n'
 import { SetupPicker, type SetupChoice } from './SetupPicker'
 
@@ -27,28 +28,33 @@ export function OpenProgramDialog({ name, machines, controls, libraries, suggest
     libraryId: first?.defaultTools ?? ''
   })
   return (
-    <div className="modal-backdrop" role="dialog" aria-modal aria-label={t('openProgram.title')}>
-      <div className="modal open-program">
-        <header>
-          <h2>{t('openProgram.title')}</h2>
+    <Dialog
+      title={t('openProgram.title')}
+      className="open-program"
+      header={
+        <>
           <span className="muted">{name}</span>
-        </header>
-        <div className="open-program-body">
-          <p className="muted">{t('openProgram.explain')}</p>
-          {suggestion && suggestion.evidence.length > 0 && (
-            <p className="hint-line">
-              {t(suggestion.kind === 'lathe' ? 'openProgram.detectedLathe' : 'openProgram.detectedMill', { codes: suggestion.evidence.join(', ') })}
-            </p>
-          )}
-          <SetupPicker machines={machines} controls={controls} libraries={libraries} value={choice} onChange={setChoice} />
-        </div>
-        <footer>
+        </>
+      }
+      footer={
+        <>
           <button className="btn" onClick={onCancel}>{t('common.cancel')}</button>
           <button className="btn primary" disabled={!choice.machineId || !choice.controlId} onClick={() => onOpen(choice)}>
             {t('openProgram.open')}
           </button>
-        </footer>
+        </>
+      }
+      onClose={onCancel}
+    >
+      <div className="open-program-body">
+        <p className="muted">{t('openProgram.explain')}</p>
+        {suggestion && suggestion.evidence.length > 0 && (
+          <p className="hint-line">
+            {t(suggestion.kind === 'lathe' ? 'openProgram.detectedLathe' : 'openProgram.detectedMill', { codes: suggestion.evidence.join(', ') })}
+          </p>
+        )}
+        <SetupPicker machines={machines} controls={controls} libraries={libraries} value={choice} onChange={setChoice} />
       </div>
-    </div>
+    </Dialog>
   )
 }

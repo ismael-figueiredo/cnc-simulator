@@ -1,5 +1,7 @@
 import { useState, type ReactNode } from 'react'
 import { offsetForZero, type AxisName, type Stock, type ZeroAt } from '@core/index'
+import { Dialog } from './Dialog'
+import { optionalNumber } from '../forms'
 import { useI18n } from '../i18n'
 import { STOCK_COLOR } from '../project'
 
@@ -41,15 +43,16 @@ export function StockEditor({ stock, machineDefault, lathe, fromProgram, workOff
   const size = (key: 'diameter' | 'length' | 'x' | 'y' | 'z', label: string): ReactNode => (
     <label>
       <span>{label}</span>
-      <input type="number" min={0} step={0.1} value={s[key] ?? ''} onChange={(e) => setS({ ...s, [key]: e.target.value === '' ? undefined : Number(e.target.value) })} />
+      <input type="number" min={0} step={0.1} value={s[key] ?? ''} onChange={(e) => setS({ ...s, [key]: optionalNumber(e.target.value) })} />
     </label>
   )
 
   return (
-    <div className="modal-backdrop" role="dialog" aria-modal aria-label={t('stock.title')}>
-      <div className="modal stock-editor">
-        <header>
-          <h2>{t('stock.title')}</h2>
+    <Dialog
+      title={t('stock.title')}
+      className="stock-editor"
+      header={
+        <>
           <span className="spacer" />
           <button
             className="btn"
@@ -64,97 +67,101 @@ export function StockEditor({ stock, machineDefault, lathe, fromProgram, workOff
               {t('stock.machineDefault')}
             </button>
           )}
-        </header>
-        <div className="stock-body">
-          <label>
-            <span>{t('stock.shape')}</span>
-            <select value={s.shape} onChange={(e) => setS({ ...s, shape: e.target.value === 'block' ? 'block' : 'cylinder' })}>
-              <option value="cylinder">{t('stock.cylinder')}</option>
-              <option value="block">{t('stock.block')}</option>
-            </select>
-          </label>
-          <div className="fields">
-            {s.shape === 'cylinder' ? (
-              <>
-                {size('diameter', t('stock.diameter'))}
-                {size('length', t('stock.length'))}
-              </>
-            ) : (
-              <>
-                {size('x', t('stock.sizeX'))}
-                {size('y', t('stock.sizeY'))}
-                {size('z', t('stock.sizeZ'))}
-              </>
-            )}
-          </div>
-
-          <h3>{t('stock.position')}</h3>
-          <p className="muted">{t(s.shape === 'cylinder' ? 'stock.cylinderOrigin' : 'stock.blockOrigin')}</p>
-          {s.shape === 'block' && (
-            <label className="zero-at">
-              <span>{t('stock.zeroAt')}</span>
-              <select
-                value={ZERO_AT.find((z) => {
-                  const o = offsetForZero(s, z)
-                  return Math.abs((s.offset?.X ?? 0) - (o.X ?? 0)) < 1e-6 && Math.abs((s.offset?.Y ?? 0) - (o.Y ?? 0)) < 1e-6 && Math.abs(s.offset?.Z ?? 0) < 1e-6
-                }) ?? 'custom'}
-                onChange={(e) => {
-                  const at = ZERO_AT.find((z) => z === e.target.value)
-                  if (at) setS({ ...s, offset: offsetForZero(s, at) })
-                }}
-              >
-                {ZERO_AT.map((z) => (
-                  <option key={z} value={z}>{t(`zeroAt.${z}`)}</option>
-                ))}
-                <option value="custom" disabled>{t('zeroAt.custom')}</option>
-              </select>
-            </label>
-          )}
-          <div className="fields">
-            <label>
-              <span>{t('stock.workOffset')}</span>
-              <select value={s.workOffset ?? 'G54'} onChange={(e) => setS({ ...s, workOffset: e.target.value })}>
-                {offsets.map((o) => (
-                  <option key={o} value={o}>{o}</option>
-                ))}
-              </select>
-            </label>
-            {axes.map((ax) => (
-              <label key={ax}>
-                <span>{t('stock.shift', { axis: ax })}</span>
-                <input
-                  type="number"
-                  step={0.1}
-                  value={s.offset?.[ax] ?? 0}
-                  onChange={(e) => setS({ ...s, offset: { ...s.offset, [ax]: Number(e.target.value) || 0 } })}
-                />
-              </label>
-            ))}
-          </div>
-
-          <h3>{t('stock.color')}</h3>
-          <div className="swatches">
-            {MATERIALS.map((m) => (
-              <button
-                key={m.id}
-                className={`swatch ${(s.color ?? STOCK_COLOR).toLowerCase() === m.color ? 'on' : ''}`}
-                style={{ background: m.color }}
-                title={t(`material.${m.id}`)}
-                aria-label={t(`material.${m.id}`)}
-                onClick={() => setS({ ...s, color: m.color })}
-              />
-            ))}
-            <label className="custom-color" title={t('stock.customColor')}>
-              <input type="color" value={s.color ?? STOCK_COLOR} onChange={(e) => setS({ ...s, color: e.target.value })} />
-              <span>{t('stock.customColor')}</span>
-            </label>
-          </div>
-        </div>
-        <footer>
+        </>
+      }
+      footer={
+        <>
           <button className="btn" onClick={onClose}>{t('common.cancel')}</button>
           <button className="btn primary" disabled={!valid} onClick={() => onApply(s)}>{t('stock.apply')}</button>
-        </footer>
+        </>
+      }
+      onClose={onClose}
+    >
+      <div className="stock-body">
+        <label>
+          <span>{t('stock.shape')}</span>
+          <select value={s.shape} onChange={(e) => setS({ ...s, shape: e.target.value === 'block' ? 'block' : 'cylinder' })}>
+            <option value="cylinder">{t('stock.cylinder')}</option>
+            <option value="block">{t('stock.block')}</option>
+          </select>
+        </label>
+        <div className="fields">
+          {s.shape === 'cylinder' ? (
+            <>
+              {size('diameter', t('stock.diameter'))}
+              {size('length', t('stock.length'))}
+            </>
+          ) : (
+            <>
+              {size('x', t('stock.sizeX'))}
+              {size('y', t('stock.sizeY'))}
+              {size('z', t('stock.sizeZ'))}
+            </>
+          )}
+        </div>
+
+        <h3>{t('stock.position')}</h3>
+        <p className="muted">{t(s.shape === 'cylinder' ? 'stock.cylinderOrigin' : 'stock.blockOrigin')}</p>
+        {s.shape === 'block' && (
+          <label className="zero-at">
+            <span>{t('stock.zeroAt')}</span>
+            <select
+              value={ZERO_AT.find((z) => {
+                const o = offsetForZero(s, z)
+                return Math.abs((s.offset?.X ?? 0) - (o.X ?? 0)) < 1e-6 && Math.abs((s.offset?.Y ?? 0) - (o.Y ?? 0)) < 1e-6 && Math.abs(s.offset?.Z ?? 0) < 1e-6
+              }) ?? 'custom'}
+              onChange={(e) => {
+                const at = ZERO_AT.find((z) => z === e.target.value)
+                if (at) setS({ ...s, offset: offsetForZero(s, at) })
+              }}
+            >
+              {ZERO_AT.map((z) => (
+                <option key={z} value={z}>{t(`zeroAt.${z}`)}</option>
+              ))}
+              <option value="custom" disabled>{t('zeroAt.custom')}</option>
+            </select>
+          </label>
+        )}
+        <div className="fields">
+          <label>
+            <span>{t('stock.workOffset')}</span>
+            <select value={s.workOffset ?? 'G54'} onChange={(e) => setS({ ...s, workOffset: e.target.value })}>
+              {offsets.map((o) => (
+                <option key={o} value={o}>{o}</option>
+              ))}
+            </select>
+          </label>
+          {axes.map((ax) => (
+            <label key={ax}>
+              <span>{t('stock.shift', { axis: ax })}</span>
+              <input
+                type="number"
+                step={0.1}
+                value={s.offset?.[ax] ?? 0}
+                onChange={(e) => setS({ ...s, offset: { ...s.offset, [ax]: Number(e.target.value) || 0 } })}
+              />
+            </label>
+          ))}
+        </div>
+
+        <h3>{t('stock.color')}</h3>
+        <div className="swatches">
+          {MATERIALS.map((m) => (
+            <button
+              key={m.id}
+              className={`swatch ${(s.color ?? STOCK_COLOR).toLowerCase() === m.color ? 'on' : ''}`}
+              style={{ background: m.color }}
+              title={t(`material.${m.id}`)}
+              aria-label={t(`material.${m.id}`)}
+              onClick={() => setS({ ...s, color: m.color })}
+            />
+          ))}
+          <label className="custom-color" title={t('stock.customColor')}>
+            <input type="color" value={s.color ?? STOCK_COLOR} onChange={(e) => setS({ ...s, color: e.target.value })} />
+            <span>{t('stock.customColor')}</span>
+          </label>
+        </div>
       </div>
-    </div>
+    </Dialog>
   )
 }

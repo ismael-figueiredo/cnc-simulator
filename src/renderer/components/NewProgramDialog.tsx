@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { supportsMacro, type Control, type Machine, type ProgramKind } from '@core/index'
+import { Dialog } from './Dialog'
 import { useI18n } from '../i18n'
 import { SetupPicker, type SetupChoice } from './SetupPicker'
 
@@ -24,40 +25,41 @@ export function NewProgramDialog({ machines, controls, initial, onCreate, onClos
   const valid = Number.isInteger(number) && number >= 1 && number <= 9999 && !!control
 
   return (
-    <div className="modal-backdrop" role="dialog" aria-modal aria-label={t('newProgram.title')}>
-      <div className="modal new-program">
-        <header>
-          <h2>{t('newProgram.title')}</h2>
-        </header>
-        <div className="new-program-body">
-          <SetupPicker machines={machines} controls={controls} value={choice} onChange={setChoice} />
-          <p className="muted">{t('newProgram.forControl')}</p>
-          <div className="kinds" role="radiogroup">
-            <button role="radio" aria-checked={kind === 'plain'} className={`kind ${kind === 'plain' ? 'on' : ''}`} onClick={() => setKind('plain')}>
-              <b>{t('newProgram.plain')}</b>
-              <span>{t('newProgram.plainDetail')}</span>
-            </button>
-            <button
-              role="radio"
-              aria-checked={kind === 'parametric' && macro}
-              className={`kind ${kind === 'parametric' && macro ? 'on' : ''}`}
-              disabled={!macro}
-              onClick={() => setKind('parametric')}
-            >
-              <b>{t('newProgram.parametric')}</b>
-              <span>{macro ? t('newProgram.parametricDetail') : t('newProgram.noMacro')}</span>
-            </button>
-          </div>
-          <label>
-            <span>{t('newProgram.number')}</span>
-            <input type="number" min={1} max={9999} step={1} value={number} onChange={(e) => setNumber(Number(e.target.value))} />
-          </label>
-        </div>
-        <footer>
+    <Dialog
+      title={t('newProgram.title')}
+      className="new-program"
+      footer={
+        <>
           <button className="btn" onClick={onClose}>{t('common.cancel')}</button>
           <button className="btn primary" disabled={!valid} onClick={() => onCreate(macro ? kind : 'plain', number, choice)}>{t('newProgram.create')}</button>
-        </footer>
+        </>
+      }
+      onClose={onClose}
+    >
+      <div className="new-program-body">
+        <SetupPicker machines={machines} controls={controls} value={choice} onChange={setChoice} />
+        <p className="muted">{t('newProgram.forControl')}</p>
+        <div className="kinds" role="radiogroup">
+          <button role="radio" aria-checked={kind === 'plain'} className={`kind ${kind === 'plain' ? 'on' : ''}`} onClick={() => setKind('plain')}>
+            <b>{t('newProgram.plain')}</b>
+            <span>{t('newProgram.plainDetail')}</span>
+          </button>
+          <button
+            role="radio"
+            aria-checked={kind === 'parametric' && macro}
+            className={`kind ${kind === 'parametric' && macro ? 'on' : ''}`}
+            disabled={!macro}
+            onClick={() => setKind('parametric')}
+          >
+            <b>{t('newProgram.parametric')}</b>
+            <span>{macro ? t('newProgram.parametricDetail') : t('newProgram.noMacro')}</span>
+          </button>
+        </div>
+        <label>
+          <span>{t('newProgram.number')}</span>
+          <input type="number" min={1} max={9999} step={1} value={number} onChange={(e) => setNumber(Number(e.target.value))} />
+        </label>
       </div>
-    </div>
+    </Dialog>
   )
 }

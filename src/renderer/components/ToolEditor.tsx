@@ -1,5 +1,7 @@
 import { useId, useMemo, useRef, useState, type ChangeEvent, type ReactNode } from 'react'
 import { insertOutline, isTurningTool, loadToolLibrary, ToolSchema, type Tool, type ToolLibrary } from '@core/index'
+import { Dialog } from './Dialog'
+import { optionalNumber } from '../forms'
 import { useI18n } from '../i18n'
 
 interface Props {
@@ -148,7 +150,7 @@ export function ToolEditor({ tools, bundled, user, onSaveLibrary, onDeleteLibrar
     const next = (v === undefined ? rest : { ...rest, [key]: v }) as Tool
     update(lib.tools.map((x, i) => (i === selected ? next : x)))
   }
-  const num = (e: ChangeEvent<HTMLInputElement>, key: keyof Tool) => setOptional(key, e.target.value === '' ? undefined : Number(e.target.value))
+  const num = (e: ChangeEvent<HTMLInputElement>, key: keyof Tool) => setOptional(key, optionalNumber(e.target.value))
   function setName(v: string) {
     if (!tool) return
     patch({ name: typeof tool.name === 'string' ? v : { ...tool.name, [lang]: v } })
@@ -200,150 +202,154 @@ export function ToolEditor({ tools, bundled, user, onSaveLibrary, onDeleteLibrar
   )
 
   return (
-    <div className="modal-backdrop" role="dialog" aria-modal aria-label={t('tools.editorTitle')}>
-      <div className="modal tool-editor">
-        <header>
-          <h2>{t('tools.editorTitle')}</h2>
+    <Dialog
+      title={t('tools.editorTitle')}
+      className="tool-editor"
+      header={
+        <>
           <span className="muted">{l(lib.name)}</span>
           <span className="spacer" />
           <button className="btn" onClick={() => void saveAsLibrary()}>{t('tools.saveLibrary')}</button>
           <button className="btn" onClick={() => importInput.current?.click()}>{t('tools.import')}</button>
           <button className="btn" onClick={exportJson}>{t('tools.export')}</button>
           <input ref={importInput} type="file" accept=".json,application/json" hidden onChange={importJson} />
-        </header>
-
-        <div className="tool-body">
-          <section className="tool-libraries">
-            <h3>{t('tools.myLibraries')}</h3>
-            {!user.length && <p className="muted">{t('tools.noLibraries')}</p>}
-            {user.map((u) => (
-              <div key={u.id} className="lib-row">
-                <button className="link" onClick={() => load(u)} title={t('tools.load')}>
-                  {l(u.name)} <span className="muted">· {u.tools.length}</span>
-                </button>
-                <button className="btn tiny" title={t('tools.deleteLibrary')} aria-label={t('tools.deleteLibrary')} onClick={() => window.confirm(t('tools.deleteConfirm', { name: l(u.name) })) && void onDeleteLibrary(u.id)}>
-                  ×
-                </button>
-              </div>
-            ))}
-            <h3>{t('tools.bundled')}</h3>
-            {bundled.map((b) => (
-              <div key={b.id} className="lib-row">
-                <button className="link" onClick={() => load(b)} title={t('tools.load')}>
-                  {l(b.name)} <span className="muted">· {b.tools.length}</span>
-                </button>
-              </div>
-            ))}
-          </section>
-
-          <section className="tool-list">
-            <ul>
-              {lib.tools.map((x, i) => (
-                <li key={i}>
-                  <button className={i === selected ? 'on' : ''} onClick={() => setSelected(i)}>
-                    <b>T{String(x.number).padStart(2, '0')}</b> {l(x.name)}
-                    <span className="muted">{t(`toolType.${x.type}`)} · Ø{x.diameter}</span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-            <div className="row">
-              <button className="btn" onClick={() => add()}>{t('tools.add')}</button>
-              <button className="btn" disabled={!tool} onClick={() => tool && add(tool)}>{t('tools.duplicate')}</button>
-              <button className="btn" disabled={!tool} onClick={() => update(lib.tools.filter((_, i) => i !== selected))}>{t('tools.delete')}</button>
-            </div>
-          </section>
-
-          {tool ? (
-            <section className="tool-form">
-              <div className="fields">
-                {field('number', t('tools.number'), <input type="number" min={0} step={1} value={tool.number} onChange={(e) => patch({ number: Number(e.target.value) })} />)}
-                {field('offset', t('tools.offset'), <input type="number" min={0} step={1} value={tool.offset ?? ''} onChange={(e) => num(e, 'offset')} />)}
-                {field('name', t('tools.name'), <input value={l(tool.name)} onChange={(e) => setName(e.target.value)} />)}
-                {field(
-                  'type',
-                  t('tools.type'),
-                  <select value={tool.type} onChange={(e) => patch({ type: e.target.value as ToolType })}>
-                    {TYPES.map((ty) => (
-                      <option key={ty} value={ty}>{t(`toolType.${ty}`)}</option>
-                    ))}
-                  </select>
-                )}
-                {field('diameter', t('tools.diameter'), <input type="number" min={0} step={0.01} value={tool.diameter} onChange={(e) => patch({ diameter: Number(e.target.value) })} />)}
-                {field('length', t('tools.length'), <input type="number" min={0} step={0.1} value={tool.length} onChange={(e) => patch({ length: Number(e.target.value) })} />)}
-                {field('fluteLength', t('tools.fluteLength'), <input type="number" min={0} step={0.1} value={tool.fluteLength ?? ''} onChange={(e) => num(e, 'fluteLength')} />)}
-                {field('cornerRadius', t('tools.cornerRadius'), <input type="number" min={0} step={0.01} value={tool.cornerRadius ?? ''} onChange={(e) => num(e, 'cornerRadius')} />)}
-                {field('flutes', t('tools.flutes'), <input type="number" min={1} step={1} value={tool.flutes ?? ''} onChange={(e) => num(e, 'flutes')} />)}
-                {field('tipDirection', t('tools.tipDirection'), <input type="number" min={0} max={9} step={1} value={tool.tipDirection ?? ''} onChange={(e) => num(e, 'tipDirection')} />)}
-                {field(
-                  'holder',
-                  t('tools.holder'),
-                  <select value={tool.holder ?? ''} onChange={(e) => setOptional('holder', e.target.value || undefined)}>
-                    <option value="">{t('tools.noHolder')}</option>
-                    {lib.holders.map((h) => (
-                      <option key={h.id} value={h.id}>{l(h.name)}</option>
-                    ))}
-                  </select>
-                )}
-                {isTurningTool(tool) ? (
-                  <>
-                    {field(
-                      'side',
-                      t('tools.side'),
-                      <select value={tool.side ?? 'external'} onChange={(e) => setOptional('side', e.target.value)}>
-                        <option value="external">{t('tools.external')}</option>
-                        <option value="internal">{t('tools.internal')}</option>
-                      </select>
-                    )}
-                    {field(
-                      'hand',
-                      t('tools.hand'),
-                      <select value={tool.hand ?? 'right'} onChange={(e) => setOptional('hand', e.target.value)}>
-                        <option value="right">{t('tools.right')}</option>
-                        <option value="left">{t('tools.left')}</option>
-                      </select>
-                    )}
-                    {tool.type !== 'grooving' &&
-                      field(
-                        'insert',
-                        t('tools.insert'),
-                        <select value={tool.insert ?? ''} onChange={(e) => setOptional('insert', e.target.value || undefined)}>
-                          <option value="">{t('tools.insertDefault')}</option>
-                          {INSERTS.map((s) => (
-                            <option key={s} value={s}>{t(`insert.${s}`)}</option>
-                          ))}
-                        </select>
-                      )}
-                  </>
-                ) : (
-                  field(
-                    'mount',
-                    t('tools.mount'),
-                    <select value={tool.mount ?? ''} onChange={(e) => setOptional('mount', e.target.value || undefined)}>
-                      <option value="">{t('tools.mountHolder')}</option>
-                      <option value="axial">{t('tools.axial')}</option>
-                      <option value="radial">{t('tools.radial')}</option>
-                    </select>
-                  )
-                )}
-              </div>
-              <div className="preview">
-                <ToolPreview tool={tool} />
-                {duplicate && <p className="warning">{t('tools.duplicateNumber', { number: tool.number })}</p>}
-              </div>
-            </section>
-          ) : (
-            <section className="tool-form">
-              <p className="muted">{t('tools.empty')}</p>
-            </section>
-          )}
-        </div>
-
-        <footer>
+        </>
+      }
+      footer={
+        <>
           <button className="btn" onClick={onClose}>{t('common.cancel')}</button>
           <button className="btn primary" disabled={!allValid} onClick={() => onApply(lib)}>{t('tools.apply')}</button>
-        </footer>
+        </>
+      }
+      onClose={onClose}
+    >
+
+      <div className="tool-body">
+        <section className="tool-libraries">
+          <h3>{t('tools.myLibraries')}</h3>
+          {!user.length && <p className="muted">{t('tools.noLibraries')}</p>}
+          {user.map((u) => (
+            <div key={u.id} className="lib-row">
+              <button className="link" onClick={() => load(u)} title={t('tools.load')}>
+                {l(u.name)} <span className="muted">· {u.tools.length}</span>
+              </button>
+              <button className="btn tiny" title={t('tools.deleteLibrary')} aria-label={t('tools.deleteLibrary')} onClick={() => window.confirm(t('tools.deleteConfirm', { name: l(u.name) })) && void onDeleteLibrary(u.id)}>
+                ×
+              </button>
+            </div>
+          ))}
+          <h3>{t('tools.bundled')}</h3>
+          {bundled.map((b) => (
+            <div key={b.id} className="lib-row">
+              <button className="link" onClick={() => load(b)} title={t('tools.load')}>
+                {l(b.name)} <span className="muted">· {b.tools.length}</span>
+              </button>
+            </div>
+          ))}
+        </section>
+
+        <section className="tool-list">
+          <ul>
+            {lib.tools.map((x, i) => (
+              <li key={i}>
+                <button className={i === selected ? 'on' : ''} onClick={() => setSelected(i)}>
+                  <b>T{String(x.number).padStart(2, '0')}</b> {l(x.name)}
+                  <span className="muted">{t(`toolType.${x.type}`)} · Ø{x.diameter}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+          <div className="row">
+            <button className="btn" onClick={() => add()}>{t('tools.add')}</button>
+            <button className="btn" disabled={!tool} onClick={() => tool && add(tool)}>{t('tools.duplicate')}</button>
+            <button className="btn" disabled={!tool} onClick={() => update(lib.tools.filter((_, i) => i !== selected))}>{t('tools.delete')}</button>
+          </div>
+        </section>
+
+        {tool ? (
+          <section className="tool-form">
+            <div className="fields">
+              {field('number', t('tools.number'), <input type="number" min={0} step={1} value={tool.number} onChange={(e) => patch({ number: Number(e.target.value) })} />)}
+              {field('offset', t('tools.offset'), <input type="number" min={0} step={1} value={tool.offset ?? ''} onChange={(e) => num(e, 'offset')} />)}
+              {field('name', t('tools.name'), <input value={l(tool.name)} onChange={(e) => setName(e.target.value)} />)}
+              {field(
+                'type',
+                t('tools.type'),
+                <select value={tool.type} onChange={(e) => patch({ type: e.target.value as ToolType })}>
+                  {TYPES.map((ty) => (
+                    <option key={ty} value={ty}>{t(`toolType.${ty}`)}</option>
+                  ))}
+                </select>
+              )}
+              {field('diameter', t('tools.diameter'), <input type="number" min={0} step={0.01} value={tool.diameter} onChange={(e) => patch({ diameter: Number(e.target.value) })} />)}
+              {field('length', t('tools.length'), <input type="number" min={0} step={0.1} value={tool.length} onChange={(e) => patch({ length: Number(e.target.value) })} />)}
+              {field('fluteLength', t('tools.fluteLength'), <input type="number" min={0} step={0.1} value={tool.fluteLength ?? ''} onChange={(e) => num(e, 'fluteLength')} />)}
+              {field('cornerRadius', t('tools.cornerRadius'), <input type="number" min={0} step={0.01} value={tool.cornerRadius ?? ''} onChange={(e) => num(e, 'cornerRadius')} />)}
+              {field('flutes', t('tools.flutes'), <input type="number" min={1} step={1} value={tool.flutes ?? ''} onChange={(e) => num(e, 'flutes')} />)}
+              {field('tipDirection', t('tools.tipDirection'), <input type="number" min={0} max={9} step={1} value={tool.tipDirection ?? ''} onChange={(e) => num(e, 'tipDirection')} />)}
+              {field(
+                'holder',
+                t('tools.holder'),
+                <select value={tool.holder ?? ''} onChange={(e) => setOptional('holder', e.target.value || undefined)}>
+                  <option value="">{t('tools.noHolder')}</option>
+                  {lib.holders.map((h) => (
+                    <option key={h.id} value={h.id}>{l(h.name)}</option>
+                  ))}
+                </select>
+              )}
+              {isTurningTool(tool) ? (
+                <>
+                  {field(
+                    'side',
+                    t('tools.side'),
+                    <select value={tool.side ?? 'external'} onChange={(e) => setOptional('side', e.target.value)}>
+                      <option value="external">{t('tools.external')}</option>
+                      <option value="internal">{t('tools.internal')}</option>
+                    </select>
+                  )}
+                  {field(
+                    'hand',
+                    t('tools.hand'),
+                    <select value={tool.hand ?? 'right'} onChange={(e) => setOptional('hand', e.target.value)}>
+                      <option value="right">{t('tools.right')}</option>
+                      <option value="left">{t('tools.left')}</option>
+                    </select>
+                  )}
+                  {tool.type !== 'grooving' &&
+                    field(
+                      'insert',
+                      t('tools.insert'),
+                      <select value={tool.insert ?? ''} onChange={(e) => setOptional('insert', e.target.value || undefined)}>
+                        <option value="">{t('tools.insertDefault')}</option>
+                        {INSERTS.map((s) => (
+                          <option key={s} value={s}>{t(`insert.${s}`)}</option>
+                        ))}
+                      </select>
+                    )}
+                </>
+              ) : (
+                field(
+                  'mount',
+                  t('tools.mount'),
+                  <select value={tool.mount ?? ''} onChange={(e) => setOptional('mount', e.target.value || undefined)}>
+                    <option value="">{t('tools.mountHolder')}</option>
+                    <option value="axial">{t('tools.axial')}</option>
+                    <option value="radial">{t('tools.radial')}</option>
+                  </select>
+                )
+              )}
+            </div>
+            <div className="preview">
+              <ToolPreview tool={tool} />
+              {duplicate && <p className="warning">{t('tools.duplicateNumber', { number: tool.number })}</p>}
+            </div>
+          </section>
+        ) : (
+          <section className="tool-form">
+            <p className="muted">{t('tools.empty')}</p>
+          </section>
+        )}
       </div>
-    </div>
+    </Dialog>
   )
 }

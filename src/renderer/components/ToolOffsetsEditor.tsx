@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import type { ToolOffset, ToolOffsets } from '@core/index'
 import type { MessageKey } from '@i18n/index'
+import { Dialog } from './Dialog'
 import { useI18n } from '../i18n'
 
 interface Props {
@@ -48,57 +49,58 @@ export function ToolOffsetsEditor({ offsets, measured, lathe, onApply, onClose }
   }
 
   return (
-    <div className="modal-backdrop" role="dialog" aria-modal aria-label={t('toolOffsets.title')}>
-      <div className="modal offsets-editor tool-offsets">
-        <header>
-          <h2>{t('toolOffsets.title')}</h2>
-        </header>
-        <div className="offsets-body">
-          <p className="muted">{t(lathe ? 'toolOffsets.helpLathe' : 'toolOffsets.helpMill')}</p>
-          <table className="table offsets">
-            <thead>
-              <tr>
-                <th>{t('toolOffsets.number')}</th>
-                {columns.map((c, i) => (
-                  <th key={`${c.key}${i}`}>{t(c.label)}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {numbers.map((n) => (
-                <tr key={n}>
-                  <th>{n.padStart(2, '0')}</th>
-                  {columns.map((c) => (
-                    <td key={c.key}>
-                      <input
-                        type="number"
-                        step={c.step}
-                        min={c.key === 'tip' ? 0 : undefined}
-                        max={c.key === 'tip' ? 9 : undefined}
-                        value={rows[n]?.[c.key] ?? ''}
-                        placeholder="—"
-                        aria-label={`${n} ${t(c.label)}`}
-                        onChange={(e) => set(n, c.key, e.target.value)}
-                      />
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          <div className="row">
-            <button className="btn" onClick={add}>{t('toolOffsets.add')}</button>
-          </div>
-        </div>
-        <footer>
+    <Dialog
+      title={t('toolOffsets.title')}
+      className="offsets-editor tool-offsets"
+      footer={
+        <>
           <button className="btn" title={t('toolOffsets.measureHint')} onClick={() => setRows(structuredClone(measured))}>
             {t('toolOffsets.measure')}
           </button>
           <span className="spacer" />
           <button className="btn" onClick={onClose}>{t('common.cancel')}</button>
           <button className="btn primary" onClick={() => onApply(rows)}>{t('offsets.apply')}</button>
-        </footer>
+        </>
+      }
+      onClose={onClose}
+    >
+      <div className="offsets-body">
+        <p className="muted">{t(lathe ? 'toolOffsets.helpLathe' : 'toolOffsets.helpMill')}</p>
+        <table className="table offsets">
+          <thead>
+            <tr>
+              <th>{t('toolOffsets.number')}</th>
+              {columns.map((c, i) => (
+                <th key={`${c.key}${i}`}>{t(c.label)}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {numbers.map((n) => (
+              <tr key={n}>
+                <th>{n.padStart(2, '0')}</th>
+                {columns.map((c) => (
+                  <td key={c.key}>
+                    <input
+                      type="number"
+                      step={c.step}
+                      min={c.key === 'tip' ? 0 : undefined}
+                      max={c.key === 'tip' ? 9 : undefined}
+                      value={rows[n]?.[c.key] ?? ''}
+                      placeholder="—"
+                      aria-label={`${n} ${t(c.label)}`}
+                      onChange={(e) => set(n, c.key, e.target.value)}
+                    />
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <div className="row">
+          <button className="btn" onClick={add}>{t('toolOffsets.add')}</button>
+        </div>
       </div>
-    </div>
+    </Dialog>
   )
 }

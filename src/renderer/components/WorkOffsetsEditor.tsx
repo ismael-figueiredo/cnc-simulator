@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import type { AxisName, WorkOffsets } from '@core/index'
+import { Dialog } from './Dialog'
 import { useI18n } from '../i18n'
 
 interface Props {
@@ -38,64 +39,65 @@ export function WorkOffsetsEditor({ offsets, axes, extended, onApply, onClose, s
   }
 
   return (
-    <div className="modal-backdrop" role="dialog" aria-modal aria-label={t('offsets.title')}>
-      <div className="modal offsets-editor">
-        <header>
-          <h2>{t('offsets.title')}</h2>
-        </header>
-        <div className="offsets-body">
-          <p className="muted">{t('offsets.help')}</p>
-          <table className="table offsets">
-            <thead>
-              <tr>
-                <th />
-                {axes.map((ax) => (
-                  <th key={ax}>{ax}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {names.map((name) => (
-                <tr key={name}>
-                  <th>{name}</th>
-                  {axes.map((ax) => (
-                    <td key={ax}>
-                      <input
-                        type="number"
-                        step={0.001}
-                        value={rows[name]?.[ax] ?? ''}
-                        placeholder="—"
-                        aria-label={`${name} ${ax}`}
-                        onChange={(e) => set(name, ax, e.target.value)}
-                      />
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          {extended && (
-            <div className="row">
-              <button className="btn" onClick={addExtended}>{t('offsets.addExtended')}</button>
-            </div>
-          )}
-          <p className="muted">{t('offsets.impact')}</p>
-          <label className="check-row">
-            <input type="checkbox" checked={keepStock} onChange={(e) => setKeepStock(e.target.checked)} />
-            <span>
-              <b>{t('offsets.keepStock', { offset: stockOffset })}</b>
-              <br />
-              <span className="muted">{t(keepStock ? 'offsets.keepStockOn' : 'offsets.keepStockOff')}</span>
-            </span>
-          </label>
-        </div>
-        <footer>
+    <Dialog
+      title={t('offsets.title')}
+      className="offsets-editor"
+      footer={
+        <>
           <button className="btn" onClick={() => setRows({})}>{t('offsets.clear')}</button>
           <span className="spacer" />
           <button className="btn" onClick={onClose}>{t('common.cancel')}</button>
           <button className="btn primary" onClick={() => onApply(rows, keepStock)}>{t('offsets.apply')}</button>
-        </footer>
+        </>
+      }
+      onClose={onClose}
+    >
+      <div className="offsets-body">
+        <p className="muted">{t('offsets.help')}</p>
+        <table className="table offsets">
+          <thead>
+            <tr>
+              <th />
+              {axes.map((ax) => (
+                <th key={ax}>{ax}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {names.map((name) => (
+              <tr key={name}>
+                <th>{name}</th>
+                {axes.map((ax) => (
+                  <td key={ax}>
+                    <input
+                      type="number"
+                      step={0.001}
+                      value={rows[name]?.[ax] ?? ''}
+                      placeholder="—"
+                      aria-label={`${name} ${ax}`}
+                      onChange={(e) => set(name, ax, e.target.value)}
+                    />
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        {extended && (
+          <div className="row">
+            <button className="btn" onClick={addExtended}>{t('offsets.addExtended')}</button>
+          </div>
+        )}
+        <p className="muted">{t('offsets.impact')}</p>
+        <label className="check-row">
+          <input type="checkbox" checked={keepStock} onChange={(e) => setKeepStock(e.target.checked)} />
+          <span>
+            <b>{t('offsets.keepStock', { offset: stockOffset })}</b>
+            <br />
+            <span className="muted">{t(keepStock ? 'offsets.keepStockOn' : 'offsets.keepStockOff')}</span>
+          </span>
+        </label>
       </div>
-    </div>
+    </Dialog>
   )
 }

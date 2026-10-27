@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { Dialog } from './Dialog'
 import { useI18n } from '../i18n'
 import { usePlatform } from '../platform'
 
@@ -64,25 +65,27 @@ export function ShortcutsDialog({ onClose }: { onClose: () => void }) {
     [`${mod}+F`, t('keys.find')]
   ]
   return (
-    <div className="modal-backdrop" role="dialog" aria-modal aria-label={t('help.shortcuts')} onClick={onClose}>
-      <div className="modal shortcuts" onClick={(e) => e.stopPropagation()}>
-        <header>
-          <h2>{t('help.shortcuts')}</h2>
-        </header>
-        <table className="table">
-          <tbody>
-            {rows.map(([k, v]) => (
-              <tr key={k}>
-                <td><kbd>{k}</kbd></td>
-                <td>{v}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        <footer>
+    <Dialog
+      title={t('help.shortcuts')}
+      className="shortcuts"
+      footer={
+        <>
           <button className="btn primary" onClick={onClose}>{t('common.close')}</button>
-        </footer>
-      </div>
-    </div>
+        </>
+      }
+      onClose={onClose}
+      closeOnBackdrop
+    >
+      <table className="table">
+        <tbody>
+          {rows.map(([k, v]) => (
+            <tr key={k}>
+              <td><kbd>{k}</kbd></td>
+              <td>{v}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </Dialog>
   )
 }
