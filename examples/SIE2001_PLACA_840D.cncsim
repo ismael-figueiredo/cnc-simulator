@@ -1,0 +1,14 @@
+{
+  "format": "cnc-simulator-project",
+  "version": 1,
+  "description": {
+    "en": "Aluminium plate · machining center, Siemens 840D · facing, G41 contour with RND and CHF, pocket in passes with R parameters and GOTOB, holes with MCALL CYCLE81 and CYCLE83",
+    "pt-BR": "Placa de alumínio · centro de usinagem, Siemens 840D · faceamento, contorno G41 com RND e CHF, bolsão em passes com parâmetros R e GOTOB, furos com MCALL CYCLE81 e CYCLE83",
+    "es": "Placa de aluminio · centro de mecanizado, Siemens 840D · planeado, contorno G41 con RND y CHF, cajera en pasadas con parámetros R y GOTOB, agujeros con MCALL CYCLE81 y CYCLE83"
+  },
+  "program": "SIE2001_PLACA_840D.mpf",
+  "machine": "siemens-840d-mill",
+  "control": "siemens-840d-mill",
+  "stock": { "shape": "block", "x": 120, "y": 80, "z": 25, "color": "#d3dae1", "offset": { "Z": 0.5 }, "workOffset": "G54" },
+  "workOffsets": { "G54": { "X": 340, "Y": 210, "Z": -400 } }
+}

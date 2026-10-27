@@ -1,0 +1,13 @@
+{
+  "format": "cnc-simulator-project",
+  "version": 1,
+  "description": {
+    "en": "Threaded shaft · lathe, Siemens 840D · facing, CYCLE95 roughing and finishing along a contour between labels with RND and CHF, groove, M30×1.5 thread in G33 passes with R parameters and GOTOB",
+    "pt-BR": "Eixo roscado · torno, Siemens 840D · faceamento, desbaste e acabamento CYCLE95 num contorno entre etiquetas com RND e CHF, canal, rosca M30×1,5 em passes de G33 com parâmetros R e GOTOB",
+    "es": "Eje roscado · torno, Siemens 840D · refrentado, desbaste y acabado CYCLE95 en un contorno entre etiquetas con RND y CHF, ranura, rosca M30×1,5 en pasadas de G33 con parámetros R y GOTOB"
+  },
+  "program": "SIE1001_EIXO_840D.mpf",
+  "machine": "siemens-840d-lathe",
+  "control": "siemens-840d-lathe",
+  "stock": { "shape": "cylinder", "diameter": 60, "length": 90, "color": "#9aa6b1", "offset": { "Z": 1 } }
+}

@@ -1,0 +1,22 @@
+{
+  "id": "siemens-840d-lathe",
+  "name": "CNC lathe · Siemens 840D (generic)",
+  "type": "lathe",
+  "kinematics": "lathe-xz",
+  "axes": [
+    { "name": "X", "type": "linear", "min": -2, "max": 360, "rapid": 24000, "diameter": true },
+    { "name": "Z", "type": "linear", "min": -550, "max": 10, "rapid": 24000 }
+  ],
+  "spindles": [{ "id": "S1", "name": { "en": "Main spindle", "pt-BR": "Placa", "es": "Husillo principal" }, "type": "main", "maxRpm": 4000 }],
+  "turret": { "positions": 12, "type": "VDI" },
+  "toolChangePosition": { "X": 300, "Z": 150 },
+  "defaultControl": "siemens-840d-lathe",
+  "defaultTools": "lathe-turning",
+  "notes": {
+    "en": "Generic two-axis lathe for SINUMERIK 840D programs (programming guide 6FC5298-6AB30-0KP0, edition 10.00): typical sizes, not a specific machine. Programs in diameter (DIAMON), T with D (T1 D1), cycles CYCLE81–83 and CYCLE95 drawn; other cycles and frames are reported as not simulated. Chuck: 10\" hydraulic three-jaw chuck, catalog sizes.",
+    "pt-BR": "Torno genérico de dois eixos para programas SINUMERIK 840D (instruções resumidas de programação 6FC5298-6AB30-0KP0, edição 10.00): medidas típicas, não é uma máquina específica. Programa em diâmetro (DIAMON), T com D (T1 D1), ciclos CYCLE81–83 e CYCLE95 desenhados; outros ciclos e frames aparecem como não simulados. Placa: hidráulica de 10\" com três castanhas, medidas de catálogo.",
+    "es": "Torno genérico de dos ejes para programas SINUMERIK 840D (instrucciones resumidas de programación 6FC5298-6AB30-0KP0, edición 10.00): medidas típicas, no es una máquina concreta. Programa en diámetro (DIAMON), T con D (T1 D1), ciclos CYCLE81–83 y CYCLE95 dibujados; otros ciclos y frames aparecen como no simulados. Plato: hidráulico de 10\" con tres garras, medidas de catálogo."
+  },
+  "defaultStock": { "shape": "cylinder", "diameter": 60, "length": 90 },
+  "chuck": { "diameter": 254, "length": 105, "jaws": 3, "jawHeight": 60, "jawWidth": 32, "jawLength": 25, "bore": 75 }
+}

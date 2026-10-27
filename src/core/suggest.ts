@@ -22,7 +22,8 @@ const LATHE_SIGNS: [RegExp, string, number][] = [
   [/(?<![A-Z#])T\d{4}(?!\d)/, 'T0101', 2],
   [/(?<![A-Z])G(?:96|97)(?!\d)/, 'G96/G97', 1],
   [/(?<![A-Z])G7[0-3](?!\d)[^\n]*P\d/, 'G70–G73', 2],
-  [/(?<![A-Z,])[UW]-?\d/, 'U/W', 1]
+  [/(?<![A-Z,])[UW]-?\d/, 'U/W', 1],
+  [/\bDIAMON\b/, 'DIAMON', 2]
 ]
 const MILL_SIGNS: [RegExp, string, number][] = [
   [/(?<![A-Z])G17(?!\d)/, 'G17', 2],
@@ -32,10 +33,15 @@ const MILL_SIGNS: [RegExp, string, number][] = [
   [/(?<![A-Z])G8[1-9](?!\d)[^\n]*R-?[\d.]/, 'G81–G89', 1]
 ]
 const HAAS_SIGNS = /(?<![A-Z])(G154|G1[12]\d|G187|G103|M97)(?![\d.])/
+/** SINUMERIK words no Fanuc-style control reads: cycles, CR=/RND=/CHF=, DIAMON, MCALL, GOTOF, R parameters. */
+const SIEMENS_SIGNS = /\b(CYCLE\d{2,3})\s*\(|\b(CR|RND|CHF|CHR|LIMS)\s*=|\b(DIAMON|MCALL|GOTOF|GOTOB)\b|^\s*(?:N\d+\s+)?(R\d+)\s*=/m
 
 export function suggestSetup(text: string, machines: readonly Machine[], controls: readonly Control[], last: LastChoice = {}): SetupSuggestion | null {
   // Comments say nothing about the machine
-  const code = text.toUpperCase().replace(/\([^)\n]*\)?/g, ' ')
+  const code = text
+    .toUpperCase()
+    .replace(/\([^)\n]*\)?/g, ' ')
+    .replace(/;[^\n]*/g, ' ')
   const evidence: string[] = []
   const score = (signs: [RegExp, string, number][]) =>
     signs.reduce((sum, [re, label, w]) => {
@@ -46,17 +52,21 @@ export function suggestSetup(text: string, machines: readonly Machine[], control
   const lathe = score(LATHE_SIGNS)
   const mill = score(MILL_SIGNS)
   const haas = HAAS_SIGNS.exec(code)?.[1]
+  const siemensSign = SIEMENS_SIGNS.exec(code)
+  const siemens = siemensSign?.slice(1).find(Boolean)
   const kind: MachineKind = haas ? 'mill' : lathe > mill ? 'lathe' : 'mill'
   if (haas) evidence.push(haas)
+  if (siemens) evidence.push(siemens.replace(/=$/, ''))
 
   const familyOf = (id: string | undefined) => controls.find((c) => c.id === id)?.family
-  // Without Haas codes, Fanuc is the most common dialect (Mitsubishi reads it too)
-  const family = haas ? 'haas' : 'fanuc'
+  // Without Haas or Siemens words, Fanuc is the most common dialect (Mitsubishi reads it too)
+  const family = haas ? 'haas' : siemens ? 'siemens' : 'fanuc'
   const fits = (m: Machine) => machineKind(m) === kind && familyOf(m.defaultControl) === family
   const prev = last[kind]
   const prevMachine = prev && machines.find((m) => m.id === prev.machineId)
   // The last choice wins when it is the right kind of machine (any family: the user picked it)
-  if (prev && prevMachine && machineKind(prevMachine) === kind && (!haas || familyOf(prev.controlId) === 'haas') && controls.some((c) => c.id === prev.controlId))
+  const dialectFits = (controlId: string) => (haas || siemens ? familyOf(controlId) === family : familyOf(controlId) !== 'siemens')
+  if (prev && prevMachine && machineKind(prevMachine) === kind && dialectFits(prev.controlId) && controls.some((c) => c.id === prev.controlId))
     return { machineId: prev.machineId, controlId: prev.controlId, kind, evidence }
   // A lathe with a C axis (live tooling) only for programs that use C or polar interpolation
   const usesC = kind === 'lathe' && /(?<![A-Z,#])C-?[\d.]|G12\.1|G112(?!\d)/.test(code)

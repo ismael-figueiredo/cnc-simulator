@@ -54,11 +54,14 @@ describe('M codes', () => {
     expect(r.end?.code).toBe('M02')
   })
 
-  it('every control knows the basic M codes', () => {
+  it('every control has the basic M functions', () => {
     const ids = readdirSync(join(root, 'configs/controls')).map((f) => f.replace(/\.json$/, ''))
     for (const id of ids) {
       const c: Control = controlConfig(id)
-      for (const code of ['M00', 'M01', 'M02', 'M03', 'M04', 'M05', 'M08', 'M09', 'M30', 'M98', 'M99']) expect(c.mCodes[code]?.function, `${id} ${code}`).toBeDefined()
+      const functions = new Set(Object.values(c.mCodes).map((m) => m.function))
+      // Siemens calls subprograms with L n (and returns with M17), not with an M code
+      const expected = ['stop', 'optional-stop', 'end', 'end-rewind', 'spindle-cw', 'spindle-ccw', 'spindle-stop', 'coolant-on', 'coolant-off', 'subprogram-return']
+      for (const fn of c.family === 'siemens' ? expected : [...expected, 'subprogram-call']) expect(functions.has(fn as never), `${id} ${fn}`).toBe(true)
     }
   })
 })

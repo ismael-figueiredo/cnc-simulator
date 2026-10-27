@@ -21,7 +21,7 @@ const fileName = (path: string) => path.slice(path.lastIndexOf('/') + 1)
 const FIRST_MACHINE = 'romi-gl250-m'
 // Bundled examples: each is a project (examples/*.cncsim) next to its program
 const exampleProjects = import.meta.glob<string>('../../examples/*.cncsim', { eager: true, query: '?raw', import: 'default' })
-const examplePrograms = import.meta.glob<string>('../../examples/*.nc', { eager: true, query: '?raw', import: 'default' })
+const examplePrograms = import.meta.glob<string>('../../examples/*.{nc,mpf}', { eager: true, query: '?raw', import: 'default' })
 export const EXAMPLES = Object.entries(exampleProjects)
   .map(([path, text]) => {
     const r = loadProject(text, fileName(path))

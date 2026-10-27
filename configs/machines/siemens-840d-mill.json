@@ -1,0 +1,23 @@
+{
+  "id": "siemens-840d-mill",
+  "name": "Machining center · Siemens 840D (generic)",
+  "type": "machining-center",
+  "kinematics": "mill-xyz",
+  "axes": [
+    { "name": "X", "type": "linear", "min": 0, "max": 800, "rapid": 30000 },
+    { "name": "Y", "type": "linear", "min": 0, "max": 500, "rapid": 30000 },
+    { "name": "Z", "type": "linear", "min": -510, "max": 0, "rapid": 30000 }
+  ],
+  "spindles": [{ "id": "S1", "name": { "en": "Spindle", "pt-BR": "Árvore", "es": "Husillo" }, "type": "spindle", "maxRpm": 10000 }],
+  "turret": { "positions": 24, "type": "changer" },
+  "toolChangePosition": { "X": 0, "Y": 0, "Z": 0 },
+  "defaultControl": "siemens-840d-mill",
+  "defaultTools": "machining-center",
+  "notes": {
+    "en": "Generic 3-axis machining center for SINUMERIK 840D programs (programming guide 6FC5298-6AB30-0KP0, edition 10.00): typical sizes, not a specific machine. T selects the tool, M6 changes it, D activates its length and radius; CYCLE81–83 drawn, also with MCALL; other cycles and frames are reported as not simulated.",
+    "pt-BR": "Centro de usinagem genérico de 3 eixos para programas SINUMERIK 840D (instruções resumidas de programação 6FC5298-6AB30-0KP0, edição 10.00): medidas típicas, não é uma máquina específica. T escolhe a ferramenta, M6 troca, D ativa comprimento e raio; CYCLE81–83 desenhados, também com MCALL; outros ciclos e frames aparecem como não simulados.",
+    "es": "Centro de mecanizado genérico de 3 ejes para programas SINUMERIK 840D (instrucciones resumidas de programación 6FC5298-6AB30-0KP0, edición 10.00): medidas típicas, no es una máquina concreta. T elige la herramienta, M6 la cambia, D activa longitud y radio; CYCLE81–83 dibujados, también con MCALL; otros ciclos y frames aparecen como no simulados."
+  },
+  "defaultStock": { "shape": "block", "x": 120, "y": 80, "z": 25 },
+  "table": { "length": 1000, "width": 500, "height": 80, "slots": 5, "slotWidth": 18, "slotPitch": 100, "top": -510, "center": { "X": 400, "Y": 250 } }
+}

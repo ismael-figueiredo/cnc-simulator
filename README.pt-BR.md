@@ -6,7 +6,7 @@ Português (Brasil) · [English](README.md)
 
 [![Release](https://img.shields.io/github/v/release/ismael-figueiredo/cnc-simulator)](https://github.com/ismael-figueiredo/cnc-simulator/releases/latest) [![Downloads](https://img.shields.io/github/downloads/ismael-figueiredo/cnc-simulator/total)](https://github.com/ismael-figueiredo/cnc-simulator/releases) [![CI](https://github.com/ismael-figueiredo/cnc-simulator/actions/workflows/ci.yml/badge.svg)](https://github.com/ismael-figueiredo/cnc-simulator/actions/workflows/ci.yml) [![License: GPL v3](https://img.shields.io/badge/license-GPL--3.0-blue)](LICENSE)
 
-**Simulador CNC gratuito e de código aberto para aprender e testar G-code** sem precisar de uma máquina: tornos e centros de usinagem, comandos Fanuc, Mitsubishi e Haas, programas parametrizados em Macro B, os alarmes do próprio comando e a verificação de colisões. Para Windows, macOS e Linux.
+**Simulador CNC gratuito e de código aberto para aprender e testar G-code** sem precisar de uma máquina: tornos e centros de usinagem, comandos Fanuc, Mitsubishi, Haas e Siemens 840D, programas parametrizados em Macro B, os alarmes do próprio comando e a verificação de colisões. Para Windows, macOS e Linux.
 
 Site: **[ismael-figueiredo.github.io/cnc-simulator/pt](https://ismael-figueiredo.github.io/cnc-simulator/pt/)** · [Códigos G e M explicados](https://ismael-figueiredo.github.io/cnc-simulator/pt/codigos-g/)
 
@@ -34,7 +34,7 @@ Os instaladores de cada versão estão na **[página de Releases](https://github
 
 ## O que faz
 
-- **Roda o G-code como o comando:** dialetos Fanuc, Mitsubishi e Haas em JSON, Macro B (variáveis, IF/WHILE/GOTO, G65), subprogramas, ciclos fixos, interpolação polar G12.1 e compensação de raio G41/G42 desenhada no centro da ferramenta.
+- **Roda o G-code como o comando:** dialetos Fanuc, Mitsubishi, Haas e Siemens 840D em JSON, Macro B (variáveis, IF/WHILE/GOTO, G65), subprogramas, ciclos fixos, interpolação polar G12.1 e compensação de raio G41/G42 desenhada no centro da ferramenta.
 - **Programas parametrizados (Macro B):** variáveis, contas e IF/GOTO/WHILE rodam como no comando, em todas as máquinas incluídas (todos os comandos delas têm a opção de macro). G-code comum e os ciclos fixos do próprio comando também; os exemplos têm os dois.
 - **Para nos alarmes da máquina:** erros de programa param no bloco com o número e a mensagem do próprio comando (por exemplo `PS0010 IMPROPER G-CODE`).
 - **Painel de operação:** bloco a bloco, parada opcional M01, salto de bloco "/", override de avanço e de rápido (o tempo de ciclo acompanha) e pontos de parada em qualquer linha.
@@ -83,7 +83,9 @@ Comece pelos **exercícios** da tela inicial (E01 a E04, com **Conferir**) e dep
 | **O2001** placa | Centro de usinagem Romi D600 | Faceamento, contorno com G41, bolsão, ciclos de furação e roscamento G81/G83/G84, gravação |
 | **O2002** duas morsas | Centro de usinagem Romi D600 | Zeros G54 e G55, subprogramas M98/M99, coordenadas de máquina |
 | **O3001** duas fixações | Haas VF-2 | O mesmo trabalho na Haas: zeros G154 e subprogramas locais M97 |
-| **O1500** coroa | Torno Romi GL 250 M | Programa parametrizado completo em Macro B, com ferramenta acionada e G12.1 |
+| **O1500** coroa | Torno Romi E280 | Programa parametrizado completo em Macro B, com ferramenta acionada e G12.1 |
+| **SIE1001** eixo roscado | Torno, Siemens 840D | Desbaste e acabamento CYCLE95 num contorno entre etiquetas, cantos RND/CHF, rosca G33 em passes com parâmetros R e GOTOB |
+| **SIE2001** placa | Centro de usinagem, Siemens 840D | Ferramenta com T/D, contorno G41 com RND/CHF, bolsão em passes com parâmetros R, furos com MCALL CYCLE81/CYCLE83 |
 
 ### Antes de mandar o programa para a máquina
 
@@ -184,10 +186,14 @@ Depois de uma mudança visível na interface, rode `npm run demo` e faça o comm
   - **GL 250 M:** com eixo C.
   - **GL 300:** sem eixo C. G12.1, palavra C ou S2= dão alarme.
   - **D600, D1000 e D1250:** Fanuc 0i-MF, com os códigos G e M dos manuais Romi.
+  - **E280 (2006):** Fanuc 21i-TB sistema B, com eixo C e ferramenta acionada. Os alarmes aparecem como na 21i (`P/S 010`). Medidas dos anúncios da máquina; o que não foi confirmado (curso X, placa, códigos M da acionada, do eixo C e do freio) está nas notas.
 - **Mitsubishi M80:** torno e centro de usinagem genéricos.
   - O torno tem dois comandos: lista de códigos G **2**, como a Fanuc sistema A, e lista **3**, como a Fanuc sistema B.
   - Ponto decimal tipo I: `X1` = 0,001 mm.
   - Ponto decimal em M/S/T/… é ignorado, não dá alarme.
+- **Siemens 840D:** torno e centro de usinagem genéricos (instruções resumidas de programação 6FC5298-6AB30-0KP0).
+  - Programas na linguagem do 840D: comentários `;`, parâmetros R com expressões (`X=R1+2`), arcos com `CR=`, cantos `RND`/`CHR`/`CHF`, `AC()`/`IC()`, `T` com `D` (no centro de usinagem o D aplica comprimento e raio), etiquetas com `GOTOF`/`GOTOB`/`IF`, subprogramas `L n P m` escritos depois do M30 e terminados em `M17`, `MCALL`.
+  - Ciclos desenhados: furação `CYCLE81`–`CYCLE83` e desbaste `CYCLE95` (torneamento e faceamento externos). Os outros ciclos, os frames (`TRANS`, `ROT`, `MIRROR`…) e o `CIP` aparecem como não simulados.
 - **Haas VF-2 e VF-5/40:** comando Haas NGC fresadora.
   - `G154 P1`–`P99` e `G110`–`G129` (`G154 P1`–`P20`) são os mesmos zeros do `G54.1 P n`. No `G10 L20 G154 P n` o G154 só diz qual zero é escrito.
   - `M97 P n` chama um subprograma local que começa no bloco `N n` do mesmo programa e termina no `M99`; `L` repete.

@@ -46,3 +46,17 @@ describe('machine suggested for a program opened alone', () => {
     expect(s?.kind).toBe('mill')
   })
 })
+
+describe('Siemens programs', () => {
+  it('get a Siemens machine of the right kind, even after a Fanuc choice', () => {
+    const turn = suggestSetup(read('examples/SIE1001_EIXO_840D.mpf'), machines, controls, { lathe: { machineId: 'romi-gl300', controlId: 'fanuc-0i-tf-system-b' } })
+    expect(turn).toMatchObject({ machineId: 'siemens-840d-lathe', controlId: 'siemens-840d-lathe', kind: 'lathe' })
+    const plate = suggestSetup(read('examples/SIE2001_PLACA_840D.mpf'), machines, controls)
+    expect(plate).toMatchObject({ machineId: 'siemens-840d-mill', controlId: 'siemens-840d-mill', kind: 'mill' })
+  })
+
+  it('a Fanuc program does not land on a Siemens control kept from before', () => {
+    const s = suggestSetup(read('examples/O1001_EIXO_GL300.nc'), machines, controls, { lathe: { machineId: 'siemens-840d-lathe', controlId: 'siemens-840d-lathe' } })
+    expect(s?.controlId).not.toBe('siemens-840d-lathe')
+  })
+})

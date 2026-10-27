@@ -44,6 +44,7 @@ function code(table: Record<string, { function: string }>, fn: string): string {
 export const supportsMacro = (control: Control) => control.dialect.macro !== 'none'
 
 export function programTemplate(machine: Machine, control: Control, kind: ProgramKind, number: number, tx: TemplateTexts): string {
+  if (control.dialect.macro === 'siemens') return siemensTemplate(machine, control, kind, tx)
   const g = (fn: string) => code(control.gCodes, fn)
   const m = (fn: string) => code(control.mCodes, fn)
   const words = (...w: string[]) => w.filter(Boolean).join(' ')
@@ -125,4 +126,78 @@ export function programTemplate(machine: Machine, control: Control, kind: Progra
     .filter((l, i) => l !== '' || lines[i - 1] !== '')
     .map((l) => (l === '%' || l === '' ? l : `${l}${eob}`))
     .join('\n')}\n`
+}
+
+/** Siemens comment: from ";" to the end of the line. */
+const note = (s: string) => `; ${comment(s).slice(1, -1)}`
+
+/**
+ * SINUMERIK: no program number or "%" record, ";" comments, T with D, R parameters and labels for the
+ * passes (the same passes as the Macro B version).
+ */
+function siemensTemplate(machine: Machine, control: Control, kind: ProgramKind, tx: TemplateTexts): string {
+  const lathe = isLatheControl(control)
+  const lines: string[] = [note(tx.newProgram), note(`${machine.name} - ${control.name}`)]
+  if (lathe)
+    lines.push(
+      note(tx.latheZero),
+      'G18 G90 G71 G95 G40 DIAMON',
+      note(`T1 D1 - ${tx.tool}`),
+      'T1 D1',
+      'G97 S1000 M3',
+      'G0 X100 Z5 M8'
+    )
+  else
+    lines.push(
+      note(`${tx.workZero}: G54`),
+      'G17 G90 G71 G94 G40',
+      note(`T1 D1 - ${tx.tool}`),
+      'T1 M6',
+      'D1',
+      // D applies the length with the next Z move: Z in the first positioning block
+      'G54 G0 X0 Y0 Z50 S1000 M3',
+      'M8'
+    )
+  if (kind === 'parametric') {
+    lines.push(note(tx.parameters))
+    if (lathe)
+      lines.push(
+        `R0=40 ${note(tx.length)}`,
+        `R1=2 ${note(tx.stepDown)}`,
+        `R2=50 ${note(tx.startDiameter)}`,
+        `R3=40 ${note(tx.finalDiameter)}`,
+        `R4=0.2 ${note(tx.feed)}`,
+        note(tx.passes),
+        'R10=R2',
+        'PASS: R10=R10-R1',
+        'IF R10>=R3 GOTOF CUT',
+        'R10=R3',
+        'CUT: G0 X=R10 Z2',
+        'G1 Z=-R0 F=R4',
+        'G0 X=R10+2',
+        'G0 Z2',
+        'IF R10>R3 GOTOB PASS'
+      )
+    else
+      lines.push(
+        `R0=80 ${note(tx.length)}`,
+        `R1=1 ${note(tx.stepDown)}`,
+        `R2=3 ${note(tx.totalDepth)}`,
+        `R3=500 ${note(tx.feed)}`,
+        note(tx.passes),
+        'R10=0',
+        'PASS: R10=R10+R1',
+        'IF R10<=R2 GOTOF CUT',
+        'R10=R2',
+        'CUT: G0 X0 Y0 Z2',
+        'G1 Z=-R10 F=R3',
+        'G1 X=R0',
+        'G0 Z5',
+        'IF R10<R2 GOTOB PASS'
+      )
+  } else lines.push(note(tx.machineHere), '')
+  if (lathe) lines.push('G0 X200 Z150 M9', 'M5')
+  else lines.push('G0 Z50 M9', 'M5', 'G0 G53 Z0')
+  lines.push('M30')
+  return `${lines.filter((l, i) => l !== '' || lines[i - 1] !== '').join('\n')}\n`
 }

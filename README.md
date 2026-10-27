@@ -6,7 +6,7 @@
 
 [![Release](https://img.shields.io/github/v/release/ismael-figueiredo/cnc-simulator)](https://github.com/ismael-figueiredo/cnc-simulator/releases/latest) [![Downloads](https://img.shields.io/github/downloads/ismael-figueiredo/cnc-simulator/total)](https://github.com/ismael-figueiredo/cnc-simulator/releases) [![CI](https://github.com/ismael-figueiredo/cnc-simulator/actions/workflows/ci.yml/badge.svg)](https://github.com/ismael-figueiredo/cnc-simulator/actions/workflows/ci.yml) [![License: GPL v3](https://img.shields.io/badge/license-GPL--3.0-blue)](LICENSE)
 
-**Free, open-source CNC simulator to learn and test G-code**, with no machine needed: lathes and machining centers, Fanuc, Mitsubishi and Haas controls, Macro B parametric programs, the control's own alarms and collision checks. For Windows, macOS and Linux.
+**Free, open-source CNC simulator to learn and test G-code**, with no machine needed: lathes and machining centers, Fanuc, Mitsubishi, Haas and Siemens 840D controls, Macro B parametric programs, the control's own alarms and collision checks. For Windows, macOS and Linux.
 
 Website: **[ismael-figueiredo.github.io/cnc-simulator](https://ismael-figueiredo.github.io/cnc-simulator/)** · [G-code reference](https://ismael-figueiredo.github.io/cnc-simulator/g-codes/)
 
@@ -34,7 +34,7 @@ Installers for every version are on the **[Releases page](https://github.com/ism
 
 ## What it does
 
-- **Runs G-code like the control:** Fanuc, Mitsubishi and Haas dialects from JSON, Macro B (variables, IF/WHILE/GOTO, G65), subprograms, canned cycles, G12.1 polar interpolation and G41/G42 cutter compensation drawn as the tool center.
+- **Runs G-code like the control:** Fanuc, Mitsubishi, Haas and Siemens 840D dialects from JSON, Macro B (variables, IF/WHILE/GOTO, G65), subprograms, canned cycles, G12.1 polar interpolation and G41/G42 cutter compensation drawn as the tool center.
 - **Parametric programs (Macro B):** variables, math and IF/GOTO/WHILE run as on the control, on every bundled machine (all their controls have the macro option). Plain G-code and the control's own canned cycles run too; the examples have both.
 - **Stops on the machine's alarms:** program errors stop at the block with the control's own number and message (for example `PS0010 IMPROPER G-CODE`).
 - **Operator panel:** single block, M01 optional stop, block delete "/", feed and rapid overrides (the cycle time follows them), and breakpoints on any line.
@@ -83,7 +83,9 @@ Start with the **exercises** on the start screen (E01 to E04, with **Check**), t
 | **O2001** plate | Romi D600 machining center | Face milling, contour with G41, pocket, drilling and tapping cycles G81/G83/G84, engraving |
 | **O2002** two vises | Romi D600 machining center | G54 and G55 work offsets, M98/M99 subprograms, machine coordinates |
 | **O3001** two fixtures | Haas VF-2 | The same job on Haas: G154 work offsets and M97 local subprograms |
-| **O1500** sprocket | Romi GL 250 M lathe | A full Macro B parametric program with live tooling and G12.1 |
+| **O1500** sprocket | Romi E280 lathe | A full Macro B parametric program with live tooling and G12.1 |
+| **SIE1001** threaded shaft | Lathe, Siemens 840D | CYCLE95 roughing and finishing along a contour between labels, RND/CHF corners, a G33 thread in passes with R parameters and GOTOB |
+| **SIE2001** plate | Machining center, Siemens 840D | T/D tool selection, G41 contour with RND/CHF, a pocket in passes with R parameters, holes with MCALL CYCLE81/CYCLE83 |
 
 ### Before sending a program to the machine
 
@@ -273,12 +275,14 @@ docs/legacy/       original HTML simulator, reference for the port
 |---|---|---|
 | Romi GL 250 M (C axis, live tool) | `fanuc-0i-tf-system-b` | Romi manual GL 250/300/350/450 T/M/Y |
 | Romi GL 300 (no C axis) | `fanuc-0i-tf-system-b` | same manual, version T; G12.1, C words and S2= raise PS0010/PS0009 |
+| Romi E280 (2006, C axis, live tool) | `fanuc-21i-tb-system-b` | EMCO WinNC Fanuc 21 TB description (EN 1902, 2003); sizes from machine listings, the rest in its notes |
 | Romi D600 | `fanuc-0i-mf-romi-d` | Romi manual PA09403B (Fanuc 0i-MF Plus) |
 | Romi D1000, D1250 | `fanuc-0i-mf-romi-d` | Romi manual U57998C (D800/D1000/D1250, Fanuc 0i-MF) |
 | Mitsubishi M80 lathe (generic) | `mitsubishi-m80-lathe-list3` or `-list2` | Mitsubishi programming manual IB-1501370 (lathe system) |
 | Mitsubishi M80 machining center (generic) | `mitsubishi-m80-mc` | Mitsubishi programming manual IB-1501372 (machining center system) |
 | Haas VF-2, VF-5/40 | `haas-ngc-mill` | Haas NGC mill operator's manual; travels and speeds from the catalog |
 | Generic 3-axis machining center | `fanuc-0i-mf` | — |
+| Lathe and machining center, Siemens 840D (generic) | `siemens-840d-lathe`, `siemens-840d-mill` | SINUMERIK 840D/810D short programming guide 6FC5298-6AB30-0KP0 (edition 10.00) |
 
 - **Data to check on the machine plate:** each machine file has `notes` for anything the manuals do not give, such as travels, maximum speed and magazine size. The app shows these notes in the machine panel.
 - **Manuals:** they are kept in `docs/manuals/`, by maker. The PDFs belong to their makers and are not in the repository.
@@ -292,6 +296,8 @@ docs/legacy/       original HTML simulator, reference for the port
   - `G154 P1`–`P99` and `G110`–`G129` (`G154 P1`–`P20`) are the same offsets as `G54.1 P n`, so a project table works for Haas and Fanuc programs alike. In `G10 L20 G154 P n` the G154 only names the offset being written.
   - `M97 P n` calls a local subprogram that starts at block `N n` of the same program and ends with `M99`; `L` repeats it.
   - Machine zero is at the top right, with negative travels, as on the machine.
+- **Fanuc 21i-TB:** the Romi GL control without its servo tailstock codes, with the 21i alarm display (`P/S 010`); the live tool, C axis and brake codes follow the Romi convention (`S2=`, `M19`, `M85`) and are marked to check on the machine.
+- **Siemens 840D:** programs are read in their own language: `;` comments, R parameters with expressions (`X=R1+2`), `CR=` arcs, `RND`/`CHR`/`CHF` corners, `AC()`/`IC()`, `T` with `D` (on machining centers D applies length and radius), labels with `GOTOF`/`GOTOB`/`IF`, subprograms `L n P m` written after M30 and ended with `M17`, `MCALL`, the drilling cycles `CYCLE81`–`CYCLE83` and `CYCLE95` stock removal (outside turning and facing). Other cycles, frames (`TRANS`, `ROT`, `MIRROR`…) and `CIP` are reported as not simulated.
 - **Functions the controls accept but the simulator does not draw yet:** G68 rotation, G51.1 mirror, G52 local coordinates, G15/G16 polar coordinates, G12/G13 circle cutting, G92, G07.1 cylindrical interpolation, G66 modal macro calls, and G10 other than L2/L20 (tool offsets). Lathe cycles G74/G75 are drawn simplified (one peck). They raise a warning, because the path after them would be wrong.
 
 ## Config files
