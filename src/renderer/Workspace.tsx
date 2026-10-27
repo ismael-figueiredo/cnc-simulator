@@ -14,7 +14,7 @@ import {
   compareParts,
   holderOf,
   keepStockOnTable,
-  simulate,
+  type SimulationInput,
   stockFromPath,
   toolMount,
   workZero,
@@ -91,6 +91,7 @@ interface Simulation {
 }
 
 const NO_SIMULATION: Simulation = { timeline: null, time: 0, playing: false }
+const NO_MOVES: readonly Move[] = []
 
 const overridesOf = (p: PanelState): Overrides => ({ feed: p.feed / 100, rapid: p.rapid / 100, spindle: p.spindle / 100 })
 
@@ -545,10 +546,26 @@ export function Workspace({ init, cfg, active, layout, learn, onLearn, onHelp, o
   const helpLine = move?.line ?? (atReset ? startLine : -1)
   const blockHelp = useMemo(() => (learn && helpLine >= 0 ? explainLine(lines[helpLine] ?? '', control, l) : []), [learn, helpLine, lines, control, l])
   // Guided exercise: the solution machined on the same setup, and the check of the student's program
-  const reference = useMemo<readonly Move[]>(() => {
-    if (!exercise) return []
-    return machine && control ? simulate(simulationInput(exercise.exercise.solution, machine, control, cfg.alarmCatalogs, setup)).moves : []
-  }, [exercise, machine, control, cfg, setup])
+  // Both run in workers of their own, so neither blocks the window nor replaces the main simulation
+  const [exerciseSims] = useState(() => ({ reference: createSimulator(), check: createSimulator() }))
+  useEffect(
+    () => () => {
+      exerciseSims.reference.dispose()
+      exerciseSims.check.dispose()
+    },
+    [exerciseSims]
+  )
+  const referenceInput = useMemo(
+    () => (exercise && machine && control ? simulationInput(exercise.exercise.solution, machine, control, cfg.alarmCatalogs, setup) : null),
+    [exercise, machine, control, cfg, setup]
+  )
+  /** The solution's moves, kept with the input they came from (a changed setup makes them stale). */
+  const [solved, setSolved] = useState<{ input: SimulationInput; moves: readonly Move[] } | null>(null)
+  useEffect(() => {
+    if (!referenceInput) return
+    void exerciseSims.reference.run(referenceInput).then((r) => setSolved({ input: referenceInput, moves: r.moves }))
+  }, [referenceInput, exerciseSims])
+  const reference = solved && solved.input === referenceInput ? solved.moves : NO_MOVES
   // After each simulation, a picture of the finished part, a moment later so the screen comes first
   useEffect(() => {
     const stock = setup.stock
@@ -562,10 +579,16 @@ export function Workspace({ init, cfg, active, layout, learn, onLearn, onHelp, o
     }, 400)
     return () => clearTimeout(id)
   }, [result, busy, setup.stock, stockZero, lathe, ballTools, projectPath, program.path])
-  function checkExercise() {
-    if (!exercise || !machine || !control || !setup.stock) return
-    const r = simulate(simulationInput(currentProgram().text, machine, control, cfg.alarmCatalogs, setup))
-    const d = compareParts(reference, r.moves, setup.stock, stockZero, lathe, ballTools)
+  async function checkExercise() {
+    const stock = setup.stock
+    if (!exercise || !machine || !control || !stock || !referenceInput) return
+    const fresh = solved?.input === referenceInput ? solved.moves : null
+    const [solution, r] = await Promise.all([
+      fresh ?? exerciseSims.reference.run(referenceInput).then((x) => x.moves),
+      exerciseSims.check.run(simulationInput(currentProgram().text, machine, control, cfg.alarmCatalogs, setup))
+    ])
+    if (!fresh) setSolved({ input: referenceInput, moves: solution })
+    const d = compareParts(solution, r.moves, stock, stockZero, lathe, ballTools)
     const alarms = r.diagnostics.filter((x) => x.severity === 'alarm').length
     const tol = exercise.exercise.tolerance
     setExerciseCheck({ ...d, finished: r.finished, alarms, ok: r.finished && !alarms && d.left <= tol && d.gouge <= tol })
@@ -760,7 +783,7 @@ export function Workspace({ init, cfg, active, layout, learn, onLearn, onHelp, o
           lathe={lathe}
           zero={stockZero}
           check={exerciseCheck}
-          onCheck={checkExercise}
+          onCheck={() => void checkExercise()}
           onClose={() => setExercise(null)}
         />
       )}
