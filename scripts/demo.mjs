@@ -41,18 +41,23 @@ void app.whenReady().then(async () => {
   await sleep(400)
   await js(`[...document.querySelectorAll('.file-item')].find((b) => b.textContent.includes('O2001')).click()`)
   await sleep(1200)
-  await js(`{
-    const s = document.getElementById('player-speed')
-    Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set.call(s, '20')
-    s.dispatchEvent(new Event('change', { bubbles: true }))
-  }`)
+  const speed = (x) =>
+    js(`{
+      const s = document.getElementById('player-speed')
+      Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set.call(s, '${x}')
+      s.dispatchEvent(new Event('change', { bubbles: true }))
+    }`)
+  // Slow while the face mill (T1) faces the block, so its inserts show; then fast to the end
+  await speed(5)
   await sleep(300)
   // Machine screen: CYCLE START on the operator panel (3D model: the player's Run)
   await js(`(document.querySelector('.op-round.start') ?? document.querySelector('.player .play')).click()`)
-  await record(win, 9.6, frames)
+  await record(win, 4, frames)
+  await speed(20)
+  await record(win, 8.2, frames)
   await record(win, 1.5, frames) // hold the finished part
 
-  if (process.env['DEMO_FRAME']) writeFileSync(process.env['DEMO_FRAME'], frames[Math.floor(frames.length * 0.6)].image.toPNG())
+  if (process.env['DEMO_FRAME']) writeFileSync(process.env['DEMO_FRAME'], frames[Math.floor(frames.length * Number(process.env['DEMO_FRAME_AT'] ?? 0.6))].image.toPNG())
 
   const gif = GIFEncoder()
   for (const [k, { image, at }] of frames.entries()) {
