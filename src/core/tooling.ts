@@ -1,5 +1,6 @@
 // Tool and holder geometry for the 3D view, and a holder-versus-stock check.
 // Pure functions: the renderer draws what they return and the tests check it.
+import { SAME_POSITION } from './tolerance'
 import { stockSize, type Stock, type ToolOffsets } from './config/project'
 import { stockOrigin } from './removal'
 import type { Holder, Machine, Tool, ToolLibrary } from './config/schema'
@@ -226,7 +227,7 @@ export function findHolderCollisions({ moves, tools, stock, stockZero, lathe }: 
       const d = intrusion(p, mount, tool.length, hr, stock, o)
       if (d > worst) worst = d
     }
-    if (worst <= 1e-6) return
+    if (worst <= SAME_POSITION) return
     const key = `${tool.number}|${m.line}`
     if (seen.has(key)) return
     seen.add(key)
@@ -278,26 +279,48 @@ export interface ChuckGeometry {
 export const JAW_BASE = 0.65
 
 /** The machine's chuck (`chuck` in its JSON) around the stock, or one sized from the bar without it. */
+/** Chuck proportions where the machine's JSON does not give them (mm, or a fraction of a size). */
+const CHUCK = {
+  /** The jaws hold at most this share of the bar, and at most `jawLength` mm. */
+  gripShare: 0.4,
+  jawLength: 25,
+  /** Jaw height: this share of the bar radius, between min and max. */
+  jawHeightShare: 0.6,
+  jawHeightMin: 12,
+  jawHeightMax: 30,
+  /** Where the stepped jaw face steps out, as a share of the jaw height. */
+  jawStepShare: 0.35,
+  /** Body beyond the jaws (no chuck in the JSON), and around a bar wider than the chuck. */
+  bodyMargin: 18,
+  oversizeMargin: 10,
+  bodyLengthShare: 0.8,
+  bodyLengthMin: 50,
+  jaws: 3,
+  jawWidthShare: 0.24,
+  jawWidthMin: 16,
+  boreShare: 0.45
+} as const
+
 export function chuckGeometry(s: Stock, zero: Vec3, chuck?: Machine['chuck']): ChuckGeometry {
   const o = stockOrigin(s, zero)
   const { diameter, length: L } = stockSize(s)
   const R = diameter / 2
-  const grip = Math.min(L * 0.4, chuck?.jawLength ?? 25)
-  const jaw = chuck?.jawHeight ?? Math.min(30, Math.max(12, R * 0.6))
+  const grip = Math.min(L * CHUCK.gripShare, chuck?.jawLength ?? CHUCK.jawLength)
+  const jaw = chuck?.jawHeight ?? Math.min(CHUCK.jawHeightMax, Math.max(CHUCK.jawHeightMin, R * CHUCK.jawHeightShare))
   // A bar wider than the chuck still gets a body a little wider than itself
-  const bodyRadius = chuck ? Math.max(chuck.diameter / 2, R + 10) : R + jaw + 18
+  const bodyRadius = chuck ? Math.max(chuck.diameter / 2, R + CHUCK.oversizeMargin) : R + jaw + CHUCK.bodyMargin
   // The bar ends at the chuck face; the jaws hold its last `grip` mm
   return {
     face: o[2] - L,
     grip,
     barRadius: R,
-    jawStep: R + jaw * 0.35,
+    jawStep: R + jaw * CHUCK.jawStepShare,
     jawOuter: R + jaw,
     bodyRadius,
-    bodyLength: chuck?.length ?? Math.max(50, bodyRadius * 0.8),
-    jaws: chuck?.jaws ?? 3,
-    jawWidth: chuck?.jawWidth ?? Math.max(16, bodyRadius * 0.24),
-    boreRadius: (chuck?.bore ?? bodyRadius * 0.45) / 2
+    bodyLength: chuck?.length ?? Math.max(CHUCK.bodyLengthMin, bodyRadius * CHUCK.bodyLengthShare),
+    jaws: chuck?.jaws ?? CHUCK.jaws,
+    jawWidth: chuck?.jawWidth ?? Math.max(CHUCK.jawWidthMin, bodyRadius * CHUCK.jawWidthShare),
+    boreRadius: (chuck?.bore ?? bodyRadius * CHUCK.boreShare) / 2
   }
 }
 
@@ -437,7 +460,7 @@ export interface Hole {
   last: number
 }
 
-const SAME = 1e-6
+const SAME = SAME_POSITION
 
 /**
  * Holes of the drilling cycles (G73, G74, G76, G81–G89): their feed moves go straight down at one

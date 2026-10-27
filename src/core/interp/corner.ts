@@ -1,5 +1,6 @@
 // Direct chamfer and corner R (",C" ",R"): the corner between two lines is cut by a chamfer line or a
 // tangent arc, in the plane of the two lines.
+import { NO_LENGTH } from '../tolerance'
 import type { Move, PlaneElement, Vec2, Vec3 } from '../types'
 import type { DiagnosticCode } from './diagnostics'
 
@@ -36,7 +37,7 @@ export function cutCorner(c: Corner, next: Move): CornerResult {
     return { kind: 'not-simulated' }
   const L1 = norm(sub(P, A0))
   const L2 = norm(sub(B1, P))
-  if (L1 < 1e-9 || L2 < 1e-9) return { kind: 'error', code: 'corner-without-move' }
+  if (L1 < NO_LENGTH || L2 < NO_LENGTH) return { kind: 'error', code: 'corner-without-move' }
   const d1 = mul(sub(P, A0), 1 / L1)
   const d2 = mul(sub(B1, P), 1 / L2)
   const cos = Math.min(1, Math.max(-1, d1[0] * d2[0] + d1[1] * d2[1] + d1[2] * d2[2]))
@@ -45,7 +46,7 @@ export function cutCorner(c: Corner, next: Move): CornerResult {
   if (phi < 1e-9) return { kind: 'straight' }
   // How far the corner starts from the programmed intersection, along each line
   const t = c.kind === 'C' ? c.size : c.size * Math.tan(phi / 2)
-  if (t > L1 + 1e-9 || t > L2 + 1e-9) return { kind: 'error', code: 'corner-too-large', params: { size: c.size } }
+  if (t > L1 + NO_LENGTH || t > L2 + NO_LENGTH) return { kind: 'error', code: 'corner-too-large', params: { size: c.size } }
   const A = add(P, mul(d1, -t))
   const B = add(P, mul(d2, t))
   const inPlane = !!prev.element && !!next.element

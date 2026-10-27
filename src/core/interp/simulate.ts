@@ -2,6 +2,7 @@
 // ("rapid", "polar-on", "brake-on"…); nothing here is specific to one brand. Diagnostics go through
 // the control's alarm catalog: a mapped check becomes the machine's alarm and stops the program at
 // that block, as on the machine. Ported from docs/legacy/Simulador_Fanuc.html.
+import { NO_LENGTH, SAME_POSITION } from '../tolerance'
 import type { ToolOffset, ToolOffsets, WorkOffsets } from '../config/project'
 import { defaultToolOffsets, gaugeLength, holderOf } from '../tooling'
 import { isLathe, isLatheControl } from '../config/kinds'
@@ -370,7 +371,7 @@ export function simulate(input: SimulationInput): SimulationResult {
     if (!tipShift.r && !tipShift.z) return points
     return points.map(([x, y, z]) => {
       const r = Math.hypot(x, y)
-      const k = tipShift.r && r > 1e-9 ? (r + tipShift.r) / r : 1
+      const k = tipShift.r && r > NO_LENGTH ? (r + tipShift.r) / r : 1
       return [x * k, y * k, z + tipShift.z]
     })
   }
@@ -436,7 +437,7 @@ export function simulate(input: SimulationInput): SimulationResult {
     for (const a of machine.axes) {
       if (a.type !== 'linear' || base[a.name as Axis] === undefined || !isAxis(a.name)) continue
       const m = pos[a.name] - machineZero[a.name] + extraOf(a.name)
-      if (m < a.min - 1e-6 || m > a.max + 1e-6)
+      if (m < a.min - SAME_POSITION || m > a.max + SAME_POSITION)
         diag('warning', 'overtravel', { axis: a.name, value: Math.round(m * 1000) / 1000, min: a.min, max: a.max }, `ot${a.name}${m > a.max ? '+' : '-'}`)
     }
   }
@@ -494,7 +495,7 @@ export function simulate(input: SimulationInput): SimulationResult {
     }
     const p0 = points[0] as Vec3
     const p1 = points[points.length - 1] as Vec3
-    const moved = Math.abs(p0[0] - p1[0]) + Math.abs(p0[1] - p1[1]) + Math.abs(p0[2] - p1[2]) >= 1e-9
+    const moved = Math.abs(p0[0] - p1[0]) + Math.abs(p0[1] - p1[1]) + Math.abs(p0[2] - p1[2]) >= NO_LENGTH
     const extra: Partial<Move> = {}
     if (moved && inCompPlaneNow()) {
       extra.inCompPlane = true
@@ -505,7 +506,7 @@ export function simulate(input: SimulationInput): SimulationResult {
       const v0 = st.polar ? apy : turning ? a.X / xDia : a.Y
       const u1 = st.polar ? t.px : turning ? t.pos.Z : t.pos.X
       const v1 = st.polar ? t.py : turning ? t.pos.X / xDia : t.pos.Y
-      if (Math.hypot(u1 - u0, v1 - v0) > 1e-9) extra.element = { type: 'line', p0: [u0, v0], p1: [u1, v1] }
+      if (Math.hypot(u1 - u0, v1 - v0) > NO_LENGTH) extra.element = { type: 'line', p0: [u0, v0], p1: [u1, v1] }
     }
     // The move records the state at its end point
     Object.assign(pos, t.pos)
@@ -1221,7 +1222,7 @@ export function simulate(input: SimulationInput): SimulationResult {
       runCycle(st.cycle, W, targetOf(W))
     } else if (axisWords) {
       const t = targetOf(W)
-      const cMoves = !st.polar && Math.abs(t.pos.C - pos.C) > 1e-9
+      const cMoves = !st.polar && Math.abs(t.pos.C - pos.C) > NO_LENGTH
       if (cMoves && st.motion === 0) st.brake = false // a rapid C move releases the brake
       if (cMoves && lathe && rules.has('c-axis-requires-enable') && !st.cAxisEnabled) diag('warning', 'c-axis-not-enabled', undefined, 'c')
       if (st.polar && st.motion === 0) diag('warning', 'rapid-in-polar', { code: 'G00' }, line)
@@ -1259,7 +1260,7 @@ export function simulate(input: SimulationInput): SimulationResult {
       st.compCancelPending = false
       if (
         m?.kind === 'feed' &&
-        pos.Z < -1e-6 &&
+        pos.Z < -SAME_POSITION &&
         lathe &&
         rules.has('live-tool-on-while-cutting') &&
         !st.liveToolOn &&
@@ -1424,7 +1425,7 @@ export function simulate(input: SimulationInput): SimulationResult {
     if (kind === 'turn') {
       if (!(st.roughTurn.depth > 0)) fatal('cycle-depth-invalid', { code })
       // Type I: the shape only moves away from the face in Z
-      if (contour.some((q, i) => i > 0 && q.z > (contour[i - 1]?.z ?? q.z) + 1e-6)) fatal('cycle-contour-not-monotonic', { code })
+      if (contour.some((q, i) => i > 0 && q.z > (contour[i - 1]?.z ?? q.z) + SAME_POSITION)) fatal('cycle-contour-not-monotonic', { code })
       runSteps(roughTurn(start, contour, { ...st.roughTurn, finishX, finishZ }))
     } else if (kind === 'face') {
       if (!(st.roughFace.depth > 0)) fatal('cycle-depth-invalid', { code })

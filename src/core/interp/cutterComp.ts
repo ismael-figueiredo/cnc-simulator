@@ -2,6 +2,7 @@
 // Works on chains of moves: start-up move → elements → cancel move. Each element is offset by the
 // tool radius; convex corners get an arc around the corner, concave corners are trimmed to the
 // intersection. A visual approximation of the Fanuc behavior (type A start-up/cancel).
+import { SAME_POSITION } from '../tolerance'
 import type { Diagnostic, Move, PlaneElement, Vec2, Vec3 } from '../types'
 
 const sub = (a: Vec2, b: Vec2): Vec2 => [a[0] - b[0], a[1] - b[1]]
@@ -83,7 +84,7 @@ function intersect(a: Offset, b: Offset): Vec2[] {
 /** Samples an offset element; reports a gouge when trimming reversed the element. */
 function sample(o: Offset, z0: number, z1: number, onGouge: () => void, lift: Lift = XY): Vec3[] {
   if (o.type === 'line') {
-    if ((o.p1[0] - o.p0[0]) * o.dir[0] + (o.p1[1] - o.p0[1]) * o.dir[1] < -1e-6) onGouge()
+    if ((o.p1[0] - o.p0[0]) * o.dir[0] + (o.p1[1] - o.p0[1]) * o.dir[1] < -SAME_POSITION) onGouge()
     return [lift.to3(o.p0, z0), lift.to3(o.p1, z1)]
   }
   const a0 = Math.atan2(o.p0[1] - o.center[1], o.p0[0] - o.center[0])
@@ -169,7 +170,7 @@ export function applyCutterComp(moves: Move[], report: (d: Diagnostic) => void):
       const of = offs[k + 1]
       const zEnd = lift.height(last(qe))
       if (!e || !f || !oe || !of) continue
-      if (len(sub(oe.p1, of.p0)) < 1e-6) {
+      if (len(sub(oe.p1, of.p0)) < SAME_POSITION) {
         of.p0 = oe.p1
         continue
       }

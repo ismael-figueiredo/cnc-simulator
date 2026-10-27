@@ -1,6 +1,7 @@
 // Lathe canned cycles as plain geometry: given the start point and, for the multiple repetitive
 // cycles, the finishing contour, they return the passes the control makes. The interpreter turns
 // each step into a move. Points are { x: radius, z } in the drawing frame.
+import { NO_LENGTH } from '../tolerance'
 
 export interface P2 {
   x: number
@@ -13,7 +14,7 @@ export interface Step {
   to: P2
 }
 
-const EPS = 1e-9
+const EPS = NO_LENGTH
 
 /** Z values where the polyline crosses x = level (each crossing once). */
 function crossings(contour: P2[], level: number): number[] {

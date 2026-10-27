@@ -1,4 +1,5 @@
 // G02/G03 in the plane: the center from R or from the center offsets, the radius and the sweep.
+import { NO_LENGTH } from '../tolerance'
 import type { DiagnosticCode } from './diagnostics'
 
 export interface Arc {
@@ -26,7 +27,7 @@ export function arcThrough(u0: number, v0: number, u1: number, v1: number, cw: b
   let cv: number
   if ('r' in center) {
     const R = center.r
-    if (d < 1e-9) return { ok: false, code: 'arc-start-equals-end' }
+    if (d < NO_LENGTH) return { ok: false, code: 'arc-start-equals-end' }
     let h2 = R * R - (d * d) / 4
     if (h2 < 0) {
       if (h2 > -1e-3 * Math.abs(R)) h2 = 0
@@ -43,11 +44,11 @@ export function arcThrough(u0: number, v0: number, u1: number, v1: number, cw: b
   }
   const r0 = Math.hypot(u0 - cu, v0 - cv)
   const r1 = Math.hypot(u1 - cu, v1 - cv)
-  if (r0 < 1e-9) return { ok: false, code: 'arc-center-missing' }
+  if (r0 < NO_LENGTH) return { ok: false, code: 'arc-center-missing' }
   const a0 = Math.atan2(v0 - cv, u0 - cu)
   const a1 = Math.atan2(v1 - cv, u1 - cu)
   let sweep = cw ? a0 - a1 : a1 - a0
   while (sweep <= 1e-12) sweep += 2 * Math.PI
-  if (d < 1e-9 && !('r' in center)) sweep = 2 * Math.PI
+  if (d < NO_LENGTH && !('r' in center)) sweep = 2 * Math.PI
   return { ok: true, arc: { cu, cv, r0, r1, a0, sweep } }
 }

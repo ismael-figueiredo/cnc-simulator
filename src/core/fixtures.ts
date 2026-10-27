@@ -1,5 +1,6 @@
 // Where the machining center table and the vise sit around the stock, for the 3D view.
 // Pure functions: the renderer draws what they return and the tests check it.
+import { SAME_POSITION } from './tolerance'
 import { stockSize, type Stock, type WorkOffsets } from './config/project'
 import { isLathe } from './config/kinds'
 import type { Machine } from './config/schema'
@@ -35,6 +36,12 @@ const VISE_CAPACITY = 250
 const VISE_GAP: [number, number] = [40, 300]
 /** Vise height under the stock when the table position is not known. */
 const DEFAULT_VISE = 90
+/** The jaws stand this share of the stock height above its seat, at most VISE_JAW_TOP_MAX mm. */
+const VISE_JAW_SHARE = 0.4
+const VISE_JAW_TOP_MAX = 15
+/** Table height and T-slot width where the machine's JSON does not give them (mm). */
+const TABLE_HEIGHT = 70
+const SLOT_WIDTH = 18
 
 /**
  * The table under a block stock. With G54 and the table's machine position (`table.top`, `table.center`
@@ -66,20 +73,20 @@ export function tableLayout(machine: Machine, stock: Stock, workOffsets: WorkOff
   else top = fits ? bottom - DEFAULT_VISE : bottom
 
   const vise: ViseLayout | null =
-    top < bottom - 1e-6
+    top < bottom - SAME_POSITION
       ? {
           x: [middle[0] - viseJaw(sx) / 2, middle[0] + viseJaw(sx) / 2],
           y: [o[1], o[1] + sy],
           base: top,
           seat: bottom,
-          jawTop: bottom + Math.min(sz * 0.4, 15)
+          jawTop: bottom + Math.min(sz * VISE_JAW_SHARE, VISE_JAW_TOP_MAX)
         }
       : null
 
   const n = t.slots ?? 3
   const pitch = t.slotPitch ?? Math.floor(t.width / (n + 1) / 5) * 5
   const slots = Array.from({ length: n }, (_, k) => (k - (n - 1) / 2) * pitch)
-  return { top, center, length: t.length, width: t.width, height: t.height ?? 70, slots, slotWidth: t.slotWidth ?? 18, vise }
+  return { top, center, length: t.length, width: t.width, height: t.height ?? TABLE_HEIGHT, slots, slotWidth: t.slotWidth ?? SLOT_WIDTH, vise }
 }
 
 /** Jaw width along X: a 6" vise for most parts, wider for long ones. */
