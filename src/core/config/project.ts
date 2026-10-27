@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import { parse, validate, type LoadResult } from './load'
 import { AxisNameSchema, LocalizedTextSchema, StockShapeSchema, ToolLibrarySchema } from './schema'
+import type { Vec3 } from '../types'
 
 // A project (.cncsim) keeps everything a job needs besides the program: machine, control,
 // tools, stock and work offsets. The program stays a separate file next to it.
@@ -64,6 +65,14 @@ export const ProjectSchema = z.object({
 })
 
 export type Stock = z.infer<typeof StockSchema>
+
+/** Sizes used where the stock leaves one out (mm). */
+export const DEFAULT_STOCK = { x: 100, y: 80, z: 30, diameter: 50, length: 30 } as const
+
+/** Every size of the stock, with the defaults for those not given. */
+export function stockSize(s: Stock): { x: number; y: number; z: number; diameter: number; length: number } {
+  return { x: s.x ?? DEFAULT_STOCK.x, y: s.y ?? DEFAULT_STOCK.y, z: s.z ?? DEFAULT_STOCK.z, diameter: s.diameter ?? DEFAULT_STOCK.diameter, length: s.length ?? DEFAULT_STOCK.length }
+}
 export type WorkOffsets = z.infer<typeof WorkOffsetsSchema>
 export type ToolOffset = z.infer<typeof ToolOffsetSchema>
 export type ToolOffsets = z.infer<typeof ToolOffsetsSchema>
@@ -77,6 +86,12 @@ export function workShift(offsets: WorkOffsets, name: string): Record<'X' | 'Y' 
   const o = offsets[name] ?? {}
   const base = offsets['G54'] ?? {}
   return { X: (o.X ?? 0) - (base.X ?? 0), Y: (o.Y ?? 0) - (base.Y ?? 0), Z: (o.Z ?? 0) - (base.Z ?? 0) }
+}
+
+/** Scene position of a work offset's zero (the drawing frame is G54). Lathe: on the spindle axis. */
+export function workZero(offsets: WorkOffsets, name: string, lathe: boolean): Vec3 {
+  const s = workShift(offsets, name)
+  return lathe ? [0, 0, s.Z] : [s.X, s.Y, s.Z]
 }
 
 /**

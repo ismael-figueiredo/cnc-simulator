@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useEffectEvent, useMemo, useRef, useState } from 'react'
-import { loadProject, suggestSetup, workShift, type ConfigIssue, type LastChoice, type Machine, type ProgramKind, type Stock, type WorkOffsets } from '@core/index'
+import { isLathe, loadProject, machineKind, suggestSetup, workZero, type ConfigIssue, type LastChoice, type Machine, type ProgramKind, type Stock, type WorkOffsets } from '@core/index'
 import { LANGUAGES, isLanguage } from '@i18n/index'
 import type { MenuCommand, OpenedFile, RecentItem } from '../preload/api'
 import { EXAMPLES, EXERCISES, loadBundled } from './bundled'
@@ -149,7 +149,7 @@ export function App() {
     if (!pending) return
     const machine = cfg.machines.find((m) => m.id === choice.machineId)
     const library = [...cfg.libraries, ...libraries.user].find((x) => x.id === choice.libraryId) ?? null
-    const kind = machine?.kinematics.startsWith('lathe') ? 'lathe' : 'mill'
+    const kind = machine ? machineKind(machine) : 'mill'
     write(LAST_KEY, JSON.stringify({ ...readLast(), [kind]: { machineId: choice.machineId, controlId: choice.controlId } }))
     const program = { name: pending.name, path: pending.path, text: pending.text }
     recent.record(program)
@@ -159,7 +159,7 @@ export function App() {
   function createProgram(programKind: ProgramKind, number: number, choice: SetupChoice) {
     setCreating(false)
     const machine = cfg.machines.find((m) => m.id === choice.machineId)
-    const kind = machine?.kinematics.startsWith('lathe') ? 'lathe' : 'mill'
+    const kind = machine ? machineKind(machine) : 'mill'
     write(LAST_KEY, JSON.stringify({ ...readLast(), [kind]: { machineId: choice.machineId, controlId: choice.controlId } }))
     addDoc({ kind: 'new', machineId: choice.machineId, controlId: choice.controlId, programKind, number })
   }
@@ -224,10 +224,9 @@ export function App() {
     const job = (key: string, text: string, machine: Machine | undefined, controlId: string, stock: Stock | null | undefined, workOffsets: WorkOffsets, tools: ThumbJob['input']['tools'], toolOffsets: ThumbJob['input']['toolOffsets']): ThumbJob | null => {
       const control = cfg.controls.find((c) => c.id === controlId)
       if (!machine || !control || !stock) return null
-      const lathe = machine.kinematics.startsWith('lathe')
-      const s = workShift(workOffsets, stock.workOffset ?? 'G54')
+      const lathe = isLathe(machine)
       const alarms = cfg.alarmCatalogs.find((a) => a.id === control.alarms) ?? null
-      return { key: thumbKey(key, text, machine.id, controlId, JSON.stringify(stock)), input: { text, machine, control, tools, alarms, workOffsets, toolOffsets }, stock, zero: lathe ? [0, 0, s.Z] : [s.X, s.Y, s.Z], lathe }
+      return { key: thumbKey(key, text, machine.id, controlId, JSON.stringify(stock)), input: { text, machine, control, tools, alarms, workOffsets, toolOffsets }, stock, zero: workZero(workOffsets, stock.workOffset ?? 'G54', lathe), lathe }
     }
     const examples = EXAMPLES.map((e) => {
       const m = cfg.machines.find((x) => x.id === e.project.machine)

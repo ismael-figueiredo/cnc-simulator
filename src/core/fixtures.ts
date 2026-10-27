@@ -1,6 +1,7 @@
 // Where the machining center table and the vise sit around the stock, for the 3D view.
 // Pure functions: the renderer draws what they return and the tests check it.
-import type { Stock, WorkOffsets } from './config/project'
+import { stockSize, type Stock, type WorkOffsets } from './config/project'
+import { isLathe } from './config/kinds'
 import type { Machine } from './config/schema'
 import { stockOrigin } from './removal'
 import type { Vec3 } from './types'
@@ -41,12 +42,11 @@ const DEFAULT_VISE = 90
  * the stock when it fits in one and does not sit on the table.
  */
 export function tableLayout(machine: Machine, stock: Stock, workOffsets: WorkOffsets, zero: Vec3): TableLayout | null {
-  if (stock.shape !== 'block' || machine.kinematics.startsWith('lathe')) return null
+  if (stock.shape !== 'block' || isLathe(machine)) return null
   const t = machine.table ?? defaultTable(machine)
   const o = stockOrigin(stock, zero)
-  const sx = stock.x ?? 100
-  const sy = stock.y ?? 80
-  const bottom = o[2] - (stock.z ?? 30)
+  const { x: sx, y: sy, z: sz } = stockSize(stock)
+  const bottom = o[2] - sz
   const middle: [number, number] = [o[0] + sx / 2, o[1] + sy / 2]
   const g54 = workOffsets['G54'] ?? {}
 
@@ -72,7 +72,7 @@ export function tableLayout(machine: Machine, stock: Stock, workOffsets: WorkOff
           y: [o[1], o[1] + sy],
           base: top,
           seat: bottom,
-          jawTop: bottom + Math.min((stock.z ?? 30) * 0.4, 15)
+          jawTop: bottom + Math.min(sz * 0.4, 15)
         }
       : null
 

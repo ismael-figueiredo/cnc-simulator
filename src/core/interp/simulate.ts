@@ -4,6 +4,7 @@
 // that block, as on the machine. Ported from docs/legacy/Simulador_Fanuc.html.
 import type { ToolOffset, ToolOffsets, WorkOffsets } from '../config/project'
 import { defaultToolOffsets, gaugeLength, holderOf } from '../tooling'
+import { isLathe, isLatheControl } from '../config/kinds'
 import type { AlarmCatalog, Control, Machine, ToolLibrary } from '../config/schema'
 import { Expr, MacroError, type MacroErrorKind, type Value, type VariableReader } from '../macro/expr'
 import { parseProgram, type Block } from '../program/parse'
@@ -142,8 +143,8 @@ export function simulate(input: SimulationInput): SimulationResult {
   const hasLiveTool = machine.spindles.some((s) => s.type === 'live')
   const limits = { ...DEFAULT_LIMITS, ...control.limits }
   const format = { ...DEFAULT_FORMAT, ...control.fileFormat }
-  const lathe = machine.kinematics.startsWith('lathe')
-  const latheControl = control.machineType === 'lathe'
+  const lathe = isLathe(machine)
+  const latheControl = isLatheControl(control)
   const codes = buildCodeTable(control)
   const rules = new Set(control.rules ?? [])
   const machineAxes = new Set<string>(machine.axes.map((a) => a.name))

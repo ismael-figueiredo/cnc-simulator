@@ -1,6 +1,6 @@
 // Tool and holder geometry for the 3D view, and a holder-versus-stock check.
 // Pure functions: the renderer draws what they return and the tests check it.
-import type { Stock, ToolOffsets } from './config/project'
+import { stockSize, type Stock, type ToolOffsets } from './config/project'
 import { stockOrigin } from './removal'
 import type { Holder, Machine, Tool, ToolLibrary } from './config/schema'
 import type { Move, Vec3 } from './types'
@@ -240,14 +240,13 @@ function intrusion(p: Vec3, mount: ToolMount, length: number, hr: number, s: Sto
   const [x, y, z] = p
   if (s.shape === 'block') {
     // Block: top face at o.z; the holder nose is `length` above the tip
-    const sx = s.x ?? 100
-    const sy = s.y ?? 80
+    const { x: sx, y: sy } = stockSize(s)
     const inside = x > o[0] - hr && x < o[0] + sx + hr && y > o[1] - hr && y < o[1] + sy + hr
     return inside ? o[2] - (z + length) : 0
   }
   // Cylinder (bar): face at o.z, body toward -Z
-  const R = (s.diameter ?? 50) / 2
-  const L = s.length ?? 30
+  const { diameter, length: L } = stockSize(s)
+  const R = diameter / 2
   const r = Math.hypot(x - o[0], y - o[1])
   if (mount === 'radial') {
     // Radial tool: the holder nose is `length` out from the tip, toward +r
@@ -281,8 +280,8 @@ export const JAW_BASE = 0.65
 /** The machine's chuck (`chuck` in its JSON) around the stock, or one sized from the bar without it. */
 export function chuckGeometry(s: Stock, zero: Vec3, chuck?: Machine['chuck']): ChuckGeometry {
   const o = stockOrigin(s, zero)
-  const R = (s.diameter ?? 50) / 2
-  const L = s.length ?? 30
+  const { diameter, length: L } = stockSize(s)
+  const R = diameter / 2
   const grip = Math.min(L * 0.4, chuck?.jawLength ?? 25)
   const jaw = chuck?.jawHeight ?? Math.min(30, Math.max(12, R * 0.6))
   // A bar wider than the chuck still gets a body a little wider than itself

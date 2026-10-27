@@ -1,8 +1,8 @@
 // Guesses the machine kind and control family a program was written for, so a program opened alone
 // starts on a sensible machine instead of whichever one happened to be selected.
+import { machineKind, type MachineKind } from './config/kinds'
 import type { Control, Machine } from './config/schema'
 
-export type MachineKind = 'lathe' | 'mill'
 
 export interface SetupSuggestion {
   machineId: string
@@ -15,7 +15,6 @@ export interface SetupSuggestion {
 /** A previous choice, per machine kind, used when it fits what the program looks like. */
 export type LastChoice = Partial<Record<MachineKind, { machineId: string; controlId: string }>>
 
-const kindOf = (m: Machine): MachineKind => (m.kinematics.startsWith('lathe') ? 'lathe' : 'mill')
 
 // Signs of each kind; each found sign adds its weight
 const LATHE_SIGNS: [RegExp, string, number][] = [
@@ -53,17 +52,17 @@ export function suggestSetup(text: string, machines: readonly Machine[], control
   const familyOf = (id: string | undefined) => controls.find((c) => c.id === id)?.family
   // Without Haas codes, Fanuc is the most common dialect (Mitsubishi reads it too)
   const family = haas ? 'haas' : 'fanuc'
-  const fits = (m: Machine) => kindOf(m) === kind && familyOf(m.defaultControl) === family
+  const fits = (m: Machine) => machineKind(m) === kind && familyOf(m.defaultControl) === family
   const prev = last[kind]
   const prevMachine = prev && machines.find((m) => m.id === prev.machineId)
   // The last choice wins when it is the right kind of machine (any family: the user picked it)
-  if (prev && prevMachine && kindOf(prevMachine) === kind && (!haas || familyOf(prev.controlId) === 'haas') && controls.some((c) => c.id === prev.controlId))
+  if (prev && prevMachine && machineKind(prevMachine) === kind && (!haas || familyOf(prev.controlId) === 'haas') && controls.some((c) => c.id === prev.controlId))
     return { machineId: prev.machineId, controlId: prev.controlId, kind, evidence }
   // A lathe with a C axis (live tooling) only for programs that use C or polar interpolation
   const usesC = kind === 'lathe' && /(?<![A-Z,#])C-?[\d.]|G12\.1|G112(?!\d)/.test(code)
   if (usesC) evidence.push('C')
   const hasC = (m: Machine) => m.axes.some((a) => a.name === 'C')
-  const machine = machines.find((m) => fits(m) && (kind !== 'lathe' || hasC(m) === usesC)) ?? machines.find(fits) ?? machines.find((m) => kindOf(m) === kind)
+  const machine = machines.find((m) => fits(m) && (kind !== 'lathe' || hasC(m) === usesC)) ?? machines.find(fits) ?? machines.find((m) => machineKind(m) === kind)
   if (!machine) return null
   const control = controls.find((c) => c.id === machine.defaultControl) ?? controls.find((c) => c.machineType === kind)
   return control ? { machineId: machine.id, controlId: control.id, kind, evidence } : null

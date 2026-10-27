@@ -1,4 +1,4 @@
-import { defaultToolOffsets, PROJECT_FORMAT, type Machine, type Project, type Stock, type ToolLibrary, type ToolOffsets, type WorkOffsets } from '@core/index'
+import { defaultToolOffsets, isLathe, PROJECT_FORMAT, type Machine, type Project, type Stock, type ToolLibrary, type ToolOffsets, type WorkOffsets } from '@core/index'
 
 /** Everything about the job besides the program: what a .cncsim project saves. */
 export interface Setup {
@@ -9,7 +9,6 @@ export interface Setup {
   toolOffsets: ToolOffsets
 }
 
-const isLathe = (machine: Machine | undefined) => !!machine?.kinematics.startsWith('lathe')
 
 /**
  * Offsets for a tool set: the ones already set are kept (they may hold edits, or deliberate mistakes

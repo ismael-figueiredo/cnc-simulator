@@ -8,7 +8,8 @@ import {
   tableLayout,
   tailstockGeometry,
   stockOrigin,
-  workShift,
+  stockSize,
+  workZero,
   type Holder,
   type Machine,
   type Move,
@@ -17,7 +18,9 @@ import {
   type Tool,
   type ToolMount,
   type Vec3,
-  type WorkOffsets
+  type WorkOffsets,
+  DEFAULT_STOCK,
+  isLathe,
 } from '@core/index'
 import { Machining } from './Machining'
 import { ChuckModel, TableModel, TailstockModel } from './Fixtures'
@@ -185,7 +188,6 @@ const COLORS = {
   chuck: '#4b545e'
 }
 
-const isLathe = (m: Machine) => m.kinematics.startsWith('lathe')
 
 /** All segments of one layer in a single buffer; starts[k] = vertices before move k. */
 interface Layer {
@@ -246,12 +248,6 @@ function PathLayer({ layer, color, done, ghostOpacity }: { layer: Layer; color: 
   )
 }
 
-/** Scene position of a work offset's zero (the drawing frame is G54). Lathe: on the spindle axis. */
-function zeroOf(offsets: WorkOffsets, name: string, lathe: boolean): Vec3 {
-  const s = workShift(offsets, name)
-  return lathe ? [0, 0, s.Z] : [s.X, s.Y, s.Z]
-}
-
 function WorkZero({ at, name, size }: { at: Vec3; name: string; size: number }) {
   return (
     <group position={at}>
@@ -268,10 +264,10 @@ function Stock({ stock: s, faded, zero }: { stock: StockData; faded: boolean; ze
   const material = (
     <meshStandardMaterial key={faded ? 'faded' : 'solid'} color={s.color ?? COLORS.stock} metalness={0.5} roughness={0.4} transparent={faded} opacity={faded ? 0.22 : 1} depthWrite={!faded} />
   )
-  const o: Vec3 = [zero[0] + (s.offset?.X ?? 0), zero[1] + (s.offset?.Y ?? 0), zero[2] + (s.offset?.Z ?? 0)]
+  const o = stockOrigin(s, zero)
+  const { x, y, z, diameter, length: len } = stockSize(s)
   if (s.shape === 'cylinder') {
-    const r = (s.diameter ?? 50) / 2
-    const len = s.length ?? 30
+    const r = diameter / 2
     // Face at Z0, body toward negative Z (into the chuck)
     return (
       <mesh position={[o[0], o[1], o[2] - len / 2]} rotation={[Math.PI / 2, 0, 0]}>
@@ -280,9 +276,6 @@ function Stock({ stock: s, faded, zero }: { stock: StockData; faded: boolean; ze
       </mesh>
     )
   }
-  const x = s.x ?? 100
-  const y = s.y ?? 80
-  const z = s.z ?? 30
   return (
     <mesh position={[o[0] + x / 2, o[1] + y / 2, o[2] - z / 2]}>
       <boxGeometry args={[x, y, z]} />
@@ -338,7 +331,8 @@ export function Viewport3D({
 }: Props) {
   const { t } = useI18n()
   const lathe = isLathe(machine)
-  const size = lathe ? (stock?.diameter ?? 60) : Math.max(stock?.x ?? 100, stock?.y ?? 80)
+  const dims = stock ? stockSize(stock) : DEFAULT_STOCK
+  const size = lathe ? dims.diameter : Math.max(dims.x, dims.y)
   // Lathe: far enough to see the chuck and a driven holder (about 150 mm over the tip) together
   const dist = lathe ? Math.max(size * 2.6, 190) : size * 1.6
 
@@ -365,11 +359,12 @@ export function Viewport3D({
         }
     // The whole stock is in the picture too, not only the path
     if (stock) {
-      const o = stockOrigin(stock, zeroOf(workOffsets, stock.workOffset ?? 'G54', lathe))
-      const r = (stock.diameter ?? 0) / 2
+      const o = stockOrigin(stock, workZero(workOffsets, stock.workOffset ?? 'G54', lathe))
+      const d = stockSize(stock)
+      const r = d.diameter / 2
       const corners: Vec3[] = lathe
-        ? [[-r, -r, o[2]], [r, r, o[2] - (stock.length ?? 0)]]
-        : [o, [o[0] + (stock.x ?? 0), o[1] + (stock.y ?? 0), o[2] - (stock.z ?? 0)]]
+        ? [[-r, -r, o[2]], [r, r, o[2] - d.length]]
+        : [o, [o[0] + d.x, o[1] + d.y, o[2] - d.z]]
       for (const q of corners)
         for (let k = 0; k < 3; k++) {
           lo[k] = Math.min(lo[k] ?? 0, q[k] ?? 0)
@@ -418,7 +413,7 @@ export function Viewport3D({
   // Memoized: the machining view keys its cut model on this array, and a new array on every
   // playback frame made it throw the cut stock away and replay the whole program each frame.
   const stockOffset = stock ? (stock.workOffset ?? 'G54') : null
-  const stockZero = useMemo<Vec3>(() => (stockOffset ? zeroOf(workOffsets, stockOffset, lathe) : [0, 0, 0]), [workOffsets, stockOffset, lathe])
+  const stockZero = useMemo<Vec3>(() => (stockOffset ? workZero(workOffsets, stockOffset, lathe) : [0, 0, 0]), [workOffsets, stockOffset, lathe])
   const faded = !!result?.moves.length
   const chuck = useMemo(() => (lathe && stock?.shape === 'cylinder' ? chuckGeometry(stock, stockZero, machine.chuck) : null), [lathe, stock, stockZero, machine])
   const tailstock = useMemo(
@@ -480,7 +475,7 @@ export function Viewport3D({
           {Object.keys(workOffsets)
             .filter((n) => n !== 'G54')
             .map((n) => (
-              <WorkZero key={n} name={n} at={zeroOf(workOffsets, n, lathe)} size={size * 0.25} />
+              <WorkZero key={n} name={n} at={workZero(workOffsets, n, lathe)} size={size * 0.25} />
             ))}
           <PathLayer layer={layers.feed} color={COLORS.feed} done={doneOf(layers.feed)} ghostOpacity={0.2} />
           <PathLayer layer={layers.center} color={COLORS.center} done={doneOf(layers.center)} ghostOpacity={0.2} />
@@ -501,7 +496,7 @@ export function Viewport3D({
         <axesHelper args={[size * 0.75]} />
       </group>
       <Grid
-        position={[0, lathe ? -size / 2 - 5 : showFixture && table ? table.top - table.height - 1 : -(stock?.z ?? 30) - 0.01, 0]}
+        position={[0, lathe ? -size / 2 - 5 : showFixture && table ? table.top - table.height - 1 : -dims.z - 0.01, 0]}
         args={[1000, 1000]}
         cellSize={5}
         sectionSize={50}

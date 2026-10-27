@@ -1,4 +1,4 @@
-import type { Control, Machine, ToolLibrary } from '@core/index'
+import { isLathe, type Control, type Machine, type ToolLibrary } from '@core/index'
 import { useI18n } from '../i18n'
 
 export interface SetupChoice {
@@ -17,7 +17,6 @@ interface Props {
   onChange: (value: SetupChoice) => void
 }
 
-const isLathe = (m: Machine | undefined) => !!m?.kinematics.startsWith('lathe')
 
 /** Machine, control and tool library pickers; controls are limited to the machine's kind. */
 export function SetupPicker({ machines, controls, libraries, value, onChange }: Props) {

@@ -22,14 +22,13 @@ import {
   simulate,
   stockFromPath,
   toolMount,
-  workShift,
+  workZero,
   type ConfigIssue,
   type ProgramKind,
   type Control,
   type Diagnostic,
   type Exercise,
   type Move,
-  type Vec3,
   type Machine,
   type Project,
   type Severity,
@@ -38,7 +37,9 @@ import {
   type Tool,
   type ToolLibrary,
   type ToolOffsets,
-  type WorkOffsets
+  type WorkOffsets,
+  isLathe,
+  machineKind,
 } from '@core/index'
 import type { MenuCommand } from '../preload/api'
 import { EXERCISES, isExample, type BundledConfigs, type Program } from './bundled'
@@ -485,9 +486,8 @@ export function Workspace({ init, cfg, active, layout, learn, onLearn, onHelp, o
     if (c) setControlId(c.id)
     // Another machine brings its own stock; tools stay unless the machine kind changes
     // (lathe tools on a machining center make no sense, and the other way round)
-    const kindOf = (x: Machine | undefined) => x?.kinematics.startsWith('lathe')
     const own = defaultSetup(m, cfg.libraries)
-    const sameKind = kindOf(m) === kindOf(machine)
+    const sameKind = isLathe(m) === isLathe(machine)
     const s = { ...setup, stock: own.stock, tools: sameKind ? setup.tools : own.tools, toolOffsets: sameKind ? setup.toolOffsets : own.toolOffsets }
     setSetup(s)
     simulateWith(currentProgram(), m, c, s)
@@ -660,9 +660,9 @@ export function Workspace({ init, cfg, active, layout, learn, onLearn, onHelp, o
   )
   const stoppedBy = result?.stoppedBy
 
-  const machineKind = machine && (machine.kinematics.startsWith('lathe') ? 'lathe' : 'mill')
-  const shownAxes = machine ? machine.axes.map((a) => a.name) : ['X', 'Y', 'Z']
-  const lathe = machineKind === 'lathe'
+    const shownAxes = machine ? machine.axes.map((a) => a.name) : ['X', 'Y', 'Z']
+  const kind = machine && machineKind(machine)
+  const lathe = isLathe(machine)
   const toGo = move && position ? distanceToGo(moves, index, position) : undefined
   const maxRpm = machine?.spindles.find((s) => s.type !== 'live')?.maxRpm ?? 0
   const maxLiveRpm = machine?.spindles.find((s) => s.type === 'live')?.maxRpm ?? 0
@@ -675,25 +675,18 @@ export function Workspace({ init, cfg, active, layout, learn, onLearn, onHelp, o
     libraryTool ?? (move && move.state.tool > 0 ? { number: move.state.tool, name: '', type: 'flat-endmill', diameter: Math.max(1, move.toolRadius * 2), length: 40 } : undefined)
   const holder = currentTool ? holderOf(currentTool, setup.tools, lathe) : undefined
   const mount = currentTool ? toolMount(currentTool, holder, lathe) : 'axial'
-  const collisions = useMemo(() => {
-    const s = setup.stock
-    const shift = workShift(setup.workOffsets, s?.workOffset ?? 'G54')
-    return findHolderCollisions({
-      moves: result?.moves ?? [],
-      tools: setup.tools,
-      stock: s,
-      stockZero: lathe ? [0, 0, shift.Z] : [shift.X, shift.Y, shift.Z],
-      lathe
-    })
-  }, [result, setup, lathe])
+  // Where the stock's work offset puts its zero in the drawing frame
+  const stockZero = useMemo(() => workZero(setup.workOffsets, setup.stock?.workOffset ?? 'G54', lathe), [setup, lathe])
+  const collisions = useMemo(
+    () => findHolderCollisions({ moves: result?.moves ?? [], tools: setup.tools, stock: setup.stock, stockZero, lathe }),
+    [result, setup, stockZero, lathe]
+  )
   const colliding = !!move && collisions.some((c) => c.line === move.line && c.tool === move.state.tool)
   const chuckCollisions = useMemo(() => {
     if (!lathe) return []
-    const shift = workShift(setup.workOffsets, setup.stock?.workOffset ?? 'G54')
     const moves = result?.moves ?? []
-    const zero: Vec3 = [0, 0, shift.Z]
-    return [...findChuckCollisions(moves, setup.stock, zero, machine?.chuck), ...findTailstockCollisions(moves, setup.stock, zero, machine?.tailstock)]
-  }, [result, setup, lathe, machine])
+    return [...findChuckCollisions(moves, setup.stock, stockZero, machine?.chuck), ...findTailstockCollisions(moves, setup.stock, stockZero, machine?.tailstock)]
+  }, [result, setup, stockZero, lathe, machine])
   const hitHere = (part: 'chuck' | 'tailstock') =>
     !!move && chuckCollisions.some((c) => (c.part ?? 'chuck') === part && c.line === move.line && c.tool === move.state.tool)
   const chuckHit = hitHere('chuck')
@@ -714,10 +707,6 @@ export function Workspace({ init, cfg, active, layout, learn, onLearn, onHelp, o
   const helpLine = move?.line ?? (atReset ? startLine : -1)
   const blockHelp = useMemo(() => (learn && helpLine >= 0 ? explainLine(lines[helpLine] ?? '', control, l) : []), [learn, helpLine, lines, control, l])
   // Guided exercise: the solution machined on the same setup, and the check of the student's program
-  const stockZero = useMemo<Vec3>(() => {
-    const sh = workShift(setup.workOffsets, setup.stock?.workOffset ?? 'G54')
-    return lathe ? [0, 0, sh.Z] : [sh.X, sh.Y, sh.Z]
-  }, [setup, lathe])
   const reference = useMemo<readonly Move[]>(() => {
     if (!exercise) return []
     const input = simInput({ name: 'solution', path: '', text: exercise.exercise.solution }, machine, control, cfg, setup)
@@ -1048,7 +1037,7 @@ export function Workspace({ init, cfg, active, layout, learn, onLearn, onHelp, o
         m: Object.keys(control.mCodes).length
       })}
     </p>
-    {machine && machineKind !== control.machineType && (
+    {machine && kind !== control.machineType && (
       <p className="warning">
         {t('control.mismatch', {
           controlType: t(`machineType.${control.machineType}`),
@@ -1319,7 +1308,7 @@ export function Workspace({ init, cfg, active, layout, learn, onLearn, onHelp, o
           {t('header.control')}
           <select value={controlId} onChange={(e) => changeControl(e.target.value)}>
             {cfg.controls
-              .filter((c) => c.machineType === machineKind || c.id === controlId)
+              .filter((c) => c.machineType === kind || c.id === controlId)
               .map((c) => (
                 <option key={c.id} value={c.id}>{c.name}</option>
               ))}
@@ -1334,7 +1323,7 @@ export function Workspace({ init, cfg, active, layout, learn, onLearn, onHelp, o
         <StockEditor
           stock={setup.stock}
           machineDefault={defaultSetup(machine, []).stock}
-          lathe={machineKind === 'lathe'}
+          lathe={kind === 'lathe'}
           fromProgram={programStock}
           workOffsets={Object.keys(setup.workOffsets)}
           onApply={applyStock}
@@ -1346,7 +1335,7 @@ export function Workspace({ init, cfg, active, layout, learn, onLearn, onHelp, o
           stockOffset={setup.stock?.workOffset ?? 'G54'}
           offsets={setup.workOffsets}
           axes={machine.axes.filter((a) => a.type === 'linear' && ['X', 'Y', 'Z'].includes(a.name)).map((a) => a.name)}
-          extended={machineKind === 'mill'}
+          extended={kind === 'mill'}
           onApply={applyOffsets}
           onClose={() => setEditingOffsets(false)}
         />

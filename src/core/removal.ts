@@ -1,7 +1,7 @@
 // Material removal for the 3D view: a heightfield on block stock (machining centers) and a radius
 // profile on bar stock (turning). Moves are applied one at a time, so the view can follow playback.
 // Rapids and live tooling on lathes do not remove material here.
-import type { Stock } from './config/project'
+import { stockSize, type Stock } from './config/project'
 import type { Move, Vec3 } from './types'
 
 /** Top-face heights of a block, one per grid cell. */
@@ -35,20 +35,19 @@ export const stockOrigin = (s: Stock, zero: Vec3): Vec3 => [zero[0] + (s.offset?
 
 export function createHeightfield(s: Stock, zero: Vec3): Heightfield {
   const o = stockOrigin(s, zero)
-  const sx = s.x ?? 100
-  const sy = s.y ?? 80
+  const { x: sx, y: sy, z: sz } = stockSize(s)
   const cell = Math.max(0.25, Math.max(sx, sy) / MAX_CELLS)
   const nx = Math.max(2, Math.ceil(sx / cell) + 1)
   const ny = Math.max(2, Math.ceil(sy / cell) + 1)
-  return { nx, ny, x0: o[0], y0: o[1], cell, top: o[2], bottom: o[2] - (s.z ?? 30), heights: new Float32Array(nx * ny).fill(o[2]), dirty: null }
+  return { nx, ny, x0: o[0], y0: o[1], cell, top: o[2], bottom: o[2] - sz, heights: new Float32Array(nx * ny).fill(o[2]), dirty: null }
 }
 
 export function createProfile(s: Stock, zero: Vec3): TurnProfile {
   const o = stockOrigin(s, zero)
-  const L = s.length ?? 30
+  const { length: L, diameter } = stockSize(s)
   const cell = Math.max(0.1, L / 400)
   const n = Math.ceil(L / cell) + 1
-  const radius = (s.diameter ?? 50) / 2
+  const radius = diameter / 2
   return { face: o[2], cell, radius, radii: new Float32Array(n).fill(radius) }
 }
 
@@ -186,8 +185,7 @@ export type ZeroAt = 'front-left' | 'front-right' | 'back-left' | 'back-right' |
 
 /** Stock offset that puts the work zero at that point of the block's top face. */
 export function offsetForZero(s: Stock, at: ZeroAt): NonNullable<Stock['offset']> {
-  const x = s.x ?? 100
-  const y = s.y ?? 80
+  const { x, y } = stockSize(s)
   const fx = at === 'center' ? 0.5 : at.endsWith('right') ? 1 : 0
   const fy = at === 'center' ? 0.5 : at.startsWith('back') ? 1 : 0
   return { X: 0 - x * fx, Y: 0 - y * fy, Z: 0 }

@@ -1,5 +1,6 @@
 export * from './types'
 export * from './config/schema'
+export * from './config/kinds'
 export * from './config/load'
 export * from './config/project'
 export { parseProgram, type Block, type ParsedProgram } from './program/parse'

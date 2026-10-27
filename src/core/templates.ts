@@ -1,6 +1,7 @@
 // Starting programs for File > New: a safe header written with the selected control's own codes
 // (looked up by function, so Fanuc and Mitsubishi tables both work), and optionally a parametric
 // body in Macro B. The UI passes the comments in the user's language.
+import { isLatheControl } from './config/kinds'
 import type { Control, Machine } from './config/schema'
 
 export type ProgramKind = 'plain' | 'parametric'
@@ -46,7 +47,7 @@ export function programTemplate(machine: Machine, control: Control, kind: Progra
   const g = (fn: string) => code(control.gCodes, fn)
   const m = (fn: string) => code(control.mCodes, fn)
   const words = (...w: string[]) => w.filter(Boolean).join(' ')
-  const lathe = control.machineType === 'lathe'
+  const lathe = isLatheControl(control)
   const o = `O${String(number).padStart(4, '0')}`
   const parametric = kind === 'parametric' && supportsMacro(control)
 
