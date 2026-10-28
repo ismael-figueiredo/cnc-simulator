@@ -29,6 +29,7 @@ import {
   type WorkOffsets,
   isLathe,
   machineKind,
+  radialTools as radialToolsOf,
   tableLayout,
 } from '@core/index'
 import type { MenuCommand } from '../preload/api'
@@ -411,10 +412,7 @@ export function Workspace({ init, cfg, active, layout, learn, onLearn, onHelp, o
   const tailstockHit = fixtureHitAt(allCollisions, move, 'tailstock')
   const ballTools = useMemo(() => new Set(setup.tools?.tools.filter((x) => x.type === 'ball-endmill').map((x) => x.number) ?? []), [setup.tools])
   /** Lathe live tools whose axis points at the spindle axis: they mill and drill the side of the bar. */
-  const radialTools = useMemo(
-    () => new Set(lathe ? (setup.tools?.tools.filter((x) => toolMount(x, holderOf(x, setup.tools, true), true) === 'radial').map((x) => x.number) ?? []) : []),
-    [setup.tools, lathe]
-  )
+  const radialTools = useMemo(() => (lathe ? radialToolsOf(setup.tools) : new Set<number>()), [setup.tools, lathe])
   /** Stock wrapping what the program cuts, offered in the stock editor. */
   const programStock = useMemo(() => stockFromPath(result?.moves ?? [], lathe), [result, lathe])
   // C angle: from the tip in polar interpolation (C is not tracked as an angle there), else the C position
@@ -455,14 +453,14 @@ export function Workspace({ init, cfg, active, layout, learn, onLearn, onHelp, o
     const stock = setup.stock
     if (busy || !result?.moves.length || !stock) return
     const id = setTimeout(() => {
-      const url = renderPart({ moves: result.moves, stock, zero: stockZero, lathe, ballTools })
+      const url = renderPart({ moves: result.moves, stock, zero: stockZero, lathe, ballTools, radialTools })
       if (!url) return
       setPartThumb(url)
       const path = projectPath ?? program.path
       if (path) writeThumb(thumbKey('path', path), url)
     }, 400)
     return () => clearTimeout(id)
-  }, [result, busy, setup.stock, stockZero, lathe, ballTools, projectPath, program.path])
+  }, [result, busy, setup.stock, stockZero, lathe, ballTools, radialTools, projectPath, program.path])
   async function checkExercise() {
     const stock = setup.stock
     if (!exercise || !machine || !control || !stock || !referenceInput) return

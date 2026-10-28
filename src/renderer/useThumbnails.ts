@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import type { SimulationInput, Stock, Vec3 } from '@core/index'
+import { radialTools, type SimulationInput, type Stock, type Vec3 } from '@core/index'
 import { createSimulator } from './simulation'
 import { readThumb, renderPart, writeThumb } from './thumbnail'
 
@@ -43,7 +43,8 @@ export function usePartThumbnails(jobs: readonly ThumbJob[]): Record<string, str
         // Let the screen paint between parts
         await new Promise((done) => setTimeout(done, 30))
         const ballTools = new Set(job.input.tools?.tools.filter((x) => x.type === 'ball-endmill').map((x) => x.number) ?? [])
-        const url = renderPart({ moves: result.moves, stock: job.stock, zero: job.zero, lathe: job.lathe, ballTools })
+        const radial = job.lathe ? radialTools(job.input.tools ?? null) : undefined
+        const url = renderPart({ moves: result.moves, stock: job.stock, zero: job.zero, lathe: job.lathe, ballTools, radialTools: radial })
         if (!url) continue
         writeThumb(job.key, url)
         setThumbs((t) => ({ ...t, [job.key]: url }))

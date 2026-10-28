@@ -80,6 +80,10 @@ export function holderOf(tool: Tool, library: ToolLibrary | null, lathe: boolean
   return TURNING_TYPES.has(tool.type) && lathe ? undefined : GENERIC_HOLDERS[lathe ? 'lathe' : 'mill']
 }
 
+/** Lathe live tools whose axis points at the spindle axis: they mill and drill the side of the bar. */
+export const radialTools = (library: ToolLibrary | null): Set<number> =>
+  new Set(library?.tools.filter((t) => toolMount(t, holderOf(t, library, true), true) === 'radial').map((t) => t.number) ?? [])
+
 /** Outline [radius, height] from the tip (height 0) up, for a solid of revolution. */
 export type Outline = [number, number][]
 

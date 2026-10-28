@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { BufferAttribute, BufferGeometry, Uint32BufferAttribute } from 'three'
-import { createHeightfield, createProfile, type Move, type Vec3 } from '../src/core'
+import { createBarModel, createHeightfield, createProfile, cutBar, type Move, type Vec3 } from '../src/core'
+import { disposeLiveBar, drawLiveBar, liveBarParts } from '../src/renderer/geometry/liveBar'
 import { barGeometry, copyProfile, holeGeometry, replayTo, seatHole, writeCells } from '../src/renderer/geometry/machined'
 import { buildLayer, rotateZ, toScene } from '../src/renderer/geometry/paths'
 
@@ -87,5 +88,52 @@ describe('machined meshes', () => {
     expect(colors.count).toBe(g.getAttribute('position').count)
     const distinct = new Set(Array.from({ length: colors.count }, (_, k) => colors.getX(k).toFixed(3)))
     expect(distinct.size).toBe(2)
+  })
+})
+
+describe('bar cut with live tools', () => {
+  it('gives the outer surface and the face programs of their own (one shared program clipped the face wrong)', () => {
+    const parts = liveBarParts(createBarModel({ shape: 'cylinder', diameter: 40, length: 20 }, [0, 0, 0]))
+    expect(parts.outerMaterial.customProgramCacheKey()).not.toBe(parts.faceMaterial.customProgramCacheKey())
+    // Each shader gets the maps and its own clipping
+    const compile = (m: typeof parts.faceMaterial) => {
+      const shader = { uniforms: {}, vertexShader: '#include <begin_vertex>', fragmentShader: '#include <clipping_planes_fragment>' } as unknown as Parameters<typeof m.onBeforeCompile>[0]
+      m.onBeforeCompile(shader, undefined as never)
+      return shader
+    }
+    const face = compile(parts.faceMaterial)
+    expect(face.fragmentShader).toContain('length(vPart.xy) > radiusAt(vPart)')
+    expect(Object.keys(face.uniforms)).toEqual(['uFace', 'uFaceGrid', 'uRadial', 'uRadialGrid'])
+    expect(compile(parts.outerMaterial).fragmentShader).toContain('vPart.z > faceAt(vPart.xy)')
+    disposeLiveBar(parts)
+  })
+
+  it('writes the whole bar: the outer surface on its radius, the face map at the face', () => {
+    const b = createBarModel({ shape: 'cylinder', diameter: 40, length: 20 }, [0, 0, 0])
+    const parts = liveBarParts(b)
+    drawLiveBar(parts, b, '#9aa6b1', true)
+    const outer = parts.outer.getAttribute('position')
+    // Row 1 is the face's rim (row 0 the center of the face cap)
+    expect(Math.hypot(outer.getX(b.nTheta), outer.getY(b.nTheta))).toBeCloseTo(20, 6)
+    expect(parts.face.getAttribute('position').getZ(0)).toBe(b.faceMap.top)
+    disposeLiveBar(parts)
+  })
+
+  it('redraws only what a cut changed, on the side (radial tool) and on the face (axial tool)', () => {
+    const b = createBarModel({ shape: 'cylinder', diameter: 40, length: 20 }, [0, 0, 0])
+    const parts = liveBarParts(b)
+    drawLiveBar(parts, b, '#9aa6b1', true)
+    const live = (points: Vec3[]) => ({ ...move(points), toolRadius: 3, state: { liveToolOn: true, spindleOn: false, tool: 1 } }) as unknown as Move
+    // Radial: across the side at Z-10; axial: into the face near the rim
+    expect(cutBar(b, live([[25, 0, -10], [17, 0, -10]]), true)).toBe(true)
+    expect(cutBar(b, live([[15, 0, 1], [15, 0, -2]]), false)).toBe(true)
+    drawLiveBar(parts, b, '#9aa6b1', false)
+    const outer = parts.outer.getAttribute('position')
+    const row = 1 + Math.round(10 / b.cell)
+    expect(Math.hypot(outer.getX(row * b.nTheta), outer.getY(row * b.nTheta))).toBeLessThan(20)
+    expect(Math.min(...Array.from({ length: parts.face.getAttribute('position').count }, (_, k) => parts.face.getAttribute('position').getZ(k)))).toBeLessThan(0)
+    // Nothing new: nothing to draw
+    drawLiveBar(parts, b, '#9aa6b1', false)
+    disposeLiveBar(parts)
   })
 })

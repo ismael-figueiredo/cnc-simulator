@@ -1,6 +1,6 @@
 // Meshes of the stock being cut, and the replay of the cuts as playback moves: plain three.js
 // geometry, so the 3D view only draws it and the tests can check it.
-import { BufferAttribute, BufferGeometry, Color, LatheGeometry, Vector2 } from 'three'
+import { BufferAttribute, BufferGeometry, Color, LatheGeometry, Sphere, Uint32BufferAttribute, Vector2, Vector3 } from 'three'
 import type { Heightfield, Hole, Move, TurnProfile } from '@core/index'
 import { sharpLathe } from './sharpLathe'
 
@@ -212,5 +212,18 @@ export function barGeometry(p: TurnProfile, color: string, _version = 0): LatheG
     colors.set([c.r, c.g, c.b], k * 3)
   }
   g.setAttribute('color', new BufferAttribute(colors, 3))
+  return g
+}
+
+/** A heightfield's surface: one vertex per point, two triangles per cell (written by writeCells). */
+export function gridGeometry(h: Heightfield) {
+  const g = new BufferGeometry()
+  g.setAttribute('position', new BufferAttribute(new Float32Array(h.nx * h.ny * 3), 3))
+  g.setAttribute('color', new BufferAttribute(new Float32Array(h.nx * h.ny * 3), 3))
+  g.setAttribute('normal', new BufferAttribute(new Float32Array(h.nx * h.ny * 3), 3))
+  // The surface stays inside the stock box: a fixed bounding sphere, not recomputed per frame
+  g.boundingSphere = new Sphere(new Vector3(h.x0 + (h.nx * h.cell) / 2, h.y0 + (h.ny * h.cell) / 2, (h.top + h.bottom) / 2), Math.hypot(h.nx * h.cell, h.ny * h.cell, h.top - h.bottom))
+  // Two triangles per cell, their diagonal chosen per cell in writeCells
+  g.setIndex(new Uint32BufferAttribute(new Uint32Array((h.nx - 1) * (h.ny - 1) * 6), 1))
   return g
 }

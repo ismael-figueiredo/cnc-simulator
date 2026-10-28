@@ -1,7 +1,8 @@
 // Small pictures of the finished part, for the start screen and the document tree: the stock is
 // machined with every move of the program and drawn once, off screen, as an isometric view.
 import { AmbientLight, Box3, BufferAttribute, BufferGeometry, Color, DirectionalLight, Group, Mesh, MeshStandardMaterial, OrthographicCamera, Scene, Sphere, Vector3, WebGLRenderer } from 'three'
-import { createHeightfield, createProfile, cutHeightfield, cutProfile, type Heightfield, type Move, type Stock, type Vec3 } from '@core/index'
+import { createBarModel, createHeightfield, createProfile, cutBar, cutHeightfield, cutProfile, hasLiveCuts, type Heightfield, type Move, type Stock, type Vec3 } from '@core/index'
+import { disposeLiveBar, drawLiveBar, liveBarParts } from './geometry/liveBar'
 import { barGeometry } from './geometry/machined'
 import { storage } from './platform/storage'
 
@@ -12,6 +13,8 @@ export interface PartSource {
   zero: Vec3
   lathe: boolean
   ballTools: ReadonlySet<number>
+  /** Lathe live tools that cut the side of the bar (the others cut its face). */
+  radialTools?: ReadonlySet<number>
 }
 
 const WIDTH = 320
@@ -89,12 +92,27 @@ export function renderPart(src: PartSource): string | null {
   if (!gl) return null
   const color = src.stock.color ?? '#9aa6b1'
   const part = new Group()
-  let geometry: BufferGeometry
-  if (src.lathe) {
+  /** Freed once the picture is taken. */
+  const disposables: { dispose: () => void }[] = []
+  if (src.lathe && src.stock.shape === 'cylinder' && hasLiveCuts(src.moves)) {
+    // Live tooling cuts more than a turned shape: the same two-map bar as the 3D view
+    const radial = src.radialTools ?? new Set<number>()
+    const b = createBarModel(src.stock, src.zero)
+    for (const m of src.moves) cutBar(b, m, radial.has(m.state.tool), src.ballTools.has(m.state.tool))
+    const parts = liveBarParts(b)
+    drawLiveBar(parts, b, color, true)
+    const bar = new Group()
+    bar.add(new Mesh(parts.outer, parts.outerMaterial), new Mesh(parts.face, parts.faceMaterial))
+    // The spindle axis (Z) across the picture, face to the right, as the turned bars
+    bar.rotation.y = Math.PI / 2
+    part.add(bar)
+    disposables.push({ dispose: () => disposeLiveBar(parts) })
+  } else if (src.lathe) {
     if (src.stock.shape !== 'cylinder') return null
     const p = createProfile(src.stock, src.zero)
     for (const m of src.moves) cutProfile(p, m)
-    geometry = barGeometry(p, color)
+    const geometry = barGeometry(p, color)
+    disposables.push(geometry)
     const mesh = new Mesh(geometry, new MeshStandardMaterial({ vertexColors: true, metalness: 0.5, roughness: 0.4 }))
     // LatheGeometry turns around +Y; lay the spindle axis across the picture
     mesh.rotation.z = -Math.PI / 2
@@ -103,7 +121,8 @@ export function renderPart(src: PartSource): string | null {
     if (src.stock.shape !== 'block') return null
     const h = createHeightfield(src.stock, src.zero)
     for (const m of src.moves) cutHeightfield(h, m, src.ballTools.has(m.state.tool))
-    geometry = blockGeometry(h, color)
+    const geometry = blockGeometry(h, color)
+    disposables.push(geometry)
     const mesh = new Mesh(geometry, new MeshStandardMaterial({ vertexColors: true, metalness: 0.45, roughness: 0.45 }))
     // Machine Z up
     mesh.rotation.x = -Math.PI / 2
@@ -130,12 +149,13 @@ export function renderPart(src: PartSource): string | null {
   gl.setClearColor(0x000000, 0)
   gl.render(scene, camera)
   const url = gl.domElement.toDataURL('image/png')
-  geometry.dispose()
+  for (const d of disposables) d.dispose()
   return url
 }
 
-// Bumped when the drawing changes (2: turned bars faced inward before), so old pictures are redrawn
-const PREFIX = 'cncsim.thumb2.'
+// Bumped when the drawing changes (2: turned bars faced inward before; 3: live tool cuts drawn), so
+// old pictures are redrawn
+const PREFIX = 'cncsim.thumb3.'
 /** Short stable key for a part: same program, machine and stock give the same picture. */
 export function thumbKey(...parts: string[]): string {
   let h = 2166136261
