@@ -163,7 +163,7 @@ function home(lang: Lang): string {
       ? [
           { q: 'Is CNC Simulator free?', a: 'Yes. It is free and open-source software under the GPL-3.0 license: no account, no ads, no time limit.' },
           { q: 'Which systems does it run on?', a: 'Windows 10 and 11, macOS (Apple Silicon and Intel) and Linux (AppImage and .deb).' },
-          { q: 'Which CNC controls does it simulate?', a: 'Fanuc 0i-TF (lathe) and 0i-MF (machining center), the Romi GL and D lines, Mitsubishi M80 lathe and machining center, and Haas NGC mill. Machines and controls are JSON files, so new ones can be added.' },
+          { q: 'Which CNC controls does it simulate?', a: 'Fanuc 0i-TF (lathe) and 0i-MF (machining center), Fanuc 21i-TB (Romi E280), the Romi GL and D lines, Siemens SINUMERIK 840D lathe and machining center, Mitsubishi M80 lathe and machining center, and Haas NGC mill. Machines and controls are JSON files, so new ones can be added.' },
           { q: 'Can I check a CAM program before running it on the machine?', a: 'Yes. Open the program, pick the machine and control, and run it: the simulator stops on the control’s own alarms and warns about travel limits, holder and chuck collisions and tool offsets.' },
           { q: 'Does it run parametric programs (Macro B)?', a: 'Yes: variables, math functions, IF/GOTO, WHILE/DO loops and G65 macro calls run as on the control.' },
           { q: 'Can I learn CNC programming with it?', a: 'Yes. The machine screen looks like a control, with MDI keys and an operator panel; the learning mode explains every code; and guided exercises check your program against the expected part.' }
@@ -171,7 +171,7 @@ function home(lang: Lang): string {
       : [
           { q: 'O CNC Simulator é gratuito?', a: 'Sim. É software livre e de código aberto sob a licença GPL-3.0: sem cadastro, sem propaganda e sem prazo.' },
           { q: 'Em quais sistemas ele funciona?', a: 'Windows 10 e 11, macOS (Apple Silicon e Intel) e Linux (AppImage e .deb).' },
-          { q: 'Quais comandos CNC ele simula?', a: 'Fanuc 0i-TF (torno) e 0i-MF (centro de usinagem), as linhas Romi GL e D, Mitsubishi M80 torno e centro de usinagem, e Haas NGC fresadora. Máquinas e comandos são arquivos JSON, então dá para acrescentar outros.' },
+          { q: 'Quais comandos CNC ele simula?', a: 'Fanuc 0i-TF (torno) e 0i-MF (centro de usinagem), Fanuc 21i-TB (Romi E280), as linhas Romi GL e D, Siemens SINUMERIK 840D torno e centro de usinagem, Mitsubishi M80 torno e centro de usinagem, e Haas NGC fresadora. Máquinas e comandos são arquivos JSON, então dá para acrescentar outros.' },
           { q: 'Dá para conferir um programa do CAM antes de rodar na máquina?', a: 'Sim. Abra o programa, escolha a máquina e o comando e execute: o simulador para nos alarmes do próprio comando e avisa sobre fim de curso, colisão de suporte e de placa e corretores de ferramenta.' },
           { q: 'Ele roda programação parametrizada (Macro B)?', a: 'Sim: variáveis, funções matemáticas, IF/GOTO, laços WHILE/DO e chamadas de macro G65 rodam como no comando.' },
           { q: 'Dá para aprender programação CNC com ele?', a: 'Sim. A tela de máquina é como a de um comando, com teclado MDI e painel de operação; o modo aprender explica cada código; e os exercícios guiados conferem o seu programa com a peça esperada.' }
@@ -180,8 +180,8 @@ function home(lang: Lang): string {
 <section class="hero">
   <h1>${t('Free CNC simulator to learn and test G-code', 'Simulador CNC grátis para aprender e testar G-code')}</h1>
   <p class="lead">${t(
-    'Run lathe and machining center programs as on the machine: Fanuc, Mitsubishi and Haas controls, Macro B parametric programs, the control’s own alarms and collision checks, in 3D. No machine needed.',
-    'Rode programas de torno e centro de usinagem como na máquina: comandos Fanuc, Mitsubishi e Haas, programação parametrizada Macro B, os alarmes do próprio comando e a verificação de colisões, em 3D. Sem precisar da máquina.'
+    'Run lathe and machining center programs as on the machine: Fanuc, Siemens, Mitsubishi and Haas controls, Macro B parametric programs, the control’s own alarms and collision checks, in 3D. No machine needed.',
+    'Rode programas de torno e centro de usinagem como na máquina: comandos Fanuc, Siemens, Mitsubishi e Haas, programação parametrizada Macro B, os alarmes do próprio comando e a verificação de colisões, em 3D. Sem precisar da máquina.'
   )}</p>
   <div class="downloads" id="download">
     <a class="btn primary" id="dl-main" href="${RELEASES}">${t('Download for free', 'Baixar grátis')}</a>
@@ -243,8 +243,8 @@ function home(lang: Lang): string {
 
 <h2>${t('Machines and controls included', 'Máquinas e comandos incluídos')}</h2>
 <p>${t(
-    'Romi GL 250 M and GL 300 lathes and Romi D600, D1000 and D1250 machining centers with Fanuc 0i; Mitsubishi M80 lathe and machining center; Haas VF-2 and VF-5/40 with the Haas NGC control; a generic 3-axis machining center. Each machine and control is a JSON file: see the <a href="' + REPO + '/blob/main/CONTRIBUTING.md">contributing guide</a> to add yours. All the codes of each control are in the <a href="' + relative(PAGES.home[lang], PAGES.codes[lang]) + '">G and M code reference</a>.',
-    'Tornos Romi GL 250 M e GL 300 e centros de usinagem Romi D600, D1000 e D1250 com Fanuc 0i; Mitsubishi M80 torno e centro de usinagem; Haas VF-2 e VF-5/40 com o comando Haas NGC; um centro de usinagem 3 eixos genérico. Cada máquina e comando é um arquivo JSON: veja o <a href="' + REPO + '/blob/main/CONTRIBUTING.md">guia de contribuição</a> para acrescentar a sua. Todos os códigos de cada comando estão na <a href="' + relative(PAGES.home[lang], PAGES.codes[lang]) + '">referência de códigos G e M</a>.'
+    'Romi GL 250 M and GL 300 lathes and Romi D600, D1000 and D1250 machining centers with Fanuc 0i; Romi E280 lathe with Fanuc 21i-TB, C axis and live tools; Siemens SINUMERIK 840D lathe and machining center; Mitsubishi M80 lathe and machining center; Haas VF-2 and VF-5/40 with the Haas NGC control; a generic 3-axis machining center. Each machine and control is a JSON file: see the <a href="' + REPO + '/blob/main/CONTRIBUTING.md">contributing guide</a> to add yours. All the codes of each control are in the <a href="' + relative(PAGES.home[lang], PAGES.codes[lang]) + '">G and M code reference</a>.',
+    'Tornos Romi GL 250 M e GL 300 e centros de usinagem Romi D600, D1000 e D1250 com Fanuc 0i; torno Romi E280 com Fanuc 21i-TB, eixo C e ferramentas acionadas; Siemens SINUMERIK 840D torno e centro de usinagem; Mitsubishi M80 torno e centro de usinagem; Haas VF-2 e VF-5/40 com o comando Haas NGC; um centro de usinagem 3 eixos genérico. Cada máquina e comando é um arquivo JSON: veja o <a href="' + REPO + '/blob/main/CONTRIBUTING.md">guia de contribuição</a> para acrescentar a sua. Todos os códigos de cada comando estão na <a href="' + relative(PAGES.home[lang], PAGES.codes[lang]) + '">referência de códigos G e M</a>.'
   )}</p>
 
 <h2>${t('Frequently asked questions', 'Perguntas frequentes')}</h2>
@@ -283,8 +283,8 @@ ${faq.map((f) => `<details><summary>${esc(f.q)}</summary><p>${esc(f.a)}</p></det
     page: 'home',
     title: t('CNC Simulator: free G-code simulator for lathe and mill (Fanuc, Haas)', 'Simulador CNC grátis: torno e centro de usinagem, Fanuc e Haas | CNC Simulator'),
     description: t(
-      'Free, open-source CNC simulator for Windows, macOS and Linux. Learn and test G-code for lathes and machining centers: Fanuc, Mitsubishi and Haas controls, Macro B, alarms and collisions in 3D.',
-      'Simulador CNC gratuito e de código aberto para Windows, macOS e Linux. Aprenda e teste G-code de torno e centro de usinagem: comandos Fanuc, Mitsubishi e Haas, Macro B, alarmes e colisões em 3D.'
+      'Free, open-source CNC simulator for Windows, macOS and Linux. Learn and test G-code for lathes and machining centers: Fanuc, Siemens, Mitsubishi and Haas controls, Macro B, alarms and collisions in 3D.',
+      'Simulador CNC gratuito e de código aberto para Windows, macOS e Linux. Aprenda e teste G-code de torno e centro de usinagem: comandos Fanuc, Siemens, Mitsubishi e Haas, Macro B, alarmes e colisões em 3D.'
     ),
     body,
     data,

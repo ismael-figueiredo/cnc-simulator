@@ -4,6 +4,28 @@ Cada versão em português e inglês. · Each version in Portuguese and English.
 
 Downloads: https://github.com/ismael-figueiredo/cnc-simulator/releases
 
+## 0.23.0 · 2026-10-28
+
+### Português
+**Romi E280 com Fanuc 21i-TB e comandos Siemens SINUMERIK 840D.**
+- **Romi E280 (2006):** torno com Fanuc 21i-TB, sistema de códigos G B, eixo C e ferramentas acionadas, com os alarmes do 21i. O exemplo da coroa (O1500) passou para esta máquina.
+- **Siemens SINUMERIK 840D**, torno e centro de usinagem genéricos: parâmetros R, expressões (`X=R1+2`), `CR=`, `RND`/`CHR`/`CHF`, `AC()`/`IC()`, rótulos com `GOTOF`/`GOTOB`/`IF`, subprogramas `L n P m`, `T`/`D`, `G33`, furação com `CYCLE81`/`82`/`83` (também com `MCALL`) e desbaste com `CYCLE95`. Frames (`TRANS`, `ROT`…) e outros ciclos aparecem como não simulados. Novos exemplos: SIE1001 (eixo roscado no torno) e SIE2001 (placa de alumínio no centro).
+- **Fim do programa:** ao chegar no M30 o cursor para nele, o eixo-árvore aparece parado depois do M5 e o status mostra o fim do programa.
+- **Medição estilo CAD:** a régua puxa para cantos, arestas, centros e bordas de furos, com um marcador do tipo de ponto; só a peça e o percurso são medidos (castanha, morsa e ferramenta ficam de fora). Esc sai da medição.
+- **Acessórios:** placa ou mesa, morsa e contraponto podem ser mostrados ou escondidos um a um, e a escolha fica salva. Escondido, o contraponto continua sendo verificado nas colisões.
+- **Correções:** a face da peça usinada com ferramenta acionada não aparece mais com um quadrado em volta, e as miniaturas (Recentes, Exemplos, árvore) mostram os cortes da ferramenta acionada.
+- **Interno:** organização do código (lógica fora dos componentes, diálogos unificados, testes de componentes), verificação dos exercícios fora da tela principal e limites de cobertura de testes na CI.
+
+### English
+**Romi E280 with Fanuc 21i-TB, and Siemens SINUMERIK 840D controls.**
+- **Romi E280 (2006):** lathe with Fanuc 21i-TB, G-code system B, C axis and live tools, with the 21i alarms. The sprocket example (O1500) moves to this machine.
+- **Siemens SINUMERIK 840D**, generic lathe and machining center: R parameters, expressions (`X=R1+2`), `CR=`, `RND`/`CHR`/`CHF`, `AC()`/`IC()`, labels with `GOTOF`/`GOTOB`/`IF`, `L n P m` subprograms, `T`/`D`, `G33`, drilling with `CYCLE81`/`82`/`83` (also with `MCALL`) and roughing with `CYCLE95`. Frames (`TRANS`, `ROT`…) and other cycles show as not simulated. New examples: SIE1001 (threaded shaft on the lathe) and SIE2001 (aluminum plate on the machining center).
+- **Program end:** on M30 the cursor stays on it, the spindle shows stopped after M5 and the status shows the end of the program.
+- **CAD-style measuring:** the ruler snaps to corners, edges, hole centers and rims, with a marker of the point type; only the part and the toolpath are measured (jaws, vise and tool are left out). Esc leaves measuring.
+- **Fixtures:** chuck or table, vise and tailstock can be shown or hidden one by one, and the choice is kept. A hidden tailstock is still checked for collisions.
+- **Fixes:** the face of a part cut with live tools no longer shows a square around it, and the part pictures (Recent, Examples, feature tree) show the live tool cuts.
+- **Internal:** code organization (logic out of the components, one dialog frame, component tests), exercise checks off the UI thread and test coverage floors in CI.
+
 ## 0.22.0 · 2026-10-27
 
 ### Português
